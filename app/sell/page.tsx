@@ -103,7 +103,7 @@ function SellPage() {
     const raw = (isbnVal || isbn).trim()
     if (!raw) { show('กรุณากรอก ISBN'); return }
     const q = correctISBN(raw)
-    if (q !== raw) setIsbn(q)   // แสดง ISBN ที่แก้แล้วใน input
+    if (q !== raw) { setIsbn(q); show(`แก้ไขอัตโนมัติ: ${raw} → ${q}`) }
     if (!isValidISBN(q)) { show('กล้องอ่านบาร์โค้ดไม่ชัด ลองสแกนใหม่อีกครั้ง หรือพิมพ์ ISBN เอง'); return }
     setFetching(true)
     setNotFound(false)
@@ -133,7 +133,12 @@ function SellPage() {
       await scanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 100 } },
-        (text: string) => { scanner.stop(); setScanning(false); setIsbn(text); fetchBook(text) },
+        (text: string) => {
+          scanner.stop(); setScanning(false)
+          console.log('[scanner raw]', text)
+          show(`สแกนได้: ${text}`)
+          setIsbn(text); fetchBook(text)
+        },
         () => {}
       )
     } catch { setScanning(false); show('ไม่สามารถเปิดกล้องได้ กรุณาเปิดใน Chrome') }
