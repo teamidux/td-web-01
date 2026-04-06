@@ -126,19 +126,18 @@ function SellPage() {
 
   const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) { setShowLogin(true); return }
-    const raw = e.target.files?.[0]
-    if (!raw) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
     e.target.value = ''
     setScanning(true)
     try {
-      const file = await resizeForScan(raw)
+      const file = await resizeForScan(rawFile)
       const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
       let el = document.getElementById('sell-file-tmp')
       if (!el) { el = document.createElement('div'); el.id = 'sell-file-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
       const scanner = new Html5Qrcode('sell-file-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
       const result = await scanner.scanFile(file, false)
-      const raw = result.trim()
-      const isbn = correctISBN(raw)
+      const isbn = correctISBN(result.trim())
       setIsbn(isbn)
       fetchBook(isbn)
     } catch {
