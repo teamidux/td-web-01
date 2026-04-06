@@ -43,6 +43,7 @@ export type User = {
   phone: string
   display_name: string
   avatar_url?: string
+  line_id?: string
   plan: string
   listings_limit: number
   sold_count: number

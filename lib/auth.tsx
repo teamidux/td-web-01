@@ -7,6 +7,7 @@ type AuthCtx = {
   loading: boolean
   login: (phone: string) => Promise<void>
   logout: () => void
+  updateUser: (data: Partial<User>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthCtx>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthCtx>({
   loading: true,
   login: async () => {},
   logout: () => {},
+  updateUser: async () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -66,8 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('bm_user')
   }
 
+  const updateUser = async (data: Partial<User>) => {
+    if (!user) return
+    await supabase.from('users').update(data).eq('id', user.id)
+    const updated = { ...user, ...data }
+    setUser(updated)
+    localStorage.setItem('bm_user', JSON.stringify(updated))
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )
