@@ -31,13 +31,9 @@ function SearchPage() {
   const doSearch = async (q: string) => {
     if (!q.trim()) return
     setLoading(true)
-    const { data } = await supabase
-      .from('books')
-      .select('*')
-      .ilike('title', `%${q.trim()}%`)
-      .order('active_listings_count', { ascending: false })
-      .limit(30)
-    setResults(data || [])
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`)
+    const { results } = await res.json()
+    setResults(results || [])
     setLoading(false)
   }
 
@@ -87,8 +83,8 @@ function SearchPage() {
                     <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                     <div className="book-author">{b.author}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {b.min_price ? <span className="price">฿{b.min_price}</span> : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>}
-                      {b.active_listings_count > 0 && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>}
+                      {(b as any).min_price ? <span className="price">฿{(b as any).min_price}</span> : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>}
+                      {(b as any).count > 0 && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{(b as any).count} คนขาย</span>}
                       {b.wanted_count > 0 && <span className="badge badge-blue">🔔 {b.wanted_count} คนรอ</span>}
                     </div>
                   </div>
