@@ -66,7 +66,6 @@ function SellPage() {
   const [notFound, setNotFound] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [cameraError, setCameraError] = useState(false)
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [shipping, setShipping] = useState('buyer')
@@ -78,7 +77,6 @@ function SellPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState('')
 
-  const scannerRef = useRef<any>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const galleryInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -124,45 +122,28 @@ function SellPage() {
     setFetching(false)
   }
 
-  const startScan = async () => {
+  const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) { setShowLogin(true); return }
-    setCameraError(false)
-    setScanning(true)
-    try {
-      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-      const scanner = new Html5Qrcode('sell-scanner', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
-      scannerRef.current = scanner
-      await scanner.start(
-        { facingMode: 'environment', width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 } },
-        { fps: 8, qrbox: { width: 300, height: 110 } },
-        (text: string) => { scanner.stop(); setScanning(false); setIsbn(text.trim()); fetchBook(text.trim()) },
-        () => {}
-      )
-    } catch {
-      setScanning(false)
-      setCameraError(true)
-    }
-  }
-
-  const scanFromFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
+    setScanning(true)
     try {
-      const { Html5Qrcode } = await import('html5-qrcode')
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
       let el = document.getElementById('sell-file-tmp')
       if (!el) { el = document.createElement('div'); el.id = 'sell-file-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
-      const scanner = new Html5Qrcode('sell-file-tmp')
+      const scanner = new Html5Qrcode('sell-file-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
       const result = await scanner.scanFile(file, false)
-      setCameraError(false)
-      setIsbn(result.trim())
-      fetchBook(result.trim())
+      const raw = result.trim()
+      const isbn = correctISBN(raw)
+      setIsbn(isbn)
+      fetchBook(isbn)
     } catch {
       show('อ่านบาร์โค้ดไม่ได้ ลองถ่ายใหม่ให้เห็นบาร์โค้ดชัดขึ้น')
+    } finally {
+      setScanning(false)
     }
   }
-
-  const stopScan = () => { scannerRef.current?.stop(); setScanning(false) }
 
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -272,37 +253,22 @@ function SellPage() {
             </div>
           )}
 
-          {scanning ? (
-            <div style={{ marginBottom: 14, position: 'relative' }}>
-              <div id="sell-scanner" style={{ borderRadius: 12, overflow: 'hidden' }} />
-              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink3)', marginTop: 6 }}>
-                วางบาร์โค้ดหลังหนังสือให้อยู่ในกรอบแนวนอน ถือให้นิ่งสักครู่
-              </div>
-              <button onClick={stopScan} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,.6)', border: 'none', borderRadius: 20, padding: '5px 12px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕ ปิด</button>
-            </div>
-          ) : cameraError && !fetchedBook ? (
-            <div style={{ background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '20px', textAlign: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>กล้องเปิดอัตโนมัติไม่ได้ — ถ่ายรูปบาร์โค้ดแทนได้เลย</div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <label style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '14px 8px', background: 'var(--primary-light)', border: '1.5px dashed var(--primary)', borderRadius: 12, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
-                  <input type="file" accept="image/*" capture="environment" onChange={scanFromFile} style={{ display: 'none' }} />
-                  <span style={{ fontSize: 22 }}>📷</span>ถ่ายรูปบาร์โค้ด
-                </label>
-                <label style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '14px 8px', background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>
-                  <input type="file" accept="image/*" onChange={scanFromFile} style={{ display: 'none' }} />
-                  <span style={{ fontSize: 22 }}>🖼️</span>เลือกจากคลัง
-                </label>
-              </div>
-              <button onClick={startScan} style={{ marginTop: 10, background: 'transparent', border: 'none', color: 'var(--primary)', fontFamily: 'Sarabun', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
-                ลองเปิดกล้องอีกครั้ง
-              </button>
-            </div>
-          ) : !fetchedBook && (
-            <div onClick={startScan} style={{ background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 14, cursor: 'pointer' }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>สแกน Barcode</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อเปิดกล้อง</div>
-            </div>
+          {!fetchedBook && (
+            <label style={{ display: 'block', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 14, cursor: scanning ? 'default' : 'pointer' }}>
+              <input type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+              {scanning ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><span className="spin" style={{ width: 28, height: 28 }} /></div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>กำลังอ่านบาร์โค้ด...</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>ถ่ายรูปบาร์โค้ด</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อเปิดกล้อง</div>
+                </>
+              )}
+            </label>
           )}
 
           {!fetchedBook && (
