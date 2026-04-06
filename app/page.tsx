@@ -3,11 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
+// Book type still used for wantedBooks
 import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast } from '@/components/ui'
 
 export default function HomePage() {
   const router = useRouter()
-  const [books, setBooks] = useState<Book[]>([])
+  const [recentListings, setRecentListings] = useState<any[]>([])
   const [wantedBooks, setWantedBooks] = useState<Book[]>([])
   const [stats, setStats] = useState({ books: 0, sellers: 0, wanted: 0 })
   const [query, setQuery] = useState('')
@@ -19,14 +20,16 @@ export default function HomePage() {
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
-    const [{ data: bks }, { data: wanted }, { count: sellerCount }] = await Promise.all([
-      supabase.from('books').select('*').order('created_at', { ascending: false }).limit(10),
+    const [recentRes, { data: wanted }, { count: sellerCount }, { count: bookCount }] = await Promise.all([
+      fetch('/api/listings/recent?limit=10'),
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).limit(3),
       supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('books').select('*', { count: 'exact', head: true }),
     ])
-    setBooks(bks || [])
+    const { listings } = await recentRes.json()
+    setRecentListings(listings || [])
     setWantedBooks(wanted || [])
-    setStats({ books: bks?.length || 0, sellers: sellerCount || 0, wanted: wanted?.reduce((s, b) => s + (b.wanted_count || 0), 0) || 0 })
+    setStats({ books: bookCount || 0, sellers: sellerCount || 0, wanted: wanted?.reduce((s, b) => s + (b.wanted_count || 0), 0) || 0 })
     setLoading(false)
   }
 
@@ -128,25 +131,27 @@ export default function HomePage() {
             <div className="section-title">ลงใหม่ล่าสุด</div>
           </div>
           {loading && <div style={{ textAlign: 'center', padding: 32 }}><span className="spin" style={{ width: 24, height: 24 }} /></div>}
-          {!loading && books.length === 0 && (
+          {!loading && recentListings.length === 0 && (
             <div className="empty">
               <div className="empty-icon">📚</div>
               <div style={{ marginBottom: 16 }}>ยังไม่มีหนังสือในระบบ</div>
               <Link href="/sell"><button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ลงขายเป็นคนแรก</button></Link>
             </div>
           )}
-          {books.map(b => (
-            <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          {recentListings.map((l: any) => (
+            <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card">
                 <div className="book-card">
-                  <BookCover coverUrl={b.cover_url} title={b.title} size={52} />
+                  {l.photos?.[0]
+                    ? <img src={l.photos[0]} alt="" style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    : <BookCover coverUrl={l.books?.cover_url} title={l.books?.title} size={52} />
+                  }
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                    <div className="book-author">{b.author}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {b.min_price ? <span className="price">฿{b.min_price}</span> : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>}
-                      {b.active_listings_count > 0 && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>}
-                      {b.wanted_count > 0 && <span className="badge badge-blue">🔔 {b.wanted_count} คนรอ</span>}
+                    <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.books?.title}</div>
+                    <div className="book-author">{l.books?.author}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <span className="price">฿{l.price}</span>
+                      {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)' }}>ส่งฟรี</span>}
                     </div>
                   </div>
                 </div>
