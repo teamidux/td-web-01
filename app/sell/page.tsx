@@ -254,48 +254,52 @@ function SellPage() {
         <div style={{ padding: '16px 16px 80px' }}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, marginBottom: 16 }}>ลงขายหนังสือ</div>
 
-          {!user && (
-            <div style={{ background: 'var(--primary-light)', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 13, color: 'var(--primary-dark)' }}>เข้าสู่ระบบเพื่อลงขาย</div>
-              <button className="btn btn-sm" style={{ width: 'auto' }} onClick={() => setShowLogin(true)}>เข้าสู่ระบบ</button>
+          {!user ? (
+            <div style={{ background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '36px 20px', textAlign: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>เข้าสู่ระบบก่อนลงขาย</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>เพื่อให้ผู้ซื้อติดต่อคุณได้</div>
+              <button className="btn" style={{ maxWidth: 180, margin: '0 auto', display: 'block' }} onClick={() => setShowLogin(true)}>เข้าสู่ระบบ</button>
             </div>
-          )}
-
-          {!fetchedBook && (
-            <label style={{ display: 'block', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 14, cursor: scanning ? 'default' : 'pointer' }}>
-              <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-              {scanning ? (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><span className="spin" style={{ width: 28, height: 28 }} /></div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>กำลังอ่านบาร์โค้ด...</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>ถ่ายบาร์โค้ด</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อเปิดกล้อง</div>
-                </>
+          ) : (
+            <>
+              {!fetchedBook && (
+                <label style={{ display: 'block', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 14, cursor: scanning ? 'default' : 'pointer' }}>
+                  <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                  {scanning ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><span className="spin" style={{ width: 28, height: 28 }} /></div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>กำลังอ่านบาร์โค้ด...</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>ถ่ายบาร์โค้ด</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อเปิดกล้อง</div>
+                    </>
+                  )}
+                </label>
               )}
-            </label>
-          )}
 
-          {scanError && (
-            <ScanErrorSheet
-              onRetry={() => { setScanError(false); scanInputRef.current?.click() }}
-              onClose={() => setScanError(false)}
-            />
-          )}
+              {scanError && (
+                <ScanErrorSheet
+                  onRetry={() => { setScanError(false); scanInputRef.current?.click() }}
+                  onClose={() => setScanError(false)}
+                />
+              )}
 
-          {!fetchedBook && (
-            <div className="form-group">
-              <label className="label">ISBN</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input className="input" value={isbn} onChange={e => setIsbn(e.target.value)} placeholder="เช่น 9780747532743" onKeyDown={e => e.key === 'Enter' && fetchBook()} />
-                <button onClick={() => fetchBook()} disabled={fetching} style={{ background: 'var(--primary)', border: 'none', borderRadius: 10, padding: '0 16px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {fetching ? <span className="spin" /> : 'ดึงข้อมูล'}
-                </button>
-              </div>
-            </div>
+              {!fetchedBook && (
+                <div className="form-group">
+                  <label className="label">ISBN</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input className="input" value={isbn} onChange={e => setIsbn(e.target.value)} placeholder="เช่น 9780747532743" onKeyDown={e => e.key === 'Enter' && fetchBook()} />
+                    <button onClick={() => fetchBook()} disabled={fetching} style={{ background: 'var(--primary)', border: 'none', borderRadius: 10, padding: '0 16px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {fetching ? <span className="spin" /> : 'ดึงข้อมูล'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {notFound && (
