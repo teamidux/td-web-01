@@ -166,7 +166,7 @@ function SellPage() {
     if (!user) { setShowLogin(true); return }
     if (!fetchedBook?.title && !manualTitle) { show('กรุณาดึงข้อมูลหนังสือก่อน'); return }
     if (!coverFile) { show('กรุณาใส่รูปหน้าปก'); return }
-    if (!price || isNaN(parseFloat(price))) { show('กรุณาใส่ราคา'); return }
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) { show('กรุณาใส่ราคาที่ถูกต้อง'); return }
     if (!contact.trim()) { show('กรุณาใส่ช่องทางติดต่อ'); return }
 
     setSubmitting(true)
@@ -294,7 +294,7 @@ function SellPage() {
                 <label className="label">ผู้แต่ง</label>
                 <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง (ไม่บังคับ)" />
               </div>
-              {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>🏆 คุณจะได้รับ Pioneer Badge!</div>}
+              {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
             </div>
           )}
 

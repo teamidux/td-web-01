@@ -13,7 +13,12 @@ export async function POST(req: NextRequest) {
   if (!userId || !subscription?.endpoint) {
     return NextResponse.json({ error: 'missing fields' }, { status: 400 })
   }
-  const { error } = await getSupabase()
+  // ตรวจว่า userId มีในระบบจริง ป้องกัน upsert ด้วย id แปลกปลอม
+  const supabase = getSupabase()
+  const { data: user } = await supabase.from('users').select('id').eq('id', userId).maybeSingle()
+  if (!user) return NextResponse.json({ error: 'user not found' }, { status: 403 })
+
+  const { error } = await supabase
     .from('push_subscriptions')
     .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

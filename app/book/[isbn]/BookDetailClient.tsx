@@ -106,9 +106,12 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
   if (!book) return (
     <><Nav />
       <div className="empty" style={{ paddingTop: 60 }}>
-        <div className="empty-icon">🔍</div>
-        <div style={{ marginBottom: 16 }}>ไม่พบหนังสือ ISBN นี้</div>
-        <Link href="/sell"><button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ลงขายเป็นรายแรก</button></Link>
+        <div className="empty-icon">📚</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>ยังไม่มีใครเพิ่มหนังสือเล่มนี้เลย</div>
+        <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>
+          ช่วยสร้างข้อมูลเล่มแรกในระบบ<br />แล้วรับ <strong>🏆 ตราผู้บุกเบิก</strong>
+        </div>
+        <Link href={`/sell?isbn=${isbn}`}><button className="btn" style={{ maxWidth: 220, margin: '0 auto', display: 'block' }}>ลงขายเป็นคนแรก</button></Link>
       </div>
     </>
   )
@@ -236,9 +239,12 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
           {listings.length === 0 && (
             <div className="empty">
               <div className="empty-icon">📭</div>
-              <div style={{ marginBottom: 16 }}>ยังไม่มีคนขายเล่มนี้</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>ยังไม่มีใครขายเล่มนี้</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>
+                ลงขายเป็นคนแรก แล้วรับ <strong>🏆 ตราผู้บุกเบิก</strong>
+              </div>
               <Link href={`/sell?isbn=${isbn}`}>
-                <button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ลงขายเป็นรายแรก</button>
+                <button className="btn" style={{ maxWidth: 220, margin: '0 auto', display: 'block' }}>ลงขายเป็นคนแรก</button>
               </Link>
             </div>
           )}

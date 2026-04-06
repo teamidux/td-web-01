@@ -52,7 +52,7 @@ export default function SellerPage({ params }: PageProps) {
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {seller?.is_verified && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>✓ Verified</span>}
-              {seller?.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 Pioneer</span>}
+              {seller?.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>
         </div>
