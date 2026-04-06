@@ -131,13 +131,11 @@ function SellPage() {
       const scanner = new Html5Qrcode('sell-scanner', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
       scannerRef.current = scanner
       await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 100 } },
+        { facingMode: 'environment', width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 } },
+        { fps: 8, qrbox: { width: 300, height: 110 } },
         (text: string) => {
           scanner.stop(); setScanning(false)
-          console.log('[scanner raw]', text)
-          show(`สแกนได้: ${text}`)
-          setIsbn(text); fetchBook(text)
+          setIsbn(text.trim()); fetchBook(text.trim())
         },
         () => {}
       )
@@ -255,8 +253,11 @@ function SellPage() {
           )}
 
           {scanning ? (
-            <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 14, position: 'relative' }}>
-              <div id="sell-scanner" />
+            <div style={{ marginBottom: 14, position: 'relative' }}>
+              <div id="sell-scanner" style={{ borderRadius: 12, overflow: 'hidden' }} />
+              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink3)', marginTop: 6 }}>
+                วางบาร์โค้ดหลังหนังสือให้อยู่ในกรอบแนวนอน ถือให้นิ่งสักครู่
+              </div>
               <button onClick={stopScan} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,.6)', border: 'none', borderRadius: 20, padding: '5px 12px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕ ปิด</button>
             </div>
           ) : !fetchedBook && (
