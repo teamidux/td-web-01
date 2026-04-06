@@ -90,6 +90,10 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
     show('เพิ่มใน Wanted List แล้ว 🔔')
   }
 
+  const contactPhone = contactListing ? /^(\+?66|0)[0-9\s\-]{7,12}$/.test(contactListing.contact?.trim() || '') : false
+  const contactProfileLine = contactListing?.users?.line_id?.trim() || ''
+  const showProfileLine = contactProfileLine && contactProfileLine !== (contactListing?.contact?.trim() || '')
+
   const prices = listings.map(l => l.price)
   const minP = prices.length ? Math.min(...prices) : null
   const maxP = prices.length ? Math.max(...prices) : null
@@ -133,69 +137,60 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
         </div>
       )}
 
-      {contactListing && (() => {
-        const contact = contactListing.contact?.trim() || ''
-        const profileLine = contactListing.users?.line_id?.trim() || ''
-        const isPhone = /^(\+?66|0)[0-9\s\-]{7,12}$/.test(contact)
-        // show Line ID from profile if different from contact field
-        const showProfileLine = profileLine && profileLine !== contact
-        return (
-          <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18 }}>ข้อมูลผู้ขาย</div>
-                <button onClick={() => setContactListing(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
-              </div>
+      {contactListing && (
+        <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18 }}>ข้อมูลผู้ขาย</div>
+              <button onClick={() => setContactListing(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
+            </div>
 
-              <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>{contactListing.users?.display_name || '—'}</div>
-                {contactListing.users?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
-              </div>
+            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{contactListing.users?.display_name || '—'}</div>
+              {contactListing.users?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
+            </div>
 
-              {/* contact field: phone → call button, else → copy */}
-              <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: showProfileLine ? 10 : 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>{isPhone ? '📞 เบอร์โทร' : '💬 ช่องทางติดต่อ'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contact}</div>
-                  {isPhone ? (
-                    <a href={`tel:${contact.replace(/\s/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                      โทรเลย
-                    </a>
-                  ) : (
-                    <button onClick={() => navigator.clipboard.writeText(contact).then(() => show('คัดลอกแล้ว'))} style={{ flexShrink: 0, background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'var(--primary)', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                      คัดลอก
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Line ID from profile */}
-              {showProfileLine && (
-                <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 Line ID</div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{profileLine}</div>
-                    <button onClick={() => navigator.clipboard.writeText(profileLine).then(() => show('คัดลอก Line ID แล้ว'))} style={{ flexShrink: 0, background: '#22C55E', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                      คัดลอก
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
-                  style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 10, padding: '11px 16px', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 14, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
-                >
-                  {copied ? '✓ คัดลอกลิงก์แล้ว' : '🔗 คัดลอกลิงก์หนังสือนี้'}
-                </button>
+            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: showProfileLine ? 10 : 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>{contactPhone ? '📞 เบอร์โทร' : '💬 ช่องทางติดต่อ'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactListing.contact}</div>
+                {contactPhone ? (
+                  <a href={`tel:${contactListing.contact.replace(/\s/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                    โทรเลย
+                  </a>
+                ) : (
+                  <button onClick={() => navigator.clipboard.writeText(contactListing.contact).then(() => show('คัดลอกแล้ว'))} style={{ flexShrink: 0, background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'var(--primary)', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    คัดลอก
+                  </button>
+                )}
               </div>
             </div>
+
+            {showProfileLine && (
+              <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 Line ID</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactProfileLine}</div>
+                  <button onClick={() => navigator.clipboard.writeText(contactProfileLine).then(() => show('คัดลอก Line ID แล้ว'))} style={{ flexShrink: 0, background: '#22C55E', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    คัดลอก
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
+              <button
+                onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
+                style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 10, padding: '11px 16px', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 14, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
+              >
+                {copied ? '✓ คัดลอกลิงก์แล้ว' : '🔗 คัดลอกลิงก์หนังสือนี้'}
+              </button>
+            </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {lightbox && (
         <div onClick={() => setLightbox('')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
