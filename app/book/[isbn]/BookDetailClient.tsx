@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Book, Listing, fetchBookByISBN, CONDITIONS } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
@@ -14,30 +14,47 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
   const [showLogin, setShowLogin] = useState(false)
   const [showWantedForm, setShowWantedForm] = useState(false)
   const [wantedPrice, setWantedPrice] = useState('')
+  const [lightbox, setLightbox] = useState('')
+  const [contactListing, setContactListing] = useState<Listing | null>(null)
+  const [copied, setCopied] = useState(false)
   const { msg, show } = useToast()
+  const bookIdRef = useRef<string | null>(null)
 
   useEffect(() => { loadData() }, [isbn])
 
+  const loadListings = async (bookId: string) => {
+    // ลอง query พร้อม users join ก่อน
+    const { data: ls, error } = await supabase
+      .from('listings')
+      .select('*, users(id, display_name, sold_count, confirmed_count, is_verified)')
+      .eq('book_id', bookId)
+      .eq('status', 'active')
+      .order('price')
+
+    if (!error) { setListings(ls || []); return }
+
+    // ถ้า join ล้มเหลว (FK ไม่ได้ register) ให้ fallback query listings อย่างเดียว
+    console.error('[listings join error]', error.message)
+    const { data: lsFallback } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('book_id', bookId)
+      .eq('status', 'active')
+      .order('price')
+    setListings(lsFallback || [])
+  }
+
   const loadData = async () => {
     setLoading(true)
-    let { data: dbBook } = await supabase.from('books').select('*').eq('isbn', isbn).maybeSingle()
+    const { data: dbBook } = await supabase.from('books').select('*').eq('isbn', isbn).maybeSingle()
 
     if (!dbBook) {
       const fetched = await fetchBookByISBN(isbn)
-      if (fetched) {
-        setBook(fetched as Book)
-        setLoading(false)
-        return
-      }
+      if (fetched) { setBook(fetched as Book); setLoading(false); return }
     } else {
       setBook(dbBook)
-      const { data: ls } = await supabase
-        .from('listings')
-        .select('*, users(id, display_name, sold_count, confirmed_count, is_verified)')
-        .eq('book_id', dbBook.id)
-        .eq('status', 'active')
-        .order('price')
-      setListings(ls || [])
+      bookIdRef.current = dbBook.id
+      await loadListings(dbBook.id)
 
       if (user) {
         const { data: w } = await supabase.from('wanted').select('id').eq('user_id', user.id).eq('book_id', dbBook.id).maybeSingle()
@@ -46,6 +63,17 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
     }
     setLoading(false)
   }
+
+  // Realtime: รีเฟรช listings อัตโนมัติเมื่อมีการลงขายใหม่
+  useEffect(() => {
+    const channel = supabase
+      .channel(`listings:${isbn}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => {
+        if (bookIdRef.current) loadListings(bookIdRef.current)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [isbn])
 
   const toggleWanted = async () => {
     if (!user) { setShowLogin(true); return }
@@ -113,6 +141,47 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
             <button className="btn" onClick={confirmWanted}>เพิ่มใน Wanted List 🔔</button>
             <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => setShowWantedForm(false)}>ยกเลิก</button>
           </div>
+        </div>
+      )}
+
+      {contactListing && (
+        <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18 }}>ข้อมูลผู้ขาย</div>
+              <button onClick={() => setContactListing(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
+            </div>
+
+            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{contactListing.users?.display_name || '—'}</div>
+              {contactListing.users?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
+            </div>
+
+            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>ช่องทางติดต่อ</div>
+              <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactListing.contact}</div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))
+                }}
+                style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 10, padding: '11px 16px', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 14, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
+              >
+                {copied ? '✓ คัดลอกลิงก์แล้ว' : '🔗 คัดลอกลิงก์หนังสือนี้'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lightbox && (
+        <div onClick={() => setLightbox('')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={() => setLightbox('')} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <img onClick={e => e.stopPropagation()} src={lightbox} alt="" style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 10, objectFit: 'contain' }} />
         </div>
       )}
 
@@ -184,7 +253,7 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
               {l.photos?.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, marginBottom: 10, overflowX: 'auto' }}>
                   {l.photos.filter(p => p).map((p, i) => (
-                    <div key={i} style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                    <div key={i} onClick={() => setLightbox(p)} style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in' }}>
                       <img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                   ))}
@@ -193,7 +262,7 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
-                <button onClick={() => alert(`ติดต่อ: ${l.contact}`)} style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={() => { setContactListing(l); setCopied(false) }} style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', fontFamily: 'Sarabun', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                   ติดต่อ
                 </button>
               </div>

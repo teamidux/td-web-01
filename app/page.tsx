@@ -45,8 +45,8 @@ export default function HomePage() {
   const startScan = async () => {
     setScanning(true)
     try {
-      const { Html5Qrcode } = await import('html5-qrcode')
-      const scanner = new Html5Qrcode('scanner-div')
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+      const scanner = new Html5Qrcode('scanner-div', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
       scannerRef.current = scanner
       await scanner.start(
         { facingMode: 'environment' },
@@ -54,6 +54,7 @@ export default function HomePage() {
         (text: string) => {
           scanner.stop()
           setScanning(false)
+          if (!/^(978|979)\d{10}$/.test(text)) { show('ISBN ไม่ถูกต้อง กรุณาตรวจสอบใหม่'); return }
           router.push(`/book/${text}`)
         },
         () => {}

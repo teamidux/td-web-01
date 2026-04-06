@@ -11,15 +11,38 @@ const CONDITIONS = [
   { key: 'fair', label: '📖 พอใช้' },
 ]
 
-type Photo = { id: string; label: string; preview?: string }
-
-const PHOTO_SLOTS = [
-  { id: 'cover', label: 'หน้าปก', required: true },
-  { id: 'p2', label: 'รูปที่ 2', required: false },
-  { id: 'p3', label: 'รูปที่ 3', required: false },
-  { id: 'p4', label: 'รูปที่ 4', required: false },
-  { id: 'p5', label: 'รูปที่ 5', required: false },
-]
+function compressImage(file: File, maxKB = 300): Promise<File> {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      const MAX = 1200
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      const tryQ = (q: number) => {
+        canvas.toBlob(blob => {
+          if (!blob) { resolve(file); return }
+          if (blob.size <= maxKB * 1024 || q <= 0.1) {
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+          } else {
+            tryQ(Math.round((q - 0.1) * 10) / 10)
+          }
+        }, 'image/jpeg', q)
+      }
+      tryQ(0.85)
+    }
+    img.onerror = () => resolve(file)
+    img.src = url
+  })
+}
 
 export default function SellPageWrapper() {
   return (
@@ -47,14 +70,15 @@ function SellPage() {
   const [price, setPrice] = useState('')
   const [shipping, setShipping] = useState('buyer')
   const [contact, setContact] = useState('')
-  const [photos, setPhotos] = useState<Photo[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [marketPrice, setMarketPrice] = useState<{ min: number; max: number; avg: number } | null>(null)
   const [manualTitle, setManualTitle] = useState('')
   const [manualAuthor, setManualAuthor] = useState('')
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState('')
 
   const scannerRef = useRef<any>(null)
-  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const coverInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (user?.phone) setContact(user.phone)
@@ -62,9 +86,12 @@ function SellPage() {
     if (isbnParam) fetchBook(isbnParam)
   }, [user])
 
+  const isValidISBN = (v: string) => /^(978|979)\d{10}$/.test(v)
+
   const fetchBook = async (isbnVal?: string) => {
     const q = (isbnVal || isbn).trim()
     if (!q) { show('กรุณากรอก ISBN'); return }
+    if (!isValidISBN(q)) { show('ISBN ไม่ถูกต้อง กรุณาตรวจสอบใหม่'); return }
     setFetching(true)
     setNotFound(false)
     const book = await fetchBookByISBN(q)
@@ -87,8 +114,8 @@ function SellPage() {
     if (!user) { setShowLogin(true); return }
     setScanning(true)
     try {
-      const { Html5Qrcode } = await import('html5-qrcode')
-      const scanner = new Html5Qrcode('sell-scanner')
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+      const scanner = new Html5Qrcode('sell-scanner', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
       scannerRef.current = scanner
       await scanner.start(
         { facingMode: 'environment' },
@@ -101,23 +128,26 @@ function SellPage() {
 
   const stopScan = () => { scannerRef.current?.stop(); setScanning(false) }
 
-  const handleFileChange = (slotId: string, label: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const preview = URL.createObjectURL(file)
-    setPhotos(prev => [...prev.filter(p => p.id !== slotId), { id: slotId, label, preview }])
+    const compressed = await compressImage(file)
+    setCoverFile(compressed)
+    if (coverPreview) URL.revokeObjectURL(coverPreview)
+    setCoverPreview(URL.createObjectURL(compressed))
   }
 
-  const removePhoto = (slotId: string, e: React.MouseEvent) => {
+  const removeCover = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setPhotos(prev => prev.filter(p => p.id !== slotId))
-    if (fileRefs.current[slotId]) fileRefs.current[slotId]!.value = ''
+    setCoverFile(null)
+    setCoverPreview('')
+    if (coverInputRef.current) coverInputRef.current.value = ''
   }
 
   const submit = async () => {
     if (!user) { setShowLogin(true); return }
     if (!fetchedBook?.title && !manualTitle) { show('กรุณาดึงข้อมูลหนังสือก่อน'); return }
-    if (!photos.find(p => p.id === 'cover')) { show('กรุณาใส่รูปหน้าปก'); return }
+    if (!coverFile) { show('กรุณาใส่รูปหน้าปก'); return }
     if (!price || isNaN(parseFloat(price))) { show('กรุณาใส่ราคา'); return }
     if (!contact.trim()) { show('กรุณาใส่ช่องทางติดต่อ'); return }
 
@@ -127,11 +157,13 @@ function SellPage() {
     try {
       const currentIsbn = (fetchedBook as any)?.isbn || isbn
       let bookId = (fetchedBook as any)?.id
+      let existingCoverUrl = fetchedBook?.cover_url || ''
 
       if (!bookId) {
-        const { data: existing } = await supabase.from('books').select('id').eq('isbn', currentIsbn).maybeSingle()
+        const { data: existing } = await supabase.from('books').select('id, cover_url').eq('isbn', currentIsbn).maybeSingle()
         if (existing?.id) {
           bookId = existing.id
+          existingCoverUrl = existing.cover_url || ''
         } else {
           const { data: newBook, error: bookErr } = await supabase.from('books').insert({
             isbn: currentIsbn,
@@ -147,6 +179,19 @@ function SellPage() {
         }
       }
 
+      // Upload รูปหน้าปกไปยัง Supabase Storage
+      const uploadPath = `covers/${user.id}/${Date.now()}.jpg`
+      const { error: upErr } = await supabase.storage
+        .from('listing-photos')
+        .upload(uploadPath, coverFile, { contentType: 'image/jpeg', upsert: false })
+      if (upErr) throw new Error(upErr.message)
+      const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(uploadPath)
+
+      // Update cover_url ในตาราง books ถ้ายังไม่มีรูป
+      if (!existingCoverUrl && bookId) {
+        await supabase.from('books').update({ cover_url: publicUrl }).eq('id', bookId)
+      }
+
       const { error: listErr } = await supabase.from('listings').insert({
         book_id: bookId,
         seller_id: user.id,
@@ -154,7 +199,7 @@ function SellPage() {
         price: parseFloat(price),
         price_includes_shipping: shipping === 'free',
         contact: contact.trim(),
-        photos: photos.map(p => p.preview || ''),
+        photos: [publicUrl],
         status: 'active',
       })
       if (listErr) throw new Error(listErr.message)
@@ -239,32 +284,24 @@ function SellPage() {
           {(fetchedBook?.title || (notFound && manualTitle)) && (
             <>
               <div className="form-group">
-                <label className="label">ภาพหนังสือ <span style={{ color: 'var(--red)' }}>*</span> <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink3)' }}>บังคับ 1 รูป เพิ่มได้ 5 รูป</span></label>
-                <div className="photo-row">
-                  {PHOTO_SLOTS.map(slot => {
-                    const photo = photos.find(p => p.id === slot.id)
-                    return (
-                      <div key={slot.id}>
-                        <input type="file" accept="image/*" capture="environment"
-                          ref={el => { fileRefs.current[slot.id] = el }}
-                          onChange={e => handleFileChange(slot.id, slot.label, e)}
-                          style={{ display: 'none' }} />
-                        <div className={`photo-slot ${slot.required ? 'required' : ''} ${photo ? 'filled' : ''}`}
-                          onClick={() => { if (!user) { setShowLogin(true); return }; fileRefs.current[slot.id]?.click() }}>
-                          {photo?.preview ? (
-                            <>
-                              <img src={photo.preview} alt="" />
-                              <button onClick={e => removePhoto(slot.id, e)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,.5)', border: 'none', borderRadius: '50%', width: 18, height: 18, color: 'white', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
-                            </>
-                          ) : (
-                            <><span>{slot.required ? '📷' : '+'}</span><span className="slot-label">{slot.label}</span></>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                <label className="label">รูปหน้าปก <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input type="file" accept="image/*"
+                  ref={coverInputRef}
+                  onChange={handleCoverChange}
+                  style={{ display: 'none' }} />
+                <div className={`photo-slot required ${coverPreview ? 'filled' : ''}`}
+                  style={{ width: 90, height: 120 }}
+                  onClick={() => { if (!user) { setShowLogin(true); return }; coverInputRef.current?.click() }}>
+                  {coverPreview ? (
+                    <>
+                      <img src={coverPreview} alt="" />
+                      <button onClick={removeCover} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,.5)', border: 'none', borderRadius: '50%', width: 18, height: 18, color: 'white', cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
+                    </>
+                  ) : (
+                    <><span>📷</span><span className="slot-label">หน้าปก</span></>
+                  )}
                 </div>
-                {!photos.find(p => p.id === 'cover') && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>⚠ กรุณาใส่รูปหน้าปก</div>}
+                {!coverPreview && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>⚠ กรุณาใส่รูปหน้าปก</div>}
               </div>
 
               <div className="form-group">
