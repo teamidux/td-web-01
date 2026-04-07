@@ -15,10 +15,33 @@ interface PageProps {
 async function getBook(isbn: string) {
   const { data } = await supabase
     .from('books')
-    .select('title, author, translator, cover_url, min_price, active_listings_count')
+    .select('*, min_price, active_listings_count')
     .eq('isbn', isbn)
     .maybeSingle()
-  return data
+  if (data) return data
+
+  // fallback Google Books — cache 1 ชั่วโมง ไม่กิน quota ทุก request
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${apiKey ? `&key=${apiKey}` : ''}`
+    const r = await fetch(url, { next: { revalidate: 3600 } })
+    if (!r.ok) return null
+    const d = await r.json()
+    if (!d.items?.length) return null
+    const info = d.items[0].volumeInfo
+    const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
+    return {
+      title: info.title || '',
+      author: info.authors?.join(', ') || '',
+      publisher: info.publisher || '',
+      cover_url: thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : '',
+      language: info.language || 'th',
+      active_listings_count: 0,
+      min_price: null,
+    }
+  } catch {
+    return null
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -100,7 +123,7 @@ export default async function BookPage({ params }: PageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <BookDetailClient isbn={isbn} />
+      <BookDetailClient isbn={isbn} initialBook={book} />
     </>
   )
 }

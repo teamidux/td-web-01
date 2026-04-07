@@ -5,9 +5,9 @@ import { supabase, Book, Listing, fetchBookByISBN, CONDITIONS } from '@/lib/supa
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, CondBadge, LoginModal, useToast, Toast, SkeletonList } from '@/components/ui'
 
-export default function BookDetailClient({ isbn }: { isbn: string }) {
+export default function BookDetailClient({ isbn, initialBook }: { isbn: string; initialBook?: Partial<Book> | null }) {
   const { user } = useAuth()
-  const [book, setBook] = useState<Book | null>(null)
+  const [book, setBook] = useState<Book | null>((initialBook as Book) ?? null)
   const [listings, setListings] = useState<Listing[]>([])
   const [isWanted, setIsWanted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -38,13 +38,15 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
     const { data: dbBook } = await supabase.from('books').select('*').eq('isbn', isbn).maybeSingle()
 
     if (!dbBook) {
-      const fetched = await fetchBookByISBN(isbn)
-      if (fetched) { setBook(fetched as Book); setLoading(false); return }
+      // ถ้าไม่อยู่ใน DB แต่มี initialBook จาก server (Google Books) → ใช้ได้เลย ไม่ต้อง fetch ซ้ำ
+      if (!book) {
+        const fetched = await fetchBookByISBN(isbn)
+        if (fetched) setBook(fetched as Book)
+      }
     } else {
       setBook(dbBook)
       bookIdRef.current = dbBook.id
       await loadListings(dbBook.id)
-
       if (user) {
         const { data: w } = await supabase.from('wanted').select('id').eq('user_id', user.id).eq('book_id', dbBook.id).maybeSingle()
         setIsWanted(!!w)
