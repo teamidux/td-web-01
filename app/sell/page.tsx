@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet, LiveScanModal, resizeForScan } from '@/components/ui'
+import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet, resizeForScan } from '@/components/ui'
 
 const CONDITIONS = [
   { key: 'new', label: '✨ ใหม่มาก', desc: 'ไม่มีรอยใดๆ เหมือนซื้อจากร้าน' },
@@ -67,7 +67,6 @@ function SellPage() {
   const [fetching, setFetching] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
-  const [showLiveScan, setShowLiveScan] = useState(false)
   const scanInputRef = useRef<HTMLInputElement | null>(null)
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
@@ -350,17 +349,6 @@ function SellPage() {
             </div>
           ) : (
             <>
-              {showLiveScan && (
-                <LiveScanModal
-                  onCode={(code) => {
-                    setShowLiveScan(false)
-                    const corrected = correctISBN(code.trim())
-                    setIsbn(corrected)
-                    fetchBook(corrected)
-                  }}
-                  onClose={() => setShowLiveScan(false)}
-                />
-              )}
               {scanError && (
                 <ScanErrorSheet
                   onRetry={() => { setScanError(false); scanInputRef.current?.click() }}
@@ -371,21 +359,20 @@ function SellPage() {
               {/* ── Section 1: สแกน/ISBN ── */}
               {!fetchedBook && !notFound && !oldBookMode && (
                 <>
-                  <button
-                    onClick={() => setShowLiveScan(true)}
-                    style={{ display: 'block', width: '100%', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 10, cursor: 'pointer', fontFamily: 'Sarabun' }}
-                  >
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>สแกนบาร์โค้ด</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อเปิดกล้อง</div>
-                  </button>
-
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', cursor: scanning ? 'default' : 'pointer', marginBottom: 14 }}>
+                  {/* Photo capture — primary method, works on iPhone */}
+                  <label style={{ display: 'block', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 10, cursor: scanning ? 'default' : 'pointer' }}>
                     <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
                     {scanning ? (
-                      <><span className="spin" style={{ width: 14, height: 14 }} /><span>กำลังอ่าน...</span></>
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}><span className="spin" style={{ width: 28, height: 28 }} /></div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}>กำลังอ่านบาร์โค้ด...</div>
+                      </>
                     ) : (
-                      <span style={{ textDecoration: 'underline' }}>หรือถ่ายภาพบาร์โค้ดแทน</span>
+                      <>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)' }}>ถ่ายรูปบาร์โค้ด</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>แตะเพื่อถ่ายภาพหรือเลือกจากคลัง</div>
+                      </>
                     )}
                   </label>
 
