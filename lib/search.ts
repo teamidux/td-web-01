@@ -47,7 +47,7 @@ export function searchVariants(q: string): string[] {
     if (tt !== toThai) add(tt)
   }
 
-  return [...set]
+  return Array.from(set)
 }
 
 /**
