@@ -191,35 +191,52 @@ function SellPage() {
     setScanning(true)
     try {
       let scanned: string | null = null
+      const debugLog: string[] = []
 
       // แปลงเป็น JPEG + แก้ EXIF rotation ก่อนเสมอ
-      const file = await resizeForScan(rawFile, 1920)
+      let file: File
+      try {
+        file = await resizeForScan(rawFile, 1920)
+        debugLog.push(`resize OK: ${file.size}b ${file.type} ${rawFile.type}→JPEG`)
+      } catch (e: any) {
+        debugLog.push(`resize FAIL: ${e?.message}`)
+        file = rawFile
+      }
 
-      // สร้าง canvas จาก img element — iOS Safari handle ได้ดีกว่าส่ง URL ให้ library โดยตรง
-      const canvas = await new Promise<HTMLCanvasElement>((res, rej) => {
-        const img = new Image()
-        const u = URL.createObjectURL(file)
-        img.onload = () => {
-          URL.revokeObjectURL(u)
-          const c = document.createElement('canvas')
-          c.width = img.naturalWidth; c.height = img.naturalHeight
-          c.getContext('2d')!.drawImage(img, 0, 0)
-          res(c)
-        }
-        img.onerror = () => { URL.revokeObjectURL(u); rej() }
-        img.src = u
-      })
+      // สร้าง canvas
+      let canvas: HTMLCanvasElement
+      try {
+        canvas = await new Promise<HTMLCanvasElement>((res, rej) => {
+          const img = new Image()
+          const u = URL.createObjectURL(file)
+          img.onload = () => {
+            URL.revokeObjectURL(u)
+            const c = document.createElement('canvas')
+            c.width = img.naturalWidth; c.height = img.naturalHeight
+            c.getContext('2d')!.drawImage(img, 0, 0)
+            res(c)
+          }
+          img.onerror = (e) => { URL.revokeObjectURL(u); rej(e) }
+          img.src = u
+        })
+        debugLog.push(`canvas OK: ${canvas.width}x${canvas.height}`)
+      } catch (e: any) {
+        throw new Error(`canvas FAIL: ${e?.message}\n${debugLog.join('\n')}`)
+      }
 
-      // 1. native BarcodeDetector — Chrome / Android (รับ canvas ได้โดยตรง)
+      // 1. BarcodeDetector
       if ('BarcodeDetector' in window) {
         try {
           const detector = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8'] })
           const codes = await detector.detect(canvas)
+          debugLog.push(`BarcodeDetector: ${codes.length} codes ${codes.map((c: any) => c.rawValue).join(',')}`)
           if (codes.length > 0) scanned = codes[0].rawValue
-        } catch { /* fallthrough */ }
+        } catch (e: any) { debugLog.push(`BarcodeDetector FAIL: ${e?.message}`) }
+      } else {
+        debugLog.push('BarcodeDetector: not supported')
       }
 
-      // 2. ZXing — ใช้ decodeFromCanvas แทน decodeFromImageUrl (ทำงานได้บน iOS Safari)
+      // 2. ZXing decodeFromCanvas
       if (!scanned) {
         try {
           const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library')
@@ -227,25 +244,34 @@ function SellPage() {
             [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8]],
             [DecodeHintType.TRY_HARDER, true],
           ])
-          const reader = new BrowserMultiFormatReader(hints)
-          scanned = (reader as any).decodeFromCanvas(canvas).getText()
-        } catch { /* fallthrough */ }
+          const r = (new BrowserMultiFormatReader(hints) as any).decodeFromCanvas(canvas)
+          scanned = r.getText()
+          debugLog.push(`ZXing OK: ${scanned}`)
+        } catch (e: any) { debugLog.push(`ZXing FAIL: ${e?.message}`) }
       }
 
       // 3. html5-qrcode fallback
       if (!scanned) {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-        let el = document.getElementById('sell-file-tmp')
-        if (!el) { el = document.createElement('div'); el.id = 'sell-file-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
-        const scanner = new Html5Qrcode('sell-file-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
-        scanned = await scanner.scanFile(file, false)
+        try {
+          const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+          let el = document.getElementById('sell-file-tmp')
+          if (!el) { el = document.createElement('div'); el.id = 'sell-file-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
+          const scanner = new Html5Qrcode('sell-file-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
+          scanned = await scanner.scanFile(file, false)
+          debugLog.push(`html5-qrcode OK: ${scanned}`)
+        } catch (e: any) { debugLog.push(`html5-qrcode FAIL: ${e?.message}`) }
       }
 
-      const corrected = correctISBN(scanned!.trim())
+      if (!scanned) throw new Error(debugLog.join('\n'))
+
+      const corrected = correctISBN(scanned.trim())
       setIsbn(corrected)
       fetchBook(corrected)
-    } catch {
+    } catch (e: any) {
       setScanError(true)
+      // แสดง debug info เฉพาะตอน dev หรือกด scan error
+      console.error('[SCAN DEBUG]', e?.message)
+      alert('🔍 Debug:\n' + (e?.message || 'unknown error'))
     } finally {
       setScanning(false)
     }

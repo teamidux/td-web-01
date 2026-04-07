@@ -95,8 +95,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     if (!user) { setShowLogin(true); return }
     if (isWanted && book?.id) {
       await supabase.from('wanted').delete().eq('user_id', user.id).eq('book_id', book.id)
+      const newCount = Math.max(0, (book.wanted_count || 1) - 1)
+      await supabase.from('books').update({ wanted_count: newCount }).eq('id', book.id)
       setIsWanted(false)
-      setBook(b => b ? { ...b, wanted_count: Math.max(0, (b.wanted_count || 1) - 1) } : b)
+      setBook(b => b ? { ...b, wanted_count: newCount } : b)
       show('ลบออกจาก Wanted List แล้ว')
     } else {
       setShowWantedForm(true)
@@ -114,8 +116,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       max_price: wantedPrice ? parseFloat(wantedPrice) : null,
       status: 'waiting',
     })
+    const newCount = (book?.wanted_count || 0) + 1
+    await supabase.from('books').update({ wanted_count: newCount }).eq('id', bookId)
     setIsWanted(true)
-    setBook(b => b ? { ...b, wanted_count: (b.wanted_count || 0) + 1 } : b)
+    setBook(b => b ? { ...b, wanted_count: newCount } : b)
     setShowWantedForm(false)
     show('เพิ่มใน Wanted List แล้ว 🔔')
   }
