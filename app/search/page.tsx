@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { fetchGoogleBooksByTitle, GoogleBook } from '@/lib/search'
-import { Nav, BottomNav, BookCover } from '@/components/ui'
+import { Nav, BottomNav, BookCover, SkeletonList } from '@/components/ui'
 
 export default function SearchPageWrapper() {
   return (
@@ -81,11 +81,7 @@ function SearchPage() {
         </div>
 
         <div className="section">
-          {loading && (
-            <div style={{ textAlign: 'center', padding: 32 }}>
-              <span className="spin" style={{ width: 24, height: 24 }} />
-            </div>
-          )}
+          {loading && <SkeletonList count={4} />}
 
           {!loading && !googleLoading && results.length === 0 && googleResults.length === 0 && searched && query.trim() && (
             <div className="empty">

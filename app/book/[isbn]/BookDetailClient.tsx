@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Book, Listing, fetchBookByISBN, CONDITIONS } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, CondBadge, LoginModal, useToast, Toast } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, LoginModal, useToast, Toast, SkeletonList } from '@/components/ui'
 
 export default function BookDetailClient({ isbn }: { isbn: string }) {
   const { user } = useAuth()
@@ -126,7 +126,23 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
   const avgP = prices.length ? Math.round(prices.reduce((a, b) => a + b) / prices.length) : null
 
   if (loading) return (
-    <><Nav /><div style={{ textAlign: 'center', padding: 60 }}><span className="spin" style={{ width: 28, height: 28 }} /></div></>
+    <>
+      <Nav />
+      <div className="page">
+        <div style={{ padding: '16px 16px 0' }}>
+          <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
+            <div className="skeleton" style={{ width: 90, height: 120, borderRadius: 10, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+              <div className="skeleton" style={{ height: 18, width: '80%' }} />
+              <div className="skeleton" style={{ height: 13, width: '55%' }} />
+              <div className="skeleton" style={{ height: 13, width: '40%' }} />
+              <div className="skeleton" style={{ height: 30, width: '60%', borderRadius: 8, marginTop: 4 }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '0 16px' }}><SkeletonList count={3} /></div>
+      </div>
+    </>
   )
 
   if (!book) return (

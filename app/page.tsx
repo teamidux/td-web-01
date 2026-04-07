@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { searchVariants, buildOrFilter, fetchGoogleBooksByTitle, GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, resizeForScan } from '@/components/ui'
+import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, resizeForScan, SkeletonList } from '@/components/ui'
 
 export default function HomePage() {
   const router = useRouter()
@@ -194,7 +194,7 @@ export default function HomePage() {
           <div className="section-hd">
             <div className="section-title">ลงใหม่ล่าสุด</div>
           </div>
-          {loading && <div style={{ textAlign: 'center', padding: 32 }}><span className="spin" style={{ width: 24, height: 24 }} /></div>}
+          {loading && <SkeletonList count={5} />}
           {!loading && recentListings.length === 0 && (
             <div className="empty">
               <div className="empty-icon">📚</div>

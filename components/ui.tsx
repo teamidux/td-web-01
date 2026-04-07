@@ -390,3 +390,34 @@ export function LiveScanModal({ onCode, onClose }: { onCode: (code: string) => v
     </div>
   )
 }
+
+// Skeleton card — ใช้แทน spinner ตอนโหลดรายการหนังสือ
+export function SkeletonCard() {
+  return (
+    <div className="card">
+      <div className="book-card">
+        <div className="skeleton" style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="skeleton" style={{ height: 14, width: '70%' }} />
+          <div className="skeleton" style={{ height: 11, width: '45%' }} />
+          <div className="skeleton" style={{ height: 11, width: '30%' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SkeletonList({ count = 4 }: { count?: number }) {
+  return <>{Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} />)}</>
+}
+
+export function PageLoading() {
+  return (
+    <>
+      <div style={{ textAlign: 'center', padding: '28px 0 12px' }}>
+        <span className="spin" style={{ width: 22, height: 22 }} />
+        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 10 }}>กำลังโหลด...</div>
+      </div>
+    </>
+  )
+}

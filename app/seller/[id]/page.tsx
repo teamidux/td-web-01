@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, Listing, User } from '@/lib/supabase'
-import { Nav, BottomNav, BookCover, CondBadge } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, SkeletonList } from '@/components/ui'
 
 interface PageProps {
   params: { id: string }
@@ -34,7 +34,19 @@ export default function SellerPage({ params }: PageProps) {
   }, [id])
 
   if (loading) return (
-    <><Nav /><div style={{ textAlign: 'center', padding: 60 }}><span className="spin" style={{ width: 28, height: 28 }} /></div></>
+    <>
+      <Nav />
+      <div className="page" style={{ padding: '16px 16px 80px' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 20, background: 'var(--surface)', borderRadius: 14, padding: 16 }}>
+          <div className="skeleton" style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0 }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="skeleton" style={{ height: 16, width: '50%' }} />
+            <div className="skeleton" style={{ height: 12, width: '35%' }} />
+          </div>
+        </div>
+        <SkeletonList count={4} />
+      </div>
+    </>
   )
 
   return (

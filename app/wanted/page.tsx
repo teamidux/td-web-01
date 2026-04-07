@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Wanted } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, useToast, Toast } from '@/components/ui'
+import { Nav, BottomNav, BookCover, LoginModal, useToast, Toast, SkeletonList } from '@/components/ui'
 import { registerSW, getPushState, subscribePush, unsubscribePush } from '@/lib/push'
 
 export default function WantedPage() {
@@ -104,7 +104,7 @@ export default function WantedPage() {
             </div>
           )}
 
-          {loading && <div style={{ textAlign: 'center', padding: 32 }}><span className="spin" style={{ width: 24, height: 24 }} /></div>}
+          {loading && <SkeletonList count={3} />}
 
           {!loading && items.length === 0 && (
             <div className="empty">
