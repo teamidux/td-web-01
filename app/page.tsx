@@ -89,7 +89,7 @@ export default function HomePage() {
       <Toast msg={msg} />
       <div className="page">
         <div className="hero">
-          <h1 className="hero-title">Book<em>Match</em>: ระบบซื้อขายหนังสือแบบง่ายสุดๆ</h1>
+          <h1 className="hero-title">ระบบซื้อขายหนังสือแบบง่ายสุดๆ</h1>
           <p className="hero-sub">ไม่ว่าคุณจะตามหาเล่มโปรด หรืออยากเปลี่ยนตู้หนังสือให้เป็นรายได้ เรา Match คุณให้เจอคนที่ใช่ ในคลิกเดียว</p>
 
           <div className="search-row" style={{ maxWidth: 440, margin: '0 auto 10px' }}>

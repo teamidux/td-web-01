@@ -63,7 +63,8 @@ function SellPage() {
   const [showLogin, setShowLogin] = useState(false)
   const [isbn, setIsbn] = useState(searchParams.get('isbn') || '')
   const [fetchedBook, setFetchedBook] = useState<Partial<Book> | null>(null)
-  const [notFound, setNotFound] = useState(false)
+  const [notFound, setNotFound] = useState(false)        // old book / no ISBN path
+  const [isbnNotFound, setIsbnNotFound] = useState(false) // ISBN scan/type แต่ยังไม่มีในระบบ
   const [fetching, setFetching] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
@@ -117,7 +118,7 @@ function SellPage() {
     if (q !== raw) { setIsbn(q); show(`แก้ไขอัตโนมัติ: ${raw} → ${q}`) }
     if (!isValidISBN(q)) { show('กล้องอ่านบาร์โค้ดไม่ชัด ลองสแกนใหม่อีกครั้ง หรือพิมพ์ ISBN เอง'); return }
     setFetching(true)
-    setNotFound(false)
+    setIsbnNotFound(false)
     const book = await fetchBookByISBN(q)
     if (book?.title) {
       setFetchedBook(book)
@@ -129,7 +130,7 @@ function SellPage() {
         }
       }
     } else {
-      setNotFound(true)
+      setIsbnNotFound(true)
     }
     setFetching(false)
   }
@@ -356,8 +357,33 @@ function SellPage() {
                 />
               )}
 
+              {/* ── ISBN not found: เพิ่มหนังสือใหม่ ── */}
+              {isbnNotFound && !fetchedBook && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <button
+                      onClick={() => { setIsbnNotFound(false); setManualTitle(''); setManualAuthor('') }}
+                      style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit' }}
+                    >← กลับ</button>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>ยังไม่มีหนังสือ ISBN นี้ในระบบ</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.6 }}>
+                    กรอกชื่อหนังสือเพื่อเพิ่มเข้าระบบและลงขาย คุณจะได้รับ 🏆 ตราผู้บุกเบิก
+                  </div>
+                  <div className="form-group">
+                    <label className="label">ชื่อหนังสือ *</label>
+                    <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="ชื่อหนังสือ" autoFocus />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="label">ผู้แต่ง / ผู้แปล</label>
+                    <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือผู้แปล (ไม่บังคับ)" />
+                  </div>
+                  {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600, marginTop: 10 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
+                </div>
+              )}
+
               {/* ── Section 1: สแกน/ISBN ── */}
-              {!fetchedBook && !notFound && !oldBookMode && (
+              {!fetchedBook && !notFound && !isbnNotFound && !oldBookMode && (
                 <>
                   {/* Photo capture — primary method, works on iPhone */}
                   <label style={{ display: 'block', background: 'var(--surface)', border: '2px dashed #BFDBFE', borderRadius: 14, padding: '24px 20px', textAlign: 'center', marginBottom: 10, cursor: scanning ? 'default' : 'pointer' }}>
@@ -409,7 +435,7 @@ function SellPage() {
               )}
 
               {/* ── Section 2 expanded: ค้นหาชื่อ ── */}
-              {!fetchedBook && !notFound && oldBookMode && (
+              {!fetchedBook && !notFound && !isbnNotFound && oldBookMode && (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                     <button
@@ -514,8 +540,11 @@ function SellPage() {
             </div>
           )}
 
-          {(fetchedBook?.title || (notFound && manualTitle)) && (
+          {(fetchedBook?.title || ((notFound || isbnNotFound) && manualTitle)) && (
             <>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                กรอกข้อมูลหนังสือที่คุณจะขาย
+              </div>
               <div className="form-group">
                 <label className="label">รูปหน้าปก <span style={{ color: 'var(--red)' }}>*</span></label>
 
