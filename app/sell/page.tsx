@@ -64,8 +64,8 @@ function SellPage() {
   const [showLogin, setShowLogin] = useState(false)
   const [isbn, setIsbn] = useState(searchParams.get('isbn') || '')
   const [fetchedBook, setFetchedBook] = useState<Partial<Book> | null>(null)
-  const [notFound, setNotFound] = useState(false)        // old book / no ISBN path
-  const [isbnNotFound, setIsbnNotFound] = useState(false) // ISBN scan/type แต่ยังไม่มีในระบบ
+  // notFoundMode: null=ยังค้นหา | 'has_isbn'=มี ISBN แต่ไม่อยู่ในระบบ | 'no_isbn'=ไม่มีบาร์โค้ด
+  const [notFoundMode, setNotFoundMode] = useState<null | 'has_isbn' | 'no_isbn'>(null)
   const [fetching, setFetching] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
@@ -84,17 +84,10 @@ function SellPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState('')
 
-  // Section 1: unified search (title + ISBN)
+  // Unified search state
   const [sellSearch, setSellSearch] = useState('')
   const [sellResults, setSellResults] = useState<any[]>([])
   const [sellSearching, setSellSearching] = useState(false)
-
-  // Section 2: old book / no ISBN
-  const [oldBookMode, setOldBookMode] = useState(false)
-  const [titleQuery, setTitleQuery] = useState('')
-  const [titleResults, setTitleResults] = useState<any[]>([])
-  const [searchingTitle, setSearchingTitle] = useState(false)
-  const [titleSearchDone, setTitleSearchDone] = useState(false)
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const galleryInputRef = useRef<HTMLInputElement | null>(null)
@@ -146,10 +139,11 @@ function SellPage() {
     if (q !== raw) { setIsbn(q); show(`แก้ไขอัตโนมัติ: ${raw} → ${q}`) }
     if (!isValidISBN(q)) { show('กล้องอ่านบาร์โค้ดไม่ชัด ลองสแกนใหม่อีกครั้ง หรือพิมพ์ ISBN เอง'); return }
     setFetching(true)
-    setIsbnNotFound(false)
+    setNotFoundMode(null)
     const book = await fetchBookByISBN(q)
     if (book?.title) {
       setFetchedBook(book)
+      setSellSearch('')
       if ((book as any).id) {
         const { data: ls } = await supabase.from('listings').select('price').eq('book_id', (book as any).id).eq('status', 'active')
         if (ls?.length) {
@@ -158,7 +152,9 @@ function SellPage() {
         }
       }
     } else {
-      setIsbnNotFound(true)
+      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ — ให้ผู้ขายกรอกข้อมูลเพิ่ม
+      setNotFoundMode('has_isbn')
+      setSellSearch('')
     }
     setFetching(false)
   }
@@ -242,31 +238,28 @@ function SellPage() {
     setCoverPreview(URL.createObjectURL(compressed))
   }
 
-  const searchByTitle = async () => {
-    const q = titleQuery.trim()
-    if (!q) return
-    setSearchingTitle(true)
-    setTitleSearchDone(false)
-    setTitleResults([])
-    const { data } = await supabase
-      .from('books')
-      .select('id, isbn, title, author, cover_url')
-      .or(`title.ilike.%${q}%,author.ilike.%${q}%`)
-      .limit(6)
-    setTitleResults(data || [])
-    setTitleSearchDone(true)
-    setSearchingTitle(false)
-  }
-
-  const selectTitleBook = async (book: any) => {
+  const selectBook = async (book: any) => {
     setFetchedBook(book)
     setIsbn(book.isbn)
-    setOldBookMode(false)
+    setSellSearch('')
+    setSellResults([])
     const { data: ls } = await supabase.from('listings').select('price').eq('book_id', book.id).eq('status', 'active')
     if (ls?.length) {
       const prices = ls.map((l: any) => l.price)
       setMarketPrice({ min: Math.min(...prices), max: Math.max(...prices), avg: Math.round(prices.reduce((a: number, b: number) => a + b) / prices.length) })
     }
+  }
+
+  const resetSearch = () => {
+    setSellSearch('')
+    setSellResults([])
+    setNotFoundMode(null)
+    setFetchedBook(null)
+    setManualTitle('')
+    setManualAuthor('')
+    setManualTranslator('')
+    setIsbn('')
+    setMarketPrice(null)
   }
 
   const removeCover = (e: React.MouseEvent) => {
@@ -288,7 +281,7 @@ function SellPage() {
     show('กำลังบันทึก...')
 
     try {
-      const currentIsbn = (fetchedBook as any)?.isbn || isbn
+      const currentIsbn = (fetchedBook as any)?.isbn || (notFoundMode === 'no_isbn' ? bmIsbn : isbn)
       let bookId = (fetchedBook as any)?.id
       let existingCoverUrl = fetchedBook?.cover_url || ''
 
@@ -379,82 +372,33 @@ function SellPage() {
                 />
               )}
 
-              {/* ── ISBN not found: เพิ่มหนังสือใหม่ ── */}
-              {isbnNotFound && !fetchedBook && (
-                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1px solid #BFDBFE' }}>
-                  {/* Header */}
-                  <div style={{ background: 'var(--primary-light)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 24 }}>📖</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>พบ ISBN แต่ยังไม่มีในระบบ</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink2)', marginTop: 1 }}>ISBN: {isbn}</div>
-                    </div>
-                    <button
-                      onClick={() => { setIsbnNotFound(false); setManualTitle(''); setManualAuthor('') }}
-                      style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit', padding: '4px 6px' }}
-                    >← กลับ</button>
-                  </div>
-                  {/* Body */}
-                  <div style={{ background: 'white', padding: 16 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, lineHeight: 1.7, background: 'var(--surface)', borderRadius: 10, padding: '10px 12px' }}>
-                      💡 <strong>กรอกข้อมูลหนังสือเล่มนี้</strong> เพื่อเพิ่มเข้าระบบและลงขายได้เลย<br />
-                      ข้อมูลที่คุณกรอกจะช่วยให้คนอื่นค้นหาหนังสือเล่มนี้ได้ด้วย
-                    </div>
-                    <div className="form-group">
-                      <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
-                      <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label">ผู้แต่ง / ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
-                      <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling / สุมาลี บำรุงสุข" />
-                    </div>
-                    {manualTitle && (
-                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>
-                        🏆 ขอบคุณที่ช่วยเพิ่มข้อมูล! คุณจะได้รับตราผู้บุกเบิก
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── Section 1: ค้นหาหนังสือ (title + ISBN) ── */}
-              {!fetchedBook && !notFound && !isbnNotFound && !oldBookMode && (
+              {/* ── Search & Scan ── */}
+              {!fetchedBook && !notFoundMode && (
                 <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink2)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.8px' }}>ขายหนังสือที่มี Barcode</div>
+
+                  {/* Search input */}
                   <div className="form-group">
-                    <label className="label">ค้นหาหนังสือที่จะขาย</label>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <div style={{ flex: 1, position: 'relative' }}>
-                        <input
-                          className="input"
-                          value={sellSearch}
-                          onChange={e => setSellSearch(e.target.value)}
-                          placeholder="ชื่อหนังสือ หรือ ISBN..."
-                          style={{ paddingRight: (fetching || sellSearching) ? 40 : 14 }}
-                        />
-                        {(fetching || sellSearching) && (
-                          <span className="spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }} />
-                        )}
-                      </div>
-                      <label
-                        title="สแกนบาร์โค้ด"
-                        style={{ flexShrink: 0, width: 48, height: 48, background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, cursor: scanning ? 'default' : 'pointer' }}
-                      >
-                        <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-                        {scanning ? <span className="spin" style={{ width: 18, height: 18 }} /> : '📷'}
-                      </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="input"
+                        value={sellSearch}
+                        onChange={e => setSellSearch(e.target.value)}
+                        placeholder="ค้นหาชื่อหนังสือ หรือพิมพ์ ISBN..."
+                        style={{ paddingRight: (fetching || sellSearching) ? 44 : 14 }}
+                      />
+                      {(fetching || sellSearching) && (
+                        <span className="spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }} />
+                      )}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 5 }}>พิมพ์ชื่อหนังสือหรือ ISBN แล้วรอสักครู่ — หรือกด 📷 เพื่อสแกนบาร์โค้ด</div>
                   </div>
 
-                  {/* Search results */}
+                  {/* Search results dropdown */}
                   {sellResults.length > 0 && (
                     <div style={{ marginBottom: 14, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       {sellResults.map((b, i) => (
-                        <button
-                          key={b.id}
-                          onClick={() => { selectTitleBook(b); setSellSearch(''); setSellResults([]) }}
-                          style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}
-                        >
+                        <button key={b.id} onClick={() => selectBook(b)}
+                          style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
                           <BookCover coverUrl={b.cover_url} title={b.title} size={38} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
@@ -466,135 +410,122 @@ function SellPage() {
                     </div>
                   )}
 
+                  {/* Scan button */}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '13px 16px', cursor: scanning ? 'default' : 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: 'var(--primary)', marginBottom: 14 }}>
+                    <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                    {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 สแกน Barcode</>}
+                  </label>
+
+                  {/* Not found — shown after search with no results */}
+                  {sellSearch.trim().length >= 2 && !sellSearching && !fetching && sellResults.length === 0 && (
+                    <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>ไม่พบ <strong>"{sellSearch}"</strong> ในระบบ — เพิ่มเองได้เลย</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => setNotFoundMode('has_isbn')}
+                          style={{ flex: 1, background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 10, padding: '11px 8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'var(--primary)', cursor: 'pointer' }}>
+                          🔖 มี Barcode
+                        </button>
+                        <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn) }}
+                          style={{ flex: 1, background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 10, padding: '11px 8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: '#92400E', cursor: 'pointer' }}>
+                          📖 ไม่มี Barcode
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Divider */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px' }}>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                     <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
 
-                  {/* ── Section 2: หนังสือเก่า/ไม่มี ISBN ── */}
-                  <button
-                    onClick={() => setOldBookMode(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 14, padding: '16px 18px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left' }}
-                  >
-                    <span style={{ fontSize: 28, flexShrink: 0 }}>📖</span>
+                  {/* No barcode shortcut */}
+                  <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 14, padding: '14px 18px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left' }}>
+                    <span style={{ fontSize: 24, flexShrink: 0 }}>📖</span>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>หนังสือเก่า / ไม่มี ISBN / ลงเป็นชุด</div>
-                      <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>ค้นหาชื่อหนังสือในระบบ หรือกรอกข้อมูลเอง</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>หนังสือไม่มี Barcode / หนังสือชุด</div>
+                      <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>หนังสือเก่า, การ์ตูน, ลงเป็นชุด</div>
                     </div>
                     <span style={{ marginLeft: 'auto', color: '#B45309', fontSize: 18 }}>›</span>
                   </button>
                 </>
               )}
 
-              {/* ── Section 2 expanded: ค้นหาชื่อ ── */}
-              {!fetchedBook && !notFound && !isbnNotFound && oldBookMode && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                    <button
-                      onClick={() => { setOldBookMode(false); setTitleQuery(''); setTitleResults([]); setTitleSearchDone(false) }}
-                      style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit', display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
-                      ← กลับ
-                    </button>
-                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 16 }}>หนังสือเก่า / ไม่มี ISBN</div>
-                  </div>
-
-                  <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 14, padding: 16, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#92400E', marginBottom: 10 }}>🔍 ค้นหาชื่อในระบบก่อน</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input
-                        className="input"
-                        value={titleQuery}
-                        onChange={e => setTitleQuery(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && searchByTitle()}
-                        placeholder="ชื่อหนังสือ หรือผู้แต่ง..."
-                      />
-                      <button
-                        onClick={searchByTitle}
-                        disabled={searchingTitle || !titleQuery.trim()}
-                        style={{ background: '#D97706', border: 'none', borderRadius: 10, padding: '0 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-                      >
-                        {searchingTitle ? <span className="spin" /> : 'ค้นหา'}
-                      </button>
+              {/* ── มี Barcode แต่ไม่อยู่ในระบบ ── */}
+              {notFoundMode === 'has_isbn' && !fetchedBook && (
+                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1px solid #BFDBFE' }}>
+                  <div style={{ background: 'var(--primary-light)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>🔖</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>เพิ่มหนังสือใหม่เข้าระบบ</div>
+                      {isbn && <div style={{ fontSize: 11, color: 'var(--ink2)', marginTop: 1 }}>ISBN: {isbn}</div>}
                     </div>
-
-                    {/* ผลการค้นหา */}
-                    {titleResults.length > 0 && (
-                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {titleResults.map(b => (
-                          <button
-                            key={b.id}
-                            onClick={() => selectTitleBook(b)}
-                            style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}
-                          >
-                            <BookCover coverUrl={b.cover_url} title={b.title} size={40} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                              {b.author && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{b.author}</div>}
-                            </div>
-                            <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>เลือก</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {titleSearchDone && titleResults.length === 0 && (
-                      <div style={{ marginTop: 10, fontSize: 13, color: '#92400E' }}>ไม่พบในระบบ — กรอกข้อมูลเองด้านล่างได้เลย</div>
-                    )}
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit' }}>← กลับ</button>
                   </div>
+                  <div style={{ background: 'white', padding: 16 }}>
+                    <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, background: 'var(--surface)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.7 }}>
+                      💡 กรอก ISBN + ชื่อหนังสือ เพื่อเพิ่มเข้าระบบและลงขายได้เลย
+                    </div>
+                    <div className="form-group">
+                      <label className="label">ISBN</label>
+                      <input className="input" value={isbn} onChange={e => setIsbn(e.target.value)} placeholder="เช่น 9784088703251" />
+                    </div>
+                    <div className="form-group">
+                      <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
+                      <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="label">ผู้แต่ง / ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling" />
+                    </div>
+                    {manualTitle && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>🏆 ขอบคุณ! คุณจะได้รับตราผู้บุกเบิก</div>}
+                  </div>
+                </div>
+              )}
 
-                  {/* ปุ่มกรอกเอง */}
-                  <button
-                    onClick={() => { setNotFound(true); setIsbn(bmIsbn) }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, padding: '13px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)' }}
-                  >
-                    ✏️ กรอกข้อมูลหนังสือเอง
-                    <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink3)' }}>(ได้รับ 🏆 ตราผู้บุกเบิก)</span>
-                  </button>
+              {/* ── ไม่มี Barcode / หนังสือชุด ── */}
+              {notFoundMode === 'no_isbn' && !fetchedBook && (
+                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1.5px solid #FDE68A' }}>
+                  <div style={{ background: '#FFFBEB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>📖</span>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#92400E' }}>หนังสือไม่มี Barcode</div>
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#B45309', cursor: 'pointer', fontFamily: 'Kanit' }}>← กลับ</button>
+                  </div>
+                  <div style={{ background: 'white', padding: 16 }}>
+                    <div className="form-group">
+                      <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
+                      <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / Naruto เล่ม 1-10 / ชุด Harry Potter" autoFocus />
+                    </div>
+                    <div className="form-group">
+                      <label className="label">ผู้แต่ง / ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือ ผู้แปล" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="label">ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <input className="input" value={manualTranslator} onChange={e => setManualTranslator(e.target.value)} placeholder="ชื่อผู้แปล" />
+                    </div>
+                    {manualTitle && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
+                  </div>
                 </div>
               )}
             </>
           )}
 
-          {notFound && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <button
-                  onClick={() => { setNotFound(false); setOldBookMode(true); setManualTitle(''); setManualAuthor(''); setManualTranslator('') }}
-                  style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit' }}
-                >← กลับ</button>
-                <div style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 600 }}>กรอกข้อมูลหนังสือเองได้เลย 🏆</div>
-              </div>
-              <div className="form-group">
-                <label className="label">ชื่อหนังสือ *</label>
-                <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / การ์ตูน Naruto เล่ม 1-10 / ชุด Harry Potter ครบชุด" />
-              </div>
-              <div className="form-group">
-                <label className="label">ผู้แต่ง / ผู้แปล</label>
-                <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือ ผู้แปล (ไม่บังคับ)" />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="label">ผู้แปล (ถ้ามี)</label>
-                <input className="input" value={manualTranslator} onChange={e => setManualTranslator(e.target.value)} placeholder="ชื่อผู้แปล (ไม่บังคับ)" />
-              </div>
-              {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600, marginTop: 10 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
-            </div>
-          )}
-
           {fetchedBook?.title && (
-            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '3px solid var(--green)', borderRadius: 12, padding: 13, display: 'flex', gap: 12, marginBottom: 14 }}>
+            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '3px solid var(--green)', borderRadius: 12, padding: 13, display: 'flex', gap: 12, marginBottom: 14, alignItems: 'center' }}>
               <BookCover coverUrl={fetchedBook.cover_url} title={fetchedBook.title} size={44} />
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700 }}>{fetchedBook.title}</div>
                 {fetchedBook.author && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{fetchedBook.author}</div>}
                 <span style={{ fontSize: 11, background: '#E8F5E9', color: '#2E7D32', padding: '2px 8px', borderRadius: 20, fontWeight: 700, display: 'inline-block', marginTop: 5 }}>✓ ดึงข้อมูลสำเร็จ</span>
               </div>
+              <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>เปลี่ยน</button>
             </div>
           )}
 
-          {(fetchedBook?.title || ((notFound || isbnNotFound) && manualTitle)) && (
+          {(fetchedBook?.title || (notFoundMode && manualTitle)) && (
             <>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
                 กรอกข้อมูลหนังสือที่คุณจะขาย
