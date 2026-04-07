@@ -3,11 +3,28 @@ import { AuthProvider } from '@/lib/auth'
 import PwaInit from '@/components/PwaInit'
 import './globals.css'
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.vercel.app'
+
 export const metadata: Metadata = {
-  title: 'BookMatch — ตลาดหนังสือมือสอง',
-  description: 'ซื้อขายหนังสือมือสอง ค้นหาด้วย ISBN ง่ายและรวดเร็ว',
+  title: { default: 'BookMatch — ตลาดหนังสือมือสอง', template: '%s — BookMatch' },
+  description: 'ซื้อขายหนังสือมือสองออนไลน์ ค้นหาด้วย ISBN หรือชื่อหนังสือ เจอผู้ขายได้ทันที',
+  keywords: 'หนังสือมือสอง, ซื้อหนังสือ, ขายหนังสือ, BookMatch, ISBN',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'BookMatch' },
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    type: 'website',
+    locale: 'th_TH',
+    siteName: 'BookMatch',
+    title: 'BookMatch — ตลาดหนังสือมือสอง',
+    description: 'ซื้อขายหนังสือมือสองออนไลน์ ค้นหาด้วย ISBN หรือชื่อหนังสือ เจอผู้ขายได้ทันที',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'BookMatch — ตลาดหนังสือมือสอง',
+    description: 'ซื้อขายหนังสือมือสองออนไลน์ ค้นหาด้วย ISBN หรือชื่อหนังสือ เจอผู้ขายได้ทันที',
+  },
+  robots: { index: true, follow: true },
 }
 
 export default function RootLayout({
