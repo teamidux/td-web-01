@@ -10,6 +10,7 @@ export type Book = {
   isbn: string
   title: string
   author: string
+  translator?: string
   publisher?: string
   description?: string
   cover_url?: string
@@ -31,6 +32,7 @@ export type Listing = {
   price_includes_shipping: boolean
   photos: string[]
   contact: string
+  notes?: string
   status: 'active' | 'sold' | 'removed'
   sold_at?: string
   created_at: string

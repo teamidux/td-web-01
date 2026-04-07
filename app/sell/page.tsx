@@ -6,9 +6,9 @@ import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet, LiveScanModal, resizeForScan } from '@/components/ui'
 
 const CONDITIONS = [
-  { key: 'new', label: '✨ ใหม่มาก' },
-  { key: 'good', label: '👍 ดี' },
-  { key: 'fair', label: '📖 พอใช้' },
+  { key: 'new', label: '✨ ใหม่มาก', desc: 'ไม่มีรอยใดๆ เหมือนซื้อจากร้าน' },
+  { key: 'good', label: '👍 ดี', desc: 'มีรอยการใช้งานเล็กน้อย อ่านได้ปกติ' },
+  { key: 'fair', label: '📖 พอใช้', desc: 'มีรอยชัดเจน แต่เนื้อหาครบถ้วน' },
 ]
 
 function compressImage(file: File, maxKB = 300): Promise<File> {
@@ -77,6 +77,9 @@ function SellPage() {
   const [marketPrice, setMarketPrice] = useState<{ min: number; max: number; avg: number } | null>(null)
   const [manualTitle, setManualTitle] = useState('')
   const [manualAuthor, setManualAuthor] = useState('')
+  const [manualTranslator, setManualTranslator] = useState('')
+  const [notes, setNotes] = useState('')
+  const [bmIsbn] = useState(() => 'BM-' + Math.random().toString(36).toUpperCase().slice(2, 7))
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState('')
 
@@ -243,6 +246,7 @@ function SellPage() {
             isbn: currentIsbn,
             title: fetchedBook?.title || manualTitle,
             author: fetchedBook?.author || manualAuthor || '',
+            translator: manualTranslator || '',
             cover_url: fetchedBook?.cover_url || '',
             language: fetchedBook?.language || 'th',
             first_contributor_id: user.id,
@@ -278,6 +282,7 @@ function SellPage() {
         price: parseFloat(price),
         price_includes_shipping: shipping === 'free',
         contact: contact.trim(),
+        notes: notes.trim() || null,
         photos: [publicUrl],
         status: 'active',
       })
@@ -354,7 +359,7 @@ function SellPage() {
                 />
               )}
 
-              {!fetchedBook && (
+              {!fetchedBook && !notFound && (
                 <div className="form-group">
                   <label className="label">ISBN</label>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -363,6 +368,12 @@ function SellPage() {
                       {fetching ? <span className="spin" /> : 'ดึงข้อมูล'}
                     </button>
                   </div>
+                  <button
+                    onClick={() => { setNotFound(true); setIsbn(bmIsbn) }}
+                    style={{ marginTop: 10, background: 'none', border: 'none', padding: 0, fontSize: 13, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Sarabun', textDecoration: 'underline', textAlign: 'left' }}
+                  >
+                    📖 หนังสือเก่า / ไม่มี ISBN / ลงเป็นชุด → กรอกเองได้เลย
+                  </button>
                 </div>
               )}
             </>
@@ -370,16 +381,20 @@ function SellPage() {
 
           {notFound && (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>ไม่พบข้อมูล ISBN นี้ กรอกชื่อหนังสือเองได้เลย 🏆</div>
+              <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>กรอกข้อมูลหนังสือเองได้เลย 🏆</div>
               <div className="form-group">
                 <label className="label">ชื่อหนังสือ *</label>
-                <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="ชื่อหนังสือ" />
+                <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / การ์ตูน Naruto เล่ม 1-10 / ชุด Harry Potter ครบชุด" />
               </div>
               <div className="form-group">
-                <label className="label">ผู้แต่ง</label>
-                <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง (ไม่บังคับ)" />
+                <label className="label">ผู้แต่ง / ผู้แปล</label>
+                <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือ ผู้แปล (ไม่บังคับ)" />
               </div>
-              {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="label">ผู้แปล (ถ้ามี)</label>
+                <input className="input" value={manualTranslator} onChange={e => setManualTranslator(e.target.value)} placeholder="ชื่อผู้แปล (ไม่บังคับ)" />
+              </div>
+              {manualTitle && <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600, marginTop: 10 }}>🏆 คุณจะได้รับตราผู้บุกเบิก!</div>}
             </div>
           )}
 
@@ -431,6 +446,21 @@ function SellPage() {
                     </button>
                   ))}
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>
+                  {CONDITIONS.find(c => c.key === cond)?.desc}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="label">หมายเหตุเพิ่มเติม <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                <textarea
+                  className="input"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ / หน้า 45 มีรอยน้ำเล็กน้อย"
+                  rows={2}
+                  style={{ resize: 'none', lineHeight: 1.6 }}
+                />
               </div>
 
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
