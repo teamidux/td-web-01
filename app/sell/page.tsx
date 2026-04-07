@@ -85,10 +85,15 @@ function SellPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState('')
 
-  // Unified search state
+  // Unified search state (main)
   const [sellSearch, setSellSearch] = useState('')
   const [sellResults, setSellResults] = useState<any[]>([])
   const [sellSearching, setSellSearching] = useState(false)
+
+  // no_isbn mode: search while typing title
+  const [noIsbnResults, setNoIsbnResults] = useState<any[]>([])
+  const [noIsbnSearching, setNoIsbnSearching] = useState(false)
+  const [noIsbnSearchDone, setNoIsbnSearchDone] = useState(false)
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const galleryInputRef = useRef<HTMLInputElement | null>(null)
@@ -114,6 +119,24 @@ function SellPage() {
     }, 400)
     return () => clearTimeout(t)
   }, [sellSearch])
+
+  // no_isbn: ค้นหา DB ขณะพิมพ์ชื่อ — ถ้าพบให้เลือก ถ้าไม่พบค่อยกรอกเอง
+  useEffect(() => {
+    if (notFoundMode !== 'no_isbn') return
+    if (!manualTitle.trim()) { setNoIsbnResults([]); setNoIsbnSearchDone(false); return }
+    const t = setTimeout(async () => {
+      setNoIsbnSearching(true)
+      const { data } = await supabase
+        .from('books')
+        .select('id, isbn, title, author, cover_url')
+        .or(buildOrFilter(searchVariants(manualTitle.trim())))
+        .limit(5)
+      setNoIsbnResults(data || [])
+      setNoIsbnSearchDone(true)
+      setNoIsbnSearching(false)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [manualTitle, notFoundMode])
 
   useEffect(() => {
     if (user?.phone) setContact(user.phone)
@@ -414,7 +437,7 @@ function SellPage() {
                   {/* Scan button */}
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '13px 16px', cursor: scanning ? 'default' : 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: 'var(--primary)', marginBottom: 14 }}>
                     <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-                    {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 สแกน Barcode</>}
+                    {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 ค้นหาด้วย Barcode</>}
                   </label>
 
                   {/* Not found — shown after search with no results */}
@@ -434,23 +457,6 @@ function SellPage() {
                     </div>
                   )}
 
-                  {/* Divider */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px' }}>
-                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                    <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
-                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  </div>
-
-                  {/* No barcode shortcut */}
-                  <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 14, padding: '14px 18px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left' }}>
-                    <span style={{ fontSize: 24, flexShrink: 0 }}>📖</span>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>หนังสือไม่มี Barcode / หนังสือชุด</div>
-                      <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>หนังสือเก่า, การ์ตูน, ลงเป็นชุด</div>
-                    </div>
-                    <span style={{ marginLeft: 'auto', color: '#B45309', fontSize: 18 }}>›</span>
-                  </button>
                 </>
               )}
 

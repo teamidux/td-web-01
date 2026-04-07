@@ -116,7 +116,7 @@ export default function HomePage() {
                 className="search-input"
                 value={query}
                 onChange={e => { setQuery(e.target.value); setLiveResults([]) }}
-                placeholder="ชื่อหนังสือ หรือ ISBN..."
+                placeholder="ค้นหาชื่อหนังสือ หรือ ISBN"
                 onKeyDown={e => e.key === 'Enter' && doSearch()}
                 style={{ width: '100%', paddingRight: liveSearching ? 44 : 16 }}
               />
@@ -147,9 +147,9 @@ export default function HomePage() {
           </div>
 
           {/* Scan button */}
-          <label style={{ background: scanning ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 18px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto', width: 'fit-content' }}>
+          <label style={{ background: scanning ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '12px 18px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: scanning ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto', maxWidth: 440, width: '100%' }}>
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-            {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : '📷 สแกน Barcode'}
+            {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : '📷 ค้นหาด้วย Barcode'}
           </label>
 
           {scanError && (
