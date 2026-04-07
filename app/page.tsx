@@ -148,7 +148,7 @@ export default function HomePage() {
                 {googleLiveResults.length > 0 && (
                   <>
                     <div style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--surface)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                      Google Books — ยังไม่มีคนขาย
+                      พบในระบบ — ยังไม่มีผู้ลงขายตอนนี้
                     </div>
                     {googleLiveResults.map((b, i) => (
                       <button key={b.isbn} onClick={() => { router.push(`/book/${b.isbn}`); setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}

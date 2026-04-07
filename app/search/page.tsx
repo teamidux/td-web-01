@@ -113,14 +113,14 @@ function SearchPage() {
           {googleLoading && (
             <div style={{ textAlign: 'center', padding: 20 }}>
               <span className="spin" style={{ width: 20, height: 20 }} />
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>ค้นหาใน Google Books...</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>กำลังค้นหาในระบบ...</div>
             </div>
           )}
           {!googleLoading && googleResults.length > 0 && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 12px' }}>
                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, whiteSpace: 'nowrap' }}>พบใน Google Books — ยังไม่มีคนขาย</span>
+                <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, whiteSpace: 'nowrap' }}>พบในระบบ — ยังไม่มีผู้ลงขายตอนนี้</span>
                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               </div>
               {googleResults.map(b => (
