@@ -249,19 +249,30 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
             </div>
           )}
 
-          {listings.map(l => (
+          {listings.map(l => {
+            const isStore = (l.users as any)?.seller_type === 'store'
+            const sellerName = isStore ? ((l.users as any)?.store_name || l.users?.display_name) : l.users?.display_name
+            return (
             <div key={l.id} className="card">
+              {isStore && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '6px 10px', marginBottom: 10 }}>
+                  <span style={{ fontSize: 14 }}>🏪</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#C2410C' }}>ใหม่จากร้าน</span>
+                  <span style={{ fontSize: 11, color: '#EA580C', marginLeft: 2 }}>· หนังสือใหม่ไม่ผ่านมือ</span>
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>👤</div>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: isStore ? '#FFF7ED' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{isStore ? '🏪' : '👤'}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Link href={`/seller/${l.seller_id}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>
-                      {l.users?.display_name}
+                      {sellerName}
                     </Link>
                     {l.users?.is_verified && <span className="badge badge-blue">✓ Verified</span>}
+                    {isStore && <span className="badge" style={{ background: '#FFF7ED', color: '#C2410C' }}>🏪 ร้านค้า</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-                    ขายแล้ว {l.users?.sold_count || 0} · ยืนยัน {l.users?.confirmed_count || 0} ครั้ง
+                    {isStore ? 'ร้านค้า / สำนักพิมพ์' : `ขายแล้ว ${l.users?.sold_count || 0} · ยืนยัน ${l.users?.confirmed_count || 0} ครั้ง`}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -293,7 +304,7 @@ export default function BookDetailClient({ isbn }: { isbn: string }) {
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
         <div style={{ height: 12 }} />
       </div>

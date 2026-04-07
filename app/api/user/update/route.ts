@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
   const allowed: Record<string, unknown> = {}
   if (typeof data.display_name === 'string') allowed.display_name = data.display_name.trim()
   if (data.line_id !== undefined) allowed.line_id = typeof data.line_id === 'string' ? data.line_id.trim() || null : null
+  if (data.seller_type === 'individual' || data.seller_type === 'store') allowed.seller_type = data.seller_type
+  if (data.store_name !== undefined) allowed.store_name = typeof data.store_name === 'string' ? data.store_name.trim() || null : null
 
   if (Object.keys(allowed).length === 0) return NextResponse.json({ error: 'no valid fields' }, { status: 400 })
 

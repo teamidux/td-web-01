@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editLine, setEditLine] = useState('')
+  const [editSellerType, setEditSellerType] = useState<'individual' | 'store'>('individual')
+  const [editStoreName, setEditStoreName] = useState('')
   const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
   const { msg, show } = useToast()
@@ -20,14 +22,22 @@ export default function ProfilePage() {
   const startEdit = () => {
     setEditName(user?.display_name || '')
     setEditLine(user?.line_id || '')
+    setEditSellerType(user?.seller_type || 'individual')
+    setEditStoreName(user?.store_name || '')
     setEditing(true)
   }
 
   const saveProfile = async () => {
     if (!editName.trim()) { show('กรุณาใส่ชื่อ'); return }
+    if (editSellerType === 'store' && !editStoreName.trim()) { show('กรุณาใส่ชื่อร้าน'); return }
     setSaving(true)
     try {
-      await updateUser({ display_name: editName.trim(), line_id: editLine.trim() || undefined })
+      await updateUser({
+        display_name: editName.trim(),
+        line_id: editLine.trim() || undefined,
+        seller_type: editSellerType,
+        store_name: editSellerType === 'store' ? editStoreName.trim() : undefined,
+      })
       setEditing(false)
       show('บันทึกแล้ว ✓')
     } catch (e: unknown) {
@@ -133,10 +143,28 @@ export default function ProfilePage() {
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อที่แสดง</label>
               <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editName} onChange={e => setEditName(e.target.value)} placeholder="ชื่อของคุณ" />
             </div>
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Line ID</label>
               <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editLine} onChange={e => setEditLine(e.target.value)} placeholder="@lineid หรือ lineid" />
             </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>ประเภทผู้ขาย</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['individual', 'store'] as const).map(t => (
+                  <button key={t} onClick={() => setEditSellerType(t)}
+                    style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: `2px solid ${editSellerType === t ? 'var(--primary)' : 'var(--border)'}`, background: editSellerType === t ? 'var(--primary-light)' : 'white', fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, color: editSellerType === t ? 'var(--primary)' : 'var(--ink2)', cursor: 'pointer' }}>
+                    {t === 'individual' ? '👤 บุคคลทั่วไป' : '🏪 ร้านค้า / สำนักพิมพ์'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {editSellerType === 'store' && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อร้าน / สำนักพิมพ์ <span style={{ color: 'var(--red)' }}>*</span></label>
+                <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editStoreName} onChange={e => setEditStoreName(e.target.value)} placeholder="เช่น ร้านหนังสือบ้านหนังสือ" />
+              </div>
+            )}
+            <div style={{ marginBottom: 24 }} />
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveProfile} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
@@ -147,13 +175,18 @@ export default function ProfilePage() {
 
       <div className="page">
         <div style={{ background: 'var(--primary)', padding: '24px 16px', display: 'flex', gap: 14, alignItems: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)' }}>👤</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)' }}>{user.seller_type === 'store' ? '🏪' : '👤'}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, color: 'white', marginBottom: 3 }}>{user.display_name}</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, color: 'white', marginBottom: 3 }}>
+              {user.seller_type === 'store' && user.store_name ? user.store_name : user.display_name}
+            </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,.65)', marginBottom: 2 }}>{user.phone}</div>
             {user.line_id && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
-            <div style={{ display: 'flex', gap: 6 }}>
-              <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>📚 Free Plan</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {user.seller_type === 'store'
+                ? <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏪 ร้านค้า / สำนักพิมพ์</span>
+                : <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>📚 Free Plan</span>
+              }
               {user.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>

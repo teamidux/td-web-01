@@ -46,6 +46,8 @@ export type User = {
   display_name: string
   avatar_url?: string
   line_id?: string
+  seller_type: 'individual' | 'store'
+  store_name?: string
   plan: string
   listings_limit: number
   sold_count: number
