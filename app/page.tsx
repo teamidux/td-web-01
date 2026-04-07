@@ -116,7 +116,7 @@ export default function HomePage() {
             [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8]],
             [DecodeHintType.TRY_HARDER, true],
           ])
-          scanned = new BrowserMultiFormatReader(hints).decodeFromCanvas(canvas).getText()
+          scanned = (new BrowserMultiFormatReader(hints) as any).decodeFromCanvas(canvas).getText()
         } catch { /* fallthrough */ }
       }
 

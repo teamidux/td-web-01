@@ -228,7 +228,7 @@ function SellPage() {
             [DecodeHintType.TRY_HARDER, true],
           ])
           const reader = new BrowserMultiFormatReader(hints)
-          scanned = reader.decodeFromCanvas(canvas).getText()
+          scanned = (reader as any).decodeFromCanvas(canvas).getText()
         } catch { /* fallthrough */ }
       }
 
