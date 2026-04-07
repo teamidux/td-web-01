@@ -3,7 +3,7 @@ import { AuthProvider } from '@/lib/auth'
 import PwaInit from '@/components/PwaInit'
 import './globals.css'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.vercel.app'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
 export const metadata: Metadata = {
   title: { default: 'BookMatch — ตลาดหนังสือมือสอง', template: '%s — BookMatch' },

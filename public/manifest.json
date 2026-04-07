@@ -1,7 +1,7 @@
 {
   "name": "BookMatch — ตลาดหนังสือมือสอง",
   "short_name": "BookMatch",
-  "description": "ซื้อขายหนังสือมือสอง ค้นหาด้วย ISBN ง่ายและรวดเร็ว",
+  "description": "ติดตั้งฟรี ไม่มีโฆษณา • สแกน ISBN เจอผู้ขายใน 2 วินาที • แจ้งเตือนทันทีเมื่อมีหนังสือที่คุณตามหา",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

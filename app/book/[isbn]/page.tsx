@@ -47,7 +47,7 @@ async function getBook(isbn: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const isbn = decodeURIComponent(params.isbn)
   const book = await getBook(isbn)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.vercel.app'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
   if (!book) {
     return {
@@ -94,7 +94,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BookPage({ params }: PageProps) {
   const isbn = decodeURIComponent(params.isbn)
   const book = await getBook(isbn)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.vercel.app'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
   const jsonLd = book ? {
     '@context': 'https://schema.org',

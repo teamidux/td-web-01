@@ -236,16 +236,20 @@ function SellPage() {
         debugLog.push('BarcodeDetector: not supported')
       }
 
-      // 2. ZXing decodeFromCanvas
+      // 2. ZXing — MultiFormatReader + HTMLCanvasElementLuminanceSource (works on iOS Safari)
       if (!scanned) {
         try {
-          const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library')
-          const hints = new Map<any, any>([
-            [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8]],
-            [DecodeHintType.TRY_HARDER, true],
-          ])
-          const r = (new BrowserMultiFormatReader(hints) as any).decodeFromCanvas(canvas)
-          scanned = r.getText()
+          const zxing: any = await import('@zxing/library')
+          const { MultiFormatReader, HTMLCanvasElementLuminanceSource, BinaryBitmap, HybridBinarizer, DecodeHintType, BarcodeFormat } = zxing
+          const reader = new MultiFormatReader()
+          const hints = new Map<any, any>()
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8])
+          hints.set(DecodeHintType.TRY_HARDER, true)
+          reader.setHints(hints)
+          const luminance = new HTMLCanvasElementLuminanceSource(canvas)
+          const bitmap = new BinaryBitmap(new HybridBinarizer(luminance))
+          const result = reader.decode(bitmap)
+          scanned = result.getText()
           debugLog.push(`ZXing OK: ${scanned}`)
         } catch (e: any) { debugLog.push(`ZXing FAIL: ${e?.message}`) }
       }
