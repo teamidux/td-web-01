@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { searchVariants, buildOrFilter } from '@/lib/search'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet, resizeForScan } from '@/components/ui'
+import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
+import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
   { key: 'brand_new', label: '🆕 มือหนึ่ง', desc: 'ยังไม่ผ่านการใช้งาน ซื้อมาแล้วไม่ได้อ่าน' },
@@ -190,92 +191,19 @@ function SellPage() {
     e.target.value = ''
     setScanning(true)
     try {
-      let scanned: string | null = null
-      const debugLog: string[] = []
-
-      // แปลงเป็น JPEG + แก้ EXIF rotation ก่อนเสมอ
-      let file: File
-      try {
-        file = await resizeForScan(rawFile, 1920)
-        debugLog.push(`resize OK: ${file.size}b ${file.type} ${rawFile.type}→JPEG`)
-      } catch (e: any) {
-        debugLog.push(`resize FAIL: ${e?.message}`)
-        file = rawFile
-      }
-
-      // สร้าง canvas
-      let canvas: HTMLCanvasElement
-      try {
-        canvas = await new Promise<HTMLCanvasElement>((res, rej) => {
-          const img = new Image()
-          const u = URL.createObjectURL(file)
-          img.onload = () => {
-            URL.revokeObjectURL(u)
-            const c = document.createElement('canvas')
-            c.width = img.naturalWidth; c.height = img.naturalHeight
-            c.getContext('2d')!.drawImage(img, 0, 0)
-            res(c)
-          }
-          img.onerror = (e) => { URL.revokeObjectURL(u); rej(e) }
-          img.src = u
-        })
-        debugLog.push(`canvas OK: ${canvas.width}x${canvas.height}`)
-      } catch (e: any) {
-        throw new Error(`canvas FAIL: ${e?.message}\n${debugLog.join('\n')}`)
-      }
-
-      // 1. BarcodeDetector
-      if ('BarcodeDetector' in window) {
-        try {
-          const detector = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8'] })
-          const codes = await detector.detect(canvas)
-          debugLog.push(`BarcodeDetector: ${codes.length} codes ${codes.map((c: any) => c.rawValue).join(',')}`)
-          if (codes.length > 0) scanned = codes[0].rawValue
-        } catch (e: any) { debugLog.push(`BarcodeDetector FAIL: ${e?.message}`) }
+      const result = await scanBarcode(rawFile)
+      console.log('[SCAN DEBUG]', result)
+      if (result.isbn) {
+        setIsbn(result.isbn)
+        fetchBook(result.isbn)
+      } else if (result.raw) {
+        setIsbn(result.raw)
+        show('อ่านบาร์โค้ดไม่ชัด ลองสแกนใหม่')
+        alert(`🔍 Debug (got value but invalid ISBN):\nraw=${result.raw}\nvariant=${result.variantHit}\n\n${result.debug.join('\n')}`)
       } else {
-        debugLog.push('BarcodeDetector: not supported')
+        setScanError(true)
+        alert('🔍 Debug:\n' + result.debug.join('\n'))
       }
-
-      // 2. ZXing — MultiFormatReader + HTMLCanvasElementLuminanceSource (works on iOS Safari)
-      if (!scanned) {
-        try {
-          const zxing: any = await import('@zxing/library')
-          const { MultiFormatReader, HTMLCanvasElementLuminanceSource, BinaryBitmap, HybridBinarizer, DecodeHintType, BarcodeFormat } = zxing
-          const reader = new MultiFormatReader()
-          const hints = new Map<any, any>()
-          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8])
-          hints.set(DecodeHintType.TRY_HARDER, true)
-          reader.setHints(hints)
-          const luminance = new HTMLCanvasElementLuminanceSource(canvas)
-          const bitmap = new BinaryBitmap(new HybridBinarizer(luminance))
-          const result = reader.decode(bitmap)
-          scanned = result.getText()
-          debugLog.push(`ZXing OK: ${scanned}`)
-        } catch (e: any) { debugLog.push(`ZXing FAIL: ${e?.message}`) }
-      }
-
-      // 3. html5-qrcode fallback
-      if (!scanned) {
-        try {
-          const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-          let el = document.getElementById('sell-file-tmp')
-          if (!el) { el = document.createElement('div'); el.id = 'sell-file-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
-          const scanner = new Html5Qrcode('sell-file-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
-          scanned = await scanner.scanFile(file, false)
-          debugLog.push(`html5-qrcode OK: ${scanned}`)
-        } catch (e: any) { debugLog.push(`html5-qrcode FAIL: ${e?.message}`) }
-      }
-
-      if (!scanned) throw new Error(debugLog.join('\n'))
-
-      const corrected = correctISBN(scanned.trim())
-      setIsbn(corrected)
-      fetchBook(corrected)
-    } catch (e: any) {
-      setScanError(true)
-      // แสดง debug info เฉพาะตอน dev หรือกด scan error
-      console.error('[SCAN DEBUG]', e?.message)
-      alert('🔍 Debug:\n' + (e?.message || 'unknown error'))
     } finally {
       setScanning(false)
     }
