@@ -21,12 +21,21 @@ function SearchPage() {
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [results, setResults] = useState<Book[]>([])
   const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
 
+  // โหลดผลจาก URL param เมื่อเข้าหน้าครั้งแรก
   useEffect(() => {
     const q = searchParams.get('q') || ''
     setQuery(q)
-    if (q) doSearch(q)
+    if (q) { doSearch(q); setSearched(true) }
   }, [searchParams])
+
+  // debounced live search — ยิง query หลังพิมพ์หยุด 400ms
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); setSearched(false); return }
+    const t = setTimeout(() => { doSearch(query); setSearched(true) }, 400)
+    return () => clearTimeout(t)
+  }, [query])
 
   const doSearch = async (q: string) => {
     if (!q.trim()) return
@@ -67,10 +76,10 @@ function SearchPage() {
             </div>
           )}
 
-          {!loading && results.length === 0 && searchParams.get('q') && (
+          {!loading && results.length === 0 && searched && query.trim() && (
             <div className="empty">
               <div className="empty-icon">🔍</div>
-              <div>ไม่พบหนังสือที่ตรงกับ "{searchParams.get('q')}"</div>
+              <div>ไม่พบหนังสือที่ตรงกับ "{query}"</div>
             </div>
           )}
 
