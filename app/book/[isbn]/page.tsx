@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Script from 'next/script'
 import BookDetailClient from './BookDetailClient'
 import { createClient } from '@supabase/supabase-js'
+import { logMissingIsbnServer } from '@/lib/missing-isbn'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,6 +96,12 @@ export default async function BookPage({ params }: PageProps) {
   const isbn = decodeURIComponent(params.isbn)
   const book = await getBook(isbn)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
+
+  // Log missing ISBN — only when valid format and not in DB (book may still
+  // exist via Google Books fallback; we want to know so we can pre-seed the DB)
+  if (!book && /^(978|979)\d{10}$/.test(isbn)) {
+    logMissingIsbnServer(isbn, 'book-page')
+  }
 
   const jsonLd = book ? {
     '@context': 'https://schema.org',

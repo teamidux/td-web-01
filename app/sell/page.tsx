@@ -180,6 +180,12 @@ function SellPage() {
       // ISBN สแกนได้ แต่ไม่อยู่ในระบบ — ให้ผู้ขายกรอกข้อมูลเพิ่ม
       setNotFoundMode('has_isbn')
       setSellSearch('')
+      // log missing ISBN — รู้ว่าผู้ขายอยากลงเล่มไหนแต่ระบบไม่มีข้อมูล
+      fetch('/api/missing-isbn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isbn: q, source: 'sell-scan', userId: user?.id }),
+      }).catch(() => {})
     }
     setFetching(false)
   }
