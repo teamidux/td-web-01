@@ -154,14 +154,28 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   )
 
   if (!book) return (
-    <><Nav />
-      <div className="empty" style={{ paddingTop: 60 }}>
-        <div className="empty-icon">📚</div>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>ยังไม่มีใครเพิ่มหนังสือเล่มนี้เลย</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>
-          ช่วยสร้างข้อมูลเล่มแรกในระบบ<br />แล้วรับ <strong>🏆 ตราผู้บุกเบิก</strong>
+    <>
+      <Nav />
+      <div className="page">
+        <Link href="/" className="back-btn">← กลับ</Link>
+        <div style={{ padding: '0 16px 80px' }}>
+          <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22, flexShrink: 0 }}>🔍</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีข้อมูลหนังสือเล่มนี้ในระบบ</div>
+              <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>
+            </div>
+          </div>
+          <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
+              ลงขายและเพิ่มข้อมูลหนังสือเล่มนี้เข้าระบบ — เป็นคนแรกที่ขาย โอกาสขายได้เร็วมาก
+            </div>
+            <Link href={`/sell?isbn=${isbn}`}>
+              <button className="btn" style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
+            </Link>
+          </div>
         </div>
-        <Link href={`/sell?isbn=${isbn}`}><button className="btn" style={{ maxWidth: 220, margin: '0 auto', display: 'block' }}>ลงขายเป็นคนแรก</button></Link>
       </div>
     </>
   )

@@ -486,19 +486,17 @@ function SellPage() {
 
               {/* ── มี Barcode แต่ไม่อยู่ในระบบ ── */}
               {notFoundMode === 'has_isbn' && !fetchedBook && (
-                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1px solid #BFDBFE' }}>
-                  <div style={{ background: 'var(--primary-light)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>🔖</span>
+                <>
+                  <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>🔖</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>เพิ่มหนังสือใหม่เข้าระบบ</div>
-                      {isbn && <div style={{ fontSize: 11, color: 'var(--ink2)', marginTop: 1 }}>ISBN: {isbn}</div>}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>สแกนได้ ISBN แต่ยังไม่มีในระบบ</div>
+                      {isbn && <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>}
                     </div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit' }}>← กลับ</button>
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
-                  <div style={{ background: 'white', padding: 16 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, background: 'var(--surface)', borderRadius: 10, padding: '10px 12px', lineHeight: 1.7 }}>
-                      💡 กรอก ISBN + ชื่อหนังสือ เพื่อเพิ่มเข้าระบบและลงขายได้เลย
-                    </div>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ เพื่อเพิ่มเข้าระบบและลงขาย</div>
                     <div className="form-group">
                       <label className="label">ISBN</label>
                       <input className="input" value={isbn} onChange={e => setIsbn(e.target.value)} placeholder="เช่น 9784088703251" />
@@ -508,28 +506,32 @@ function SellPage() {
                       <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label">ผู้แต่ง / ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <label className="label">ผู้แต่ง <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
                       <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling" />
                     </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* ── ไม่มี Barcode / หนังสือชุด ── */}
               {notFoundMode === 'no_isbn' && !fetchedBook && (
-                <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 14, border: '1.5px solid #FDE68A' }}>
-                  <div style={{ background: '#FFFBEB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>📖</span>
-                    <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#92400E' }}>หนังสือไม่มี Barcode</div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#B45309', cursor: 'pointer', fontFamily: 'Kanit' }}>← กลับ</button>
+                <>
+                  <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>📖</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>หนังสือไม่มี Barcode</div>
+                      <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>กรอกชื่อหนังสือเพื่อค้นหาก่อน หรือเพิ่มใหม่</div>
+                    </div>
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
-                  <div style={{ background: 'white', padding: 16 }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ</div>
                     <div className="form-group">
                       <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
-                      <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / Naruto เล่ม 1-10 / ชุด Harry Potter" autoFocus />
+                      <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / Naruto เล่ม 1 / ชุด Harry Potter" autoFocus />
                     </div>
                     <div className="form-group">
-                      <label className="label">ผู้แต่ง / ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <label className="label">ผู้แต่ง <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
                       <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือ ผู้แปล" />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -537,7 +539,7 @@ function SellPage() {
                       <input className="input" value={manualTranslator} onChange={e => setManualTranslator(e.target.value)} placeholder="ชื่อผู้แปล" />
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </>
           )}
