@@ -100,5 +100,18 @@ export async function GET(req: NextRequest) {
   // เล่มมีคนขายก่อน → เล่มไม่มีคนขายตามมา (ทั้งคู่ระดับ relevance ภายในกลุ่ม)
   const results = [...withListings, ...noListings]
 
-  return NextResponse.json({ results })
+  // 3. ตรวจคุณภาพ match ของ top result — แยก 'exact' (ตรง/prefix) vs 'partial' (substring)
+  // ใช้บอก UI ว่าจะแสดง copy แบบไหน
+  const topTitle = (results[0]?.title || '').toLowerCase()
+  const qLower = q.toLowerCase()
+  const stripWs = (s: string) => s.replace(/\s+/g, '')
+  const isExact =
+    topTitle === qLower ||
+    stripWs(topTitle) === stripWs(qLower) ||
+    topTitle.startsWith(qLower) ||
+    stripWs(topTitle).startsWith(stripWs(qLower))
+  const matchQuality: 'exact' | 'partial' | 'none' =
+    results.length === 0 ? 'none' : isExact ? 'exact' : 'partial'
+
+  return NextResponse.json({ results, matchQuality })
 }

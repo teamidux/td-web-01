@@ -20,6 +20,7 @@ export default function HomePage() {
   const [scanError, setScanError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const scanInputRef = useRef<HTMLInputElement>(null)
   const { msg, show } = useToast()
 
@@ -45,15 +46,16 @@ export default function HomePage() {
 
       try {
         const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
-        const { results } = await r.json()
+        const { results, matchQuality: mq } = await r.json()
         if (cancelled) return
         // แยก: เล่มที่มีคนขาย (เด่น) vs เล่มจาก Google (ยังไม่มีคนขาย)
         const withListings = (results || []).filter((b: any) => (b.active_listings_count || 0) > 0).slice(0, 3)
         const noListings = (results || []).filter((b: any) => (b.active_listings_count || 0) === 0).slice(0, 2)
         setLiveResults(withListings)
         setGoogleLiveResults(noListings)
+        setMatchQuality(mq || 'none')
       } catch {
-        if (!cancelled) { setLiveResults([]); setGoogleLiveResults([]) }
+        if (!cancelled) { setLiveResults([]); setGoogleLiveResults([]); setMatchQuality('none') }
       } finally {
         if (!cancelled) setLiveSearching(false)
       }
@@ -154,10 +156,12 @@ export default function HomePage() {
                   <>
                     <div style={{ padding: '12px 14px 8px', background: 'var(--surface)' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '0.04em' }}>
-                        📚 ผลใกล้เคียง
+                        {matchQuality === 'exact' ? '📖 พบหนังสือ ยังไม่มีคนลงขาย' : '📚 ผลใกล้เคียง'}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, lineHeight: 1.5 }}>
-                        เล่มที่มีคำว่า "{query}" — ไม่ใช่? ลองพิมพ์ให้ครบ
+                        {matchQuality === 'exact'
+                          ? 'กด "ต้องการเล่มนี้" เพื่อรับแจ้งเตือนเมื่อมีคนลง'
+                          : `เล่มที่มีคำว่า "${query}" — ไม่ใช่? ลองพิมพ์ให้ครบ`}
                       </div>
                     </div>
                     {googleLiveResults.map((b, i) => (

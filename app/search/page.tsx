@@ -23,6 +23,7 @@ function SearchPage() {
   const [results, setResults] = useState<Book[]>([])
   const [googleResults, setGoogleResults] = useState<GoogleBook[]>([])
   const [loading, setLoading] = useState(false)
+  const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const [searched, setSearched] = useState(false)
 
   // โหลดผลจาก URL param เมื่อเข้าหน้าครั้งแรก
@@ -45,15 +46,17 @@ function SearchPage() {
     setGoogleResults([])
     try {
       const r = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`)
-      const { results } = await r.json()
+      const { results, matchQuality: mq } = await r.json()
       // แยกตามว่ามีคนขายมั้ย
       const withListings = (results || []).filter((b: any) => (b.active_listings_count || 0) > 0)
       const noListings = (results || []).filter((b: any) => (b.active_listings_count || 0) === 0)
       setResults(withListings)
       setGoogleResults(noListings)
+      setMatchQuality(mq || 'none')
     } catch {
       setResults([])
       setGoogleResults([])
+      setMatchQuality('none')
     } finally {
       setLoading(false)
     }
@@ -126,10 +129,14 @@ function SearchPage() {
             <>
               <div style={{ padding: '20px 0 12px' }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#121212', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
-                  📚 ผลใกล้เคียง ({googleResults.length})
+                  {matchQuality === 'exact'
+                    ? `📖 พบหนังสือ ยังไม่มีคนลงขาย (${googleResults.length})`
+                    : `📚 ผลใกล้เคียง (${googleResults.length})`}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.6 }}>
-                  หนังสือที่มีคำว่า "{query}" ในชื่อเรื่อง — ไม่ใช่เล่มที่ต้องการ? ลองพิมพ์ชื่อให้ครบ
+                  {matchQuality === 'exact'
+                    ? 'กด "ต้องการเล่มนี้" — เราจะแจ้งเตือนเมื่อมีคนลงขาย'
+                    : `หนังสือที่มีคำว่า "${query}" ในชื่อเรื่อง — ไม่ใช่เล่มที่ต้องการ? ลองพิมพ์ชื่อให้ครบ`}
                 </div>
               </div>
               {googleResults.map(b => (
