@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { searchVariants, buildOrFilter, normalizeThai } from '@/lib/search'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 const DB_LIMIT = 50
 
 export async function GET(req: NextRequest) {

@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchGoogleBooksByTitle, fetchOpenLibraryByQuery, normalizeThai, GoogleBook } from '@/lib/search'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const raw = req.nextUrl.searchParams.get('q')?.trim()
   if (!raw || raw.length < 2) return NextResponse.json({ results: [] })
