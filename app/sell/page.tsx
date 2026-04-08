@@ -487,7 +487,7 @@ function SellPage() {
                 <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{fetchedBook.title}</div>
                 {fetchedBook.author && (
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
-                    <span style={{ color: 'var(--ink3)' }}>โดย </span>{fetchedBook.author}
+                    <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{fetchedBook.author}
                   </div>
                 )}
                 {(fetchedBook as any).translator && (

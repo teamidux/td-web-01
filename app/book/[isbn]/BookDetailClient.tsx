@@ -275,7 +275,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.01em', marginBottom: 6 }}>{book.title}</div>
             {book.author && (
               <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,.92)', lineHeight: 1.5, marginBottom: 2 }}>
-                <span style={{ opacity: 0.7 }}>โดย </span>{book.author}
+                <span style={{ opacity: 0.7 }}>ผู้เขียน </span>{book.author}
               </div>
             )}
             {book.translator && (
