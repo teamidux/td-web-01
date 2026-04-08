@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
-import { searchVariants, buildOrFilter } from '@/lib/search'
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, LoginModal, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
@@ -111,10 +110,11 @@ function SellPage() {
         if (isValidISBN(corrected)) { setIsbn(corrected); fetchBook(corrected); return }
       }
       setSellSearching(true)
+      const escaped = q.replace(/[%_]/g, '\\$&')
       const { data } = await supabase
         .from('books')
         .select('id, isbn, title, author, cover_url')
-        .or(buildOrFilter(searchVariants(q)))
+        .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
         .limit(8)
       setSellResults(data || [])
       setSellSearching(false)
@@ -128,10 +128,11 @@ function SellPage() {
     if (!manualTitle.trim()) { setNoIsbnResults([]); setNoIsbnSearchDone(false); return }
     const t = setTimeout(async () => {
       setNoIsbnSearching(true)
+      const term = manualTitle.trim().replace(/[%_]/g, '\\$&')
       const { data } = await supabase
         .from('books')
         .select('id, isbn, title, author, cover_url')
-        .or(buildOrFilter(searchVariants(manualTitle.trim())))
+        .or(`title.ilike.%${term}%,author.ilike.%${term}%`)
         .limit(5)
       setNoIsbnResults(data || [])
       setNoIsbnSearchDone(true)

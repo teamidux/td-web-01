@@ -18,15 +18,21 @@ export async function GET(req: NextRequest) {
 
   // ค้น DB และ Google Books คู่ขนาน
   const escaped = q.replace(/[%_]/g, '\\$&')
+  const dbQuery = (async () => {
+    try {
+      const { data } = await supabase
+        .from('books')
+        .select('id, isbn, title, author, cover_url, wanted_count')
+        .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
+        .limit(30)
+      return data || []
+    } catch {
+      return []
+    }
+  })()
   const [google, dbBooks] = await Promise.all([
-    fetchGoogleBooksByTitle(q, 20).catch(() => []),
-    supabase
-      .from('books')
-      .select('id, isbn, title, author, cover_url, wanted_count')
-      .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
-      .limit(30)
-      .then(({ data }) => data || [])
-      .catch(() => []),
+    fetchGoogleBooksByTitle(q, 20).catch(() => [] as any[]),
+    dbQuery,
   ])
 
   // ดึง listings count + min_price จริงจาก listings table (ไม่ trust column ใน books)
