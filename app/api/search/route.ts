@@ -100,5 +100,15 @@ export async function GET(req: NextRequest) {
   // เล่มมีคนขายก่อน → เล่มไม่มีคนขายตามมา (ทั้งคู่ระดับ relevance ภายในกลุ่ม)
   const results = [...withListings, ...noListings]
 
-  return NextResponse.json({ results })
+  return NextResponse.json({
+    results,
+    debug: {
+      q,
+      googleRaw: google.length,
+      dbRaw: dbBooks.length,
+      mergedRaw: allBooks.length,
+      afterRank: ranked.length,
+      googleTitles: google.slice(0, 10).map((b: any) => b.title),
+    }
+  })
 }
