@@ -105,7 +105,7 @@ export function BookCover({
   return (
     <div
       className="book-cover"
-      style={{ width: size, height: size * 1.4 }}
+      style={{ width: size, height: Math.round(size * 1.5) }}
     >
       {coverUrl ? (
         <img

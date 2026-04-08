@@ -382,13 +382,13 @@ function SellPage() {
                     <div style={{ marginBottom: 14, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                       {sellResults.map((b, i) => (
                         <button key={b.id} onClick={() => selectBook(b)}
-                          style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
-                          <BookCover coverUrl={b.cover_url} title={b.title} size={38} />
+                          style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', minHeight: 64 }}>
+                          <BookCover coverUrl={b.cover_url} title={b.title} size={48} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                            {b.author && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.author}</div>}
+                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.35, color: '#121212', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+                            {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
                           </div>
-                          <span style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>เลือก ›</span>
+                          <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>เลือก ›</span>
                         </button>
                       ))}
                     </div>
@@ -481,14 +481,23 @@ function SellPage() {
           )}
 
           {fetchedBook?.title && (
-            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '3px solid var(--green)', borderRadius: 12, padding: 13, display: 'flex', gap: 12, marginBottom: 14, alignItems: 'center' }}>
-              <BookCover coverUrl={fetchedBook.cover_url} title={fetchedBook.title} size={44} />
+            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 16, display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
+              <BookCover coverUrl={fetchedBook.cover_url} title={fetchedBook.title} size={110} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{fetchedBook.title}</div>
-                {fetchedBook.author && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{fetchedBook.author}</div>}
-                <span style={{ fontSize: 11, background: '#E8F5E9', color: '#2E7D32', padding: '2px 8px', borderRadius: 20, fontWeight: 700, display: 'inline-block', marginTop: 5 }}>✓ ดึงข้อมูลสำเร็จ</span>
+                <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{fetchedBook.title}</div>
+                {fetchedBook.author && (
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ color: 'var(--ink3)' }}>โดย </span>{fetchedBook.author}
+                  </div>
+                )}
+                {(fetchedBook as any).translator && (
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ color: 'var(--ink3)' }}>แปลโดย </span>{(fetchedBook as any).translator}
+                  </div>
+                )}
+                <span style={{ fontSize: 12, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
               </div>
-              <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink3)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>เปลี่ยน</button>
+              <button onClick={resetSearch} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>เปลี่ยน</button>
             </div>
           )}
 
@@ -501,9 +510,9 @@ function SellPage() {
                 <label className="label">รูปหน้าปก <span style={{ color: 'var(--red)' }}>*</span></label>
 
                 {coverPreview ? (
-                  <div style={{ position: 'relative', width: '100%', maxWidth: 200, aspectRatio: '2 / 3', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 6px 18px rgba(0,0,0,0.15)' }}>
-                    <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button onClick={removeCover} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,.65)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '2 / 3', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }}>
+                    <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <button onClick={removeCover} style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,.7)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: 12 }}>
