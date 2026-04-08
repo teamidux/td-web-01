@@ -70,7 +70,11 @@ if ($body === false || $status === 0) {
 // 5. Forward Google's response as-is
 http_response_code($status);
 header('Content-Type: application/json; charset=utf-8');
-// cache 24 ชั่วโมง — ลด API call ซ้ำซ้อน + ประหยัด Google quota
-// (Free tier 1,000 calls/day)
-header('Cache-Control: public, max-age=86400');
+// CRITICAL: cache เฉพาะ 200 OK — ห้าม cache error responses (429, 500, etc.)
+// เพราะ cache 429 = ทุกคนเจอ error เป็นชั่วโมงทั้งที่ Google throttle หายแล้ว
+if ($status === 200) {
+    header('Cache-Control: public, max-age=86400'); // 24 ชม.
+} else {
+    header('Cache-Control: no-store');
+}
 echo $body;
