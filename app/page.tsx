@@ -24,36 +24,37 @@ export default function HomePage() {
 
   useEffect(() => { loadData() }, [])
 
-  // Live search — debounce 220ms, ค้น DB + Google Books คู่ขนาน
-  // เหตุผล: query "เทคนิค" อาจ match "เทคนิคการขาย" ใน DB → ผู้ใช้ควรเห็น
-  // "เทคนิคออกกำลังกาย" จาก Google ด้วย ไม่งั้นเหมือนระบบไม่รู้จัก
+  // Live search — DB ก่อน (เร็ว ~100ms), Google เติมในพื้นหลัง (1-3s)
   useEffect(() => {
     if (!query.trim()) { setLiveResults([]); setGoogleLiveResults([]); return }
+    let cancelled = false
     const t = setTimeout(async () => {
       const q = query.trim()
       if (/^(978|979)\d{10}$/.test(q.replace(/[^0-9]/g, ''))) return
       setLiveSearching(true)
       setGoogleLiveResults([])
 
+      // 1. DB ก่อน — แสดงทันที
       const orFilter = buildOrFilter(searchVariants(q))
-      // dropdown แสดงสูงสุด 5 รายการ (3 DB + 2 Google) — ที่เหลือคลิก "ดูทั้งหมด"
-      const dbPromise = supabase
+      const { data } = await supabase
         .from('books')
         .select('id, isbn, title, author, cover_url')
         .or(orFilter)
         .limit(3)
-
-      // เรียก Google คู่ขนาน — ทำเฉพาะ query ยาวพอเพื่อประหยัด quota
-      const googlePromise = q.length >= 3 ? fetchGoogleBooksByTitle(q) : Promise.resolve([])
-
-      const [{ data }, gBooks] = await Promise.all([dbPromise, googlePromise])
+      if (cancelled) return
       setLiveResults(data || [])
-      // กรอง Google ออก ISBN ที่ซ้ำกับ DB และ cap ที่ 2 รายการ
-      const dbIsbns = new Set((data || []).map(b => b.isbn))
-      setGoogleLiveResults((gBooks || []).filter(b => !dbIsbns.has(b.isbn)).slice(0, 2))
       setLiveSearching(false)
-    }, 220)
-    return () => clearTimeout(t)
+
+      // 2. Google ในพื้นหลัง — append เมื่อพร้อม (ไม่บล็อก)
+      if (q.length >= 2) {
+        const dbIsbns = new Set((data || []).map(b => b.isbn))
+        fetchGoogleBooksByTitle(q, 5).then(gBooks => {
+          if (cancelled) return
+          setGoogleLiveResults((gBooks || []).filter(b => !dbIsbns.has(b.isbn)).slice(0, 2))
+        }).catch(() => {})
+      }
+    }, 180)
+    return () => { cancelled = true; clearTimeout(t) }
   }, [query])
 
   const loadData = async () => {

@@ -45,14 +45,29 @@ function SearchPage() {
     setLoading(true)
     setGoogleResults([])
 
-    // /api/search ตอนนี้ทำ DB + Google + auto-cache รวมในตัวเดียว
-    const r = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
-    const { results: combined } = await r.json()
-    const inDb = (combined || []).filter((b: any) => b.source !== 'google')
-    const fromGoogle = (combined || []).filter((b: any) => b.source === 'google')
-    setResults(inDb)
-    setGoogleResults(fromGoogle)
-    setLoading(false)
+    // 1. DB ก่อน — เร็ว ~100ms
+    try {
+      const r = await fetch(`/api/search/db?q=${encodeURIComponent(trimmed)}`)
+      const { results: dbResults } = await r.json()
+      setResults(dbResults || [])
+    } catch {
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
+
+    // 2. Google ในพื้นหลัง — append เมื่อพร้อม
+    fetch(`/api/search/google?q=${encodeURIComponent(trimmed)}`)
+      .then(r => r.json())
+      .then(({ results: gResults }) => {
+        // กรอง Google ออก ISBN ที่ซ้ำกับ DB
+        setResults(prevDb => {
+          const dbIsbns = new Set(prevDb.map((b: any) => b.isbn))
+          setGoogleResults((gResults || []).filter((b: any) => !dbIsbns.has(b.isbn)))
+          return prevDb
+        })
+      })
+      .catch(() => {})
   }
 
   const handleSubmit = () => {
