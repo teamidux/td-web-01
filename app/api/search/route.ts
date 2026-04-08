@@ -22,25 +22,42 @@ export async function GET(req: NextRequest) {
     fetchGoogleBooksByTitle(q, 20).catch(() => []),
     supabase
       .from('books')
-      .select('id, isbn, title, author, cover_url, wanted_count, active_listings_count, min_price')
+      .select('id, isbn, title, author, cover_url, wanted_count')
       .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
       .limit(30)
       .then(({ data }) => data || [])
       .catch(() => []),
   ])
 
+  // ดึง listings count + min_price จริงจาก listings table (ไม่ trust column ใน books)
+  const bookIds = (dbBooks || []).map(b => b.id).filter(Boolean)
+  const listingMap: Record<string, { count: number; min_price: number }> = {}
+  if (bookIds.length > 0) {
+    const { data: listings } = await supabase
+      .from('listings')
+      .select('book_id, price')
+      .in('book_id', bookIds)
+      .eq('status', 'active')
+    for (const l of listings || []) {
+      if (!listingMap[l.book_id]) listingMap[l.book_id] = { count: 0, min_price: l.price }
+      listingMap[l.book_id].count++
+      if (l.price < listingMap[l.book_id].min_price) listingMap[l.book_id].min_price = l.price
+    }
+  }
+
   // Merge by ISBN — DB ก่อน (มี marketplace data) แล้วเติมด้วย Google
   const byIsbn = new Map<string, any>()
 
   for (const b of dbBooks) {
     if (!b.isbn) continue
+    const lm = listingMap[b.id] || { count: 0, min_price: null as any }
     byIsbn.set(b.isbn, {
       isbn: b.isbn,
       title: b.title,
       author: b.author || '',
       cover_url: b.cover_url || null,
-      active_listings_count: b.active_listings_count || 0,
-      min_price: b.min_price,
+      active_listings_count: lm.count,
+      min_price: lm.min_price,
       wanted_count: b.wanted_count || 0,
       source: 'db' as const,
     })
