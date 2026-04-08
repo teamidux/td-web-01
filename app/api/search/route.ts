@@ -1,5 +1,5 @@
 // Unified search — DB (สำหรับ marketplace data) + Google Books (สำหรับ catalog)
-// คู่ขนาน, merge by ISBN, ไม่มี auto-cache
+// คู่ขนาน, merge by ISBN, auto-cache Google → DB หลัง rank ผ่าน
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch } from '@/lib/search'
@@ -113,6 +113,43 @@ export async function GET(req: NextRequest) {
   const isExact = !!qNorm && (topNorm === qNorm || topNorm.startsWith(qNorm))
   const matchQuality: 'exact' | 'partial' | 'none' =
     results.length === 0 ? 'none' : isExact ? 'exact' : 'partial'
+
+  // 4. AUTO-CACHE — เก็บเล่ม Google ที่ผ่าน rank แล้วและยังไม่อยู่ใน DB
+  // ครั้งต่อไปจะ hit DB ทันที ไม่ต้องพึ่ง Google geo อีก ระยะยาว DB จะสะสม
+  // หนังสือยอดนิยมตาม demand จริงจาก user search
+  const dbIsbnSet = new Set((dbBooks || []).map((b: any) => b.isbn).filter(Boolean))
+  const rankedIsbns = new Set(ranked.map((b: any) => b.isbn))
+  const toCache = (google || [])
+    .filter((b: any) =>
+      b.isbn &&
+      /^(978|979)\d{10}$/.test(b.isbn) &&
+      !dbIsbnSet.has(b.isbn) &&
+      rankedIsbns.has(b.isbn) &&
+      b.title
+    )
+    .map((b: any) => ({
+      isbn: b.isbn,
+      // NFC normalize — กัน Thai unicode bug (composed/decomposed sara am)
+      title: String(b.title).normalize('NFC'),
+      author: String(b.author || '').normalize('NFC'),
+      publisher: b.publisher ? String(b.publisher).normalize('NFC') : null,
+      cover_url: b.cover_url || null,
+      language: b.language || 'th',
+      source: 'google_books',
+    }))
+
+  // ต้องมี service role key ถึงจะ insert ได้ (anon key โดน RLS block)
+  const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (hasServiceRole && toCache.length > 0) {
+    // Fire-and-forget — Edge runtime continues briefly after response
+    // ถ้า cache fail ไม่กระทบ user experience (DB upsert ignore duplicates)
+    supabase
+      .from('books')
+      .upsert(toCache, { onConflict: 'isbn', ignoreDuplicates: true })
+      .then(({ error }: any) => {
+        if (error) console.error('[search] cache fail:', error.message)
+      })
+  }
 
   return NextResponse.json({ results, matchQuality })
 }
