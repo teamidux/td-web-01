@@ -2,13 +2,15 @@
 // the slower Google fallback finishes.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { searchVariants, buildOrFilter } from '@/lib/search'
+import { searchVariants, buildOrFilter, normalizeThai } from '@/lib/search'
 
 const DB_LIMIT = 50
 
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get('q')?.trim()
-  if (!q) return NextResponse.json({ results: [] })
+  const raw = req.nextUrl.searchParams.get('q')?.trim()
+  if (!raw) return NextResponse.json({ results: [] })
+  // Normalize query — แก้ปัญหา composed/decomposed sara am
+  const q = normalizeThai(raw)
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

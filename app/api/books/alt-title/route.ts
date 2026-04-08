@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { normalizeThai } from '@/lib/search'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (!isbn || typeof isbn !== 'string') {
     return NextResponse.json({ error: 'missing isbn' }, { status: 400 })
   }
-  const cleaned = (alias || '').trim().slice(0, 200)
+  const cleaned = normalizeThai((alias || '').trim().slice(0, 200))
   if (cleaned.length < 2) {
     return NextResponse.json({ error: 'alias too short' }, { status: 400 })
   }

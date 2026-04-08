@@ -146,6 +146,20 @@ function vowelLongToShort(s: string): string {
 }
 
 /**
+ * Normalize Thai unicode — แก้ปัญหา composed vs decomposed sara am.
+ *
+ * U+0E33 (ำ SARA AM) เทียบเท่ากับ U+0E4D (◌ํ NIKHAHIT) + U+0E32 (า SARA AA)
+ * แต่ ILIKE/PostgreSQL เปรียบเทียบ byte-by-byte → ไม่ match กัน
+ *
+ * Google Books มักส่ง decomposed form (◌ํา) — ต้องแปลงให้ composed (ำ)
+ * เพื่อให้ search หาเจอ
+ */
+export function normalizeThai(s: string): string {
+  if (!s) return s
+  return s.replace(/\u0E4D\u0E32/g, '\u0E33')
+}
+
+/**
  * สร้าง query variants เพื่อ fuzzy search:
  * - ตัวเลขอารบิก ↔ คำไทย  (4 ↔ สี่)
  * - มีช่องว่าง / ไม่มีช่องว่าง

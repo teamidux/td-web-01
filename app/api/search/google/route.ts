@@ -3,11 +3,12 @@
 // render first and external results stream in.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle, fetchOpenLibraryByQuery, GoogleBook } from '@/lib/search'
+import { fetchGoogleBooksByTitle, fetchOpenLibraryByQuery, normalizeThai, GoogleBook } from '@/lib/search'
 
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get('q')?.trim()
-  if (!q || q.length < 2) return NextResponse.json({ results: [] })
+  const raw = req.nextUrl.searchParams.get('q')?.trim()
+  if (!raw || raw.length < 2) return NextResponse.json({ results: [] })
+  const q = normalizeThai(raw)
 
   // ยิงทั้ง 2 source คู่ขนาน — coverage แตกต่างกัน เช่น
   // หนังสือ Thai title 'เจอจุดแข็ง' (ISBN 9781595621207) ที่ Google indexed
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   if (gBooks.length === 0) return NextResponse.json({ results: [] })
 
-  // Auto-cache new books to DB so future searches hit immediately
+  // Auto-cache new books — normalize Thai sara am ก่อนเก็บ
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,9 +38,9 @@ export async function GET(req: NextRequest) {
     await supabase.from('books').upsert(
       gBooks.map(b => ({
         isbn: b.isbn,
-        title: b.title,
-        author: b.author || '',
-        publisher: b.publisher || null,
+        title: normalizeThai(b.title),
+        author: normalizeThai(b.author || ''),
+        publisher: b.publisher ? normalizeThai(b.publisher) : null,
         cover_url: b.cover_url || null,
         language: b.language || 'th',
         source: 'google_books',
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
 
   const results = gBooks.map(b => ({
     isbn: b.isbn,
-    title: b.title,
-    author: b.author,
+    title: normalizeThai(b.title),
+    author: normalizeThai(b.author || ''),
     cover_url: b.cover_url,
     source: 'google' as const,
   }))
