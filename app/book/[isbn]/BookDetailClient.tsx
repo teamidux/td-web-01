@@ -380,7 +380,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               {l.photos?.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, marginBottom: 10, overflowX: 'auto' }}>
                   {l.photos.filter(p => p).map((p, i) => (
-                    <div key={i} onClick={() => setLightbox(p)} style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in' }}>
+                    <div key={i} onClick={() => setLightbox(p)} style={{ width: 60, height: 90, borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0, cursor: 'zoom-in' }}>
                       <img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                   ))}
