@@ -239,20 +239,30 @@ export default function HomePage() {
         </div>
 
         {wantedBooks.length > 0 && (
-          <div className="section" style={{ marginTop: 8 }}>
-            <div className="section-hd">
-              <div className="section-title">🔔 มีคนรอซื้ออยู่</div>
+          <div className="section" style={{ marginTop: 12 }}>
+            <div className="section-hd" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+                  🔔 มีคนรอซื้ออยู่
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
+                  หนังสือที่หลายคนกำลังตามหา — ลงขายโอกาสขายไว
+                </div>
+              </div>
+              <Link href="/market" style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                ดูทั้งหมด →
+              </Link>
             </div>
             {wantedBooks.map(b => (
               <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card">
                   <div className="book-card">
                     <BookCover isbn={b.isbn} title={b.title} size={60} />
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title">{b.title}</div>
                       {b.author && <div className="book-author">{b.author}</div>}
-                      <div style={{ marginTop: 6 }}>
-                        <span className="badge badge-blue">🔔 {b.wanted_count} คนรอซื้อ</span>
+                      <div style={{ marginTop: 8 }}>
+                        <span className="badge badge-blue">🙋 {b.wanted_count} คนรอซื้อ</span>
                       </div>
                     </div>
                   </div>
