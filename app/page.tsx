@@ -12,7 +12,6 @@ export default function HomePage() {
   const router = useRouter()
   const [recentListings, setRecentListings] = useState<any[]>([])
   const [wantedBooks, setWantedBooks] = useState<Book[]>([])
-  const [stats, setStats] = useState({ listings: 0, sellers: 0, wanted: 0 })
   const [query, setQuery] = useState('')
   const [liveResults, setLiveResults] = useState<any[]>([])
   const [liveSearching, setLiveSearching] = useState(false)
@@ -51,20 +50,13 @@ export default function HomePage() {
   }, [query])
 
   const loadData = async () => {
-    const [recentRes, { data: wanted }, { count: sellerCount }, { count: listingCount }] = await Promise.all([
+    const [recentRes, { data: wanted }] = await Promise.all([
       fetch('/api/listings/recent?limit=10'),
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).limit(3),
-      supabase.from('users').select('*', { count: 'exact', head: true }),
-      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     ])
     const { listings } = await recentRes.json()
     setRecentListings(listings || [])
     setWantedBooks(wanted || [])
-    setStats({
-      listings: listingCount || 0,
-      sellers: sellerCount || 0,
-      wanted: wanted?.reduce((s, b) => s + (b.wanted_count || 0), 0) || 0,
-    })
     setLoading(false)
   }
 
@@ -183,15 +175,15 @@ export default function HomePage() {
         <div className="stats-bar">
           <div className="stat">
             <div className="stat-n">200,000+</div>
-            <div className="stat-l">หนังสือในระบบ</div>
+            <div className="stat-l">หนังสือ</div>
           </div>
           <div className="stat">
-            <div className="stat-n">{stats.listings}</div>
-            <div className="stat-l">ประกาศกำลังขาย</div>
+            <div className="stat-n" style={{ fontSize: 24 }}>🤝</div>
+            <div className="stat-l">ซื้อขายง่าย</div>
           </div>
           <div className="stat">
-            <div className="stat-n">{stats.wanted}</div>
-            <div className="stat-l">คนรอซื้อ</div>
+            <div className="stat-n" style={{ fontSize: 24 }}>🔔</div>
+            <div className="stat-l">LINE แจ้งเตือน</div>
           </div>
         </div>
 
