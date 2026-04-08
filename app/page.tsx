@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
-import { searchVariants, buildOrFilter, fetchGoogleBooksByTitle, GoogleBook } from '@/lib/search'
+import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
 import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, SkeletonList } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
@@ -25,7 +25,8 @@ export default function HomePage() {
 
   useEffect(() => { loadData() }, [])
 
-  // Live search — DB ก่อน (เร็ว ~100ms), Google เติมในพื้นหลัง (1-3s)
+  // Live search — ใช้ /api/search/db (RPC fuzzy + ranked) เหมือน /search page
+  // เพื่อให้พฤติกรรมเหมือนกันทุก surface
   useEffect(() => {
     if (!query.trim()) { setLiveResults([]); setGoogleLiveResults([]); setGoogleLoading(false); return }
     let cancelled = false
@@ -36,24 +37,31 @@ export default function HomePage() {
       setGoogleLoading(q.length >= 2)
       setGoogleLiveResults([])
 
-      // 1. DB ก่อน — แสดงทันที
-      const orFilter = buildOrFilter(searchVariants(q))
-      const { data } = await supabase
-        .from('books')
-        .select('id, isbn, title, author, cover_url')
-        .or(orFilter)
-        .limit(3)
-      if (cancelled) return
-      setLiveResults(data || [])
-      setLiveSearching(false)
+      // 1. DB ก่อน — เรียก /api/search/db (ranked + alt_titles + RPC fallback)
+      try {
+        const r = await fetch(`/api/search/db?q=${encodeURIComponent(q)}`)
+        const { results } = await r.json()
+        if (cancelled) return
+        // เอาแค่ 3 อันแรกสำหรับ dropdown
+        setLiveResults((results || []).slice(0, 3))
+      } catch {
+        if (!cancelled) setLiveResults([])
+      } finally {
+        if (!cancelled) setLiveSearching(false)
+      }
 
-      // 2. Google ในพื้นหลัง — append เมื่อพร้อม (ไม่บล็อก)
+      // 2. Google ในพื้นหลัง — เรียก /api/search/google (Google + OpenLibrary + auto-cache)
       if (q.length >= 2) {
-        const dbIsbns = new Set((data || []).map(b => b.isbn))
-        fetchGoogleBooksByTitle(q, 5)
-          .then(gBooks => {
+        fetch(`/api/search/google?q=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(({ results: gResults }) => {
             if (cancelled) return
-            setGoogleLiveResults((gBooks || []).filter(b => !dbIsbns.has(b.isbn)).slice(0, 2))
+            // dedupe กับ DB results ปัจจุบัน
+            setLiveResults(prev => {
+              const dbIsbns = new Set(prev.map((b: any) => b.isbn))
+              setGoogleLiveResults((gResults || []).filter((b: any) => !dbIsbns.has(b.isbn)).slice(0, 2))
+              return prev
+            })
           })
           .catch(() => {})
           .finally(() => { if (!cancelled) setGoogleLoading(false) })
