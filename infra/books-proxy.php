@@ -70,6 +70,7 @@ if ($body === false || $status === 0) {
 // 5. Forward Google's response as-is
 http_response_code($status);
 header('Content-Type: application/json; charset=utf-8');
-// cache 10 นาที — ลด API call ซ้ำซ้อน
-header('Cache-Control: public, max-age=600');
+// cache 24 ชั่วโมง — ลด API call ซ้ำซ้อน + ประหยัด Google quota
+// (Free tier 1,000 calls/day)
+header('Cache-Control: public, max-age=86400');
 echo $body;

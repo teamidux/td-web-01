@@ -92,9 +92,6 @@ export function rankBooksByQuery<T extends { title?: string; author?: string }>(
     .map(({ _score, ...rest }: any) => rest)
 }
 
-// DEBUG ชั่วคราว — ดูว่า proxy ทำงานหรือไม่
-export const _proxyDebug: { calls: any[] } = { calls: [] }
-
 // ขอ 1 หน้า (Google cap ~20 ต่อ request แม้ขอ maxResults=40 — ตรวจสอบกับ API จริงแล้ว).
 // ถ้า GOOGLE_BOOKS_PROXY_URL set → call ผ่าน Thai proxy (real Thai IP) แทน
 // เพื่อแก้ปัญหา Google geo-localize ตาม caller IP (Vercel = sin1 ≠ Thailand)
@@ -113,79 +110,49 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
   if (apiKey) params.set('key', apiKey)
 
   let url: string
-  let usedProxy = false
   if (proxyUrl && proxyToken) {
     params.set('t', proxyToken)
     url = `${proxyUrl}?${params.toString()}`
-    usedProxy = true
   } else {
     url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
   }
-
-  const dbg: any = { startIndex, usedProxy, hasProxyUrl: !!proxyUrl, hasProxyToken: !!proxyToken, hasApiKey: !!apiKey }
 
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), 8000)
   try {
     const r = await fetch(url, { signal: ctrl.signal })
     clearTimeout(t)
-    dbg.status = r.status
     if (!r.ok) {
-      const body = await r.text().catch(() => '')
-      dbg.error = body.slice(0, 100)
-      _proxyDebug.calls.push(dbg)
+      console.warn('[Google Books]', r.status, 'q:', qParam, 'startIndex:', startIndex)
       return []
     }
     const d = await r.json()
-    dbg.totalItems = d.totalItems
-    dbg.rawItems = d.items?.length || 0
-    if (!d.items?.length) {
-      _proxyDebug.calls.push(dbg)
-      return []
-    }
+    if (!d.items?.length) return []
     const out: GoogleBook[] = []
     for (const item of d.items) {
       const mapped = mapVolume(item)
       if (mapped) out.push(mapped)
     }
-    dbg.mapped = out.length
-    _proxyDebug.calls.push(dbg)
     return out
   } catch (err: any) {
     clearTimeout(t)
-    dbg.error = `exception:${err?.message || err}`
-    _proxyDebug.calls.push(dbg)
+    console.error('[Google Books] error:', err?.message || err, 'startIndex:', startIndex)
     return []
   }
 }
 
 /**
  * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง.
- * ดึง 3 หน้าขนานกัน (startIndex 0/20/40) เพื่อกวาดเล่มที่ Google ดัน rank ลงไปต่ำกว่า top 20
- * — ปัญหาคลาสสิกของหนังสือชุดเช่น Harry Potter ที่มีหลายเล่ม/หลายภาษา.
+ * ดึงแค่ 1 หน้า (startIndex=0) เพื่อประหยัด Google API quota
+ * (Free tier: 1,000 calls/day) ระยะยาว auto-cache จะทำให้ query ส่วนใหญ่
+ * hit DB แทน Google ดังนั้น 1 หน้าก็พอสำหรับการ catch query ใหม่
  *
  * NOTE: ถ้าตั้ง GOOGLE_BOOKS_PROXY_URL → call ผ่าน Thai shared host proxy
  * (real Thai IP) ดู infra/books-proxy.php และคู่มือ deploy
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
-  _proxyDebug.calls = []
-  const pages = await Promise.all([
-    callGoogleSearchPage(query, 0),
-    callGoogleSearchPage(query, 20),
-    callGoogleSearchPage(query, 40),
-  ])
-  // Merge + dedupe by ISBN — เก็บ order ตาม Google relevance ก่อน rank ของเรา
-  const seen = new Set<string>()
-  const merged: GoogleBook[] = []
-  for (const page of pages) {
-    for (const b of page) {
-      if (seen.has(b.isbn)) continue
-      seen.add(b.isbn)
-      merged.push(b)
-    }
-  }
-  // Re-rank: exact > prefix > substring — แก้ปัญหา Google ไม่ค่อย rank Thai ถูก
-  const ranked = rankBooksByQuery(merged, query)
+  const books = await callGoogleSearchPage(query, 0)
+  const ranked = rankBooksByQuery(books, query)
   return ranked.slice(0, limit)
 }
 
