@@ -17,9 +17,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const [lightbox, setLightbox] = useState('')
   const [contactListing, setContactListing] = useState<Listing | null>(null)
   const [copied, setCopied] = useState(false)
-  const [showAltTitle, setShowAltTitle] = useState(false)
-  const [altTitleInput, setAltTitleInput] = useState('')
-  const [savingAlt, setSavingAlt] = useState(false)
   const { msg, show } = useToast()
   const bookIdRef = useRef<string | null>(null)
 
@@ -92,34 +89,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     setBook(b => b ? { ...b, id: newBook.id } : b)
     bookIdRef.current = newBook.id
     return newBook.id
-  }
-
-  const submitAltTitle = async () => {
-    if (!user) { setShowLogin(true); return }
-    const alias = altTitleInput.trim()
-    if (alias.length < 2) { show('กรอกชื่ออย่างน้อย 2 ตัวอักษร'); return }
-    setSavingAlt(true)
-    try {
-      const r = await fetch('/api/books/alt-title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isbn, alias }),
-      })
-      const data = await r.json()
-      if (!r.ok) {
-        show(data.error || 'บันทึกไม่สำเร็จ')
-      } else {
-        if (data.already_exists) show('ชื่อนี้มีอยู่แล้ว')
-        else {
-          show('เพิ่มชื่อภาษาไทยแล้ว ขอบคุณ! 🙏')
-          setBook(b => b ? { ...b, alt_titles: b.alt_titles ? `${b.alt_titles}, ${alias}` : alias } as any : b)
-        }
-        setAltTitleInput('')
-        setShowAltTitle(false)
-      }
-    } finally {
-      setSavingAlt(false)
-    }
   }
 
   const toggleWanted = async () => {
@@ -235,35 +204,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         </div>
       )}
 
-      {showAltTitle && (
-        <div onClick={() => setShowAltTitle(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '28px 20px 32px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', letterSpacing: '-0.02em', marginBottom: 6 }}>
-              📖 เพิ่มชื่อภาษาไทย
-            </div>
-            <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 18 }}>
-              หนังสือเล่มนี้ในระบบชื่อว่า "<strong style={{ color: 'var(--ink)' }}>{book.title}</strong>"<br />
-              ถ้ารู้ชื่อภาษาไทย เพิ่มเพื่อให้คนอื่นค้นเจอด้วยชื่อไทย
-            </div>
-            <div className="form-group">
-              <label className="label">ชื่อภาษาไทย</label>
-              <input
-                className="input"
-                value={altTitleInput}
-                onChange={e => setAltTitleInput(e.target.value)}
-                placeholder="เช่น เจอจุดแข็ง"
-                autoFocus
-                onKeyDown={e => e.key === 'Enter' && submitAltTitle()}
-              />
-            </div>
-            <button className="btn" onClick={submitAltTitle} disabled={savingAlt || altTitleInput.trim().length < 2}>
-              {savingAlt ? <><span className="spin" />กำลังบันทึก...</> : 'บันทึก'}
-            </button>
-            <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => setShowAltTitle(false)}>ยกเลิก</button>
-          </div>
-        </div>
-      )}
-
       {contactListing && (
         <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
@@ -343,11 +283,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <span style={{ opacity: 0.7 }}>แปลโดย </span>{book.translator}
               </div>
             )}
-            {(book as any).alt_titles && (
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.75)', lineHeight: 1.5, marginTop: 2 }}>
-                <span style={{ opacity: 0.7 }}>หรือเรียกว่า </span>{(book as any).alt_titles}
-              </div>
-            )}
             <div style={{ fontSize: 12, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 12 }}>ISBN: {isbn}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
@@ -359,12 +294,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 </button>
               </Link>
             </div>
-            <button
-              onClick={() => setShowAltTitle(true)}
-              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.7)', fontFamily: 'Kanit', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginTop: 10, padding: 4, textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              + เพิ่มชื่อภาษาไทย
-            </button>
           </div>
         </div>
 

@@ -3,7 +3,6 @@ import Script from 'next/script'
 import BookDetailClient from './BookDetailClient'
 import { createClient } from '@supabase/supabase-js'
 import { logMissingIsbnServer } from '@/lib/missing-isbn'
-import { cacheBookFromGoogle } from '@/lib/cache-book'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,9 +21,10 @@ async function getBook(isbn: string) {
     .maybeSingle()
   if (data) return data
 
-  // fallback Google Books — cache 1 ชั่วโมง ไม่กิน quota ทุก request
+  // ดึงจาก Google Books — cache ที่ Next.js edge 1 ชั่วโมง (ไม่ write DB)
+  // หนังสือจะลง DB เฉพาะตอน user list/wantlist (ผ่าน flow ของหน้านั้นๆ)
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
     const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${apiKey ? `&key=${apiKey}` : ''}`
     const r = await fetch(url, { next: { revalidate: 3600 } })
     if (!r.ok) return null
@@ -33,32 +33,13 @@ async function getBook(isbn: string) {
     const info = d.items[0].volumeInfo
     const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
     const cover_url = thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : ''
-    const title = info.title || ''
-    const author = info.authors?.join(', ') || ''
-    const publisher = info.publisher || ''
-    const language = info.language || 'th'
-
-    // Persist to our DB synchronously so subsequent title-search hits the
-    // DB immediately. Adds ~50-100ms to first load but every subsequent
-    // search across the site finds the book — worth it.
-    if (title) {
-      await cacheBookFromGoogle({
-        isbn,
-        title,
-        author,
-        publisher,
-        cover_url,
-        language,
-        description: info.description || '',
-      })
-    }
 
     return {
-      title,
-      author,
-      publisher,
+      title: info.title || '',
+      author: info.authors?.join(', ') || '',
+      publisher: info.publisher || '',
       cover_url,
-      language,
+      language: info.language || 'th',
       active_listings_count: 0,
       min_price: null,
     }

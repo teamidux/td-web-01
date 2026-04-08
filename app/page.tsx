@@ -25,12 +25,11 @@ export default function HomePage() {
 
   useEffect(() => { loadData() }, [])
 
-  // Live search — ใช้ /api/search/db (RPC fuzzy + ranked) เหมือน /search page
-  // เพื่อให้พฤติกรรมเหมือนกันทุก surface
+  // Live search — single /api/search call
   useEffect(() => {
     if (!query.trim()) { setLiveResults([]); setGoogleLiveResults([]); setGoogleLoading(false); return }
 
-    // ถ้า user paste ISBN-13 ที่ valid → auto-redirect ไปหน้า book ทันที ไม่ต้องรอ Enter
+    // ถ้า user paste ISBN-13 ที่ valid → auto-redirect ไปหน้า book
     const digits = query.replace(/[^0-9]/g, '')
     if (/^(978|979)\d{10}$/.test(digits)) {
       router.push(`/book/${digits}`)
@@ -41,39 +40,22 @@ export default function HomePage() {
     const t = setTimeout(async () => {
       const q = query.trim()
       setLiveSearching(true)
-      setGoogleLoading(q.length >= 2)
+      setGoogleLoading(false)
       setGoogleLiveResults([])
 
-      // 1. DB ก่อน — เรียก /api/search/db (ranked + alt_titles + RPC fallback)
       try {
-        const r = await fetch(`/api/search/db?q=${encodeURIComponent(q)}`)
+        const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
         const { results } = await r.json()
         if (cancelled) return
-        // เอาแค่ 3 อันแรกสำหรับ dropdown
-        setLiveResults((results || []).slice(0, 3))
+        // แยก: เล่มที่มีคนขาย (เด่น) vs เล่มจาก Google (ยังไม่มีคนขาย)
+        const withListings = (results || []).filter((b: any) => (b.active_listings_count || 0) > 0).slice(0, 3)
+        const noListings = (results || []).filter((b: any) => (b.active_listings_count || 0) === 0).slice(0, 2)
+        setLiveResults(withListings)
+        setGoogleLiveResults(noListings)
       } catch {
-        if (!cancelled) setLiveResults([])
+        if (!cancelled) { setLiveResults([]); setGoogleLiveResults([]) }
       } finally {
         if (!cancelled) setLiveSearching(false)
-      }
-
-      // 2. Google ในพื้นหลัง — เรียก /api/search/google (Google + OpenLibrary + auto-cache)
-      if (q.length >= 2) {
-        fetch(`/api/search/google?q=${encodeURIComponent(q)}`)
-          .then(r => r.json())
-          .then(({ results: gResults }) => {
-            if (cancelled) return
-            // dedupe กับ DB results ปัจจุบัน
-            setLiveResults(prev => {
-              const dbIsbns = new Set(prev.map((b: any) => b.isbn))
-              setGoogleLiveResults((gResults || []).filter((b: any) => !dbIsbns.has(b.isbn)).slice(0, 2))
-              return prev
-            })
-          })
-          .catch(() => {})
-          .finally(() => { if (!cancelled) setGoogleLoading(false) })
-      } else {
-        setGoogleLoading(false)
       }
     }, 180)
     return () => { cancelled = true; clearTimeout(t) }

@@ -41,33 +41,22 @@ function SearchPage() {
 
   const doSearch = async (q: string) => {
     if (!q.trim()) return
-    const trimmed = q.trim()
     setLoading(true)
     setGoogleResults([])
-
-    // 1. DB ก่อน — เร็ว ~100ms
     try {
-      const r = await fetch(`/api/search/db?q=${encodeURIComponent(trimmed)}`)
-      const { results: dbResults } = await r.json()
-      setResults(dbResults || [])
+      const r = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`)
+      const { results } = await r.json()
+      // แยกตามว่ามีคนขายมั้ย
+      const withListings = (results || []).filter((b: any) => (b.active_listings_count || 0) > 0)
+      const noListings = (results || []).filter((b: any) => (b.active_listings_count || 0) === 0)
+      setResults(withListings)
+      setGoogleResults(noListings)
     } catch {
       setResults([])
+      setGoogleResults([])
     } finally {
       setLoading(false)
     }
-
-    // 2. Google ในพื้นหลัง — append เมื่อพร้อม
-    fetch(`/api/search/google?q=${encodeURIComponent(trimmed)}`)
-      .then(r => r.json())
-      .then(({ results: gResults }) => {
-        // กรอง Google ออก ISBN ที่ซ้ำกับ DB
-        setResults(prevDb => {
-          const dbIsbns = new Set(prevDb.map((b: any) => b.isbn))
-          setGoogleResults((gResults || []).filter((b: any) => !dbIsbns.has(b.isbn)))
-          return prevDb
-        })
-      })
-      .catch(() => {})
   }
 
   const handleSubmit = () => {
