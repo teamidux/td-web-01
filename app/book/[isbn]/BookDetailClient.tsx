@@ -94,9 +94,9 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const toggleWanted = async () => {
     if (!user) { setShowLogin(true); return }
     if (isWanted && book?.id) {
+      // DB trigger จะลด books.wanted_count ให้อัตโนมัติ — แค่ลบ row ใน wanted
       await supabase.from('wanted').delete().eq('user_id', user.id).eq('book_id', book.id)
       const newCount = Math.max(0, (book.wanted_count || 1) - 1)
-      await supabase.from('books').update({ wanted_count: newCount }).eq('id', book.id)
       setIsWanted(false)
       setBook(b => b ? { ...b, wanted_count: newCount } : b)
       show('ลบออกจาก Wanted List แล้ว')
@@ -109,6 +109,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     if (!user) return
     const bookId = await ensureBookInDB()
     if (!bookId) { show('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'); return }
+    // DB trigger จะเพิ่ม books.wanted_count ให้อัตโนมัติ — แค่ insert wanted row
     await supabase.from('wanted').insert({
       user_id: user.id,
       book_id: bookId,
@@ -117,7 +118,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       status: 'waiting',
     })
     const newCount = (book?.wanted_count || 0) + 1
-    await supabase.from('books').update({ wanted_count: newCount }).eq('id', bookId)
     setIsWanted(true)
     setBook(b => b ? { ...b, wanted_count: newCount } : b)
     setShowWantedForm(false)
