@@ -81,45 +81,47 @@ export async function fetchOpenLibraryByQuery(query: string, limit: number = 10)
 }
 
 /**
- * ค้น Google Books — เน้นหนังสือไทย
- * - ไม่ใช้ intitle: (จำกัดเกินไป)
- * - langRestrict=th (แต่ Google มักไม่ strict ก็ถือว่าฮินต์ priority)
- * - printType=books (ตัด magazine/journal)
- * - รับ ISBN-10 ด้วย แปลงเป็น 13
+ * ค้น Google Books — single request, simple, robust
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 5): Promise<GoogleBook[]> {
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
     const maxResults = Math.min(40, Math.max(1, limit))
-    // ลองยิง 2 query คู่ขนาน: 1) เน้น Thai 2) ทั่วไป — แล้วรวมผล
-    const base = `https://www.googleapis.com/books/v1/volumes?printType=books&maxResults=${maxResults}${apiKey ? `&key=${apiKey}` : ''}`
-    const urls = [
-      `${base}&q=${encodeURIComponent(query)}&langRestrict=th`,
-      `${base}&q=${encodeURIComponent(query)}`,
-    ]
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 6000)
-    const responses = await Promise.allSettled(
-      urls.map(u => fetch(u, { signal: controller.signal }).then(r => r.ok ? r.json() : null))
-    )
-    clearTimeout(timeout)
+    const params = new URLSearchParams({
+      q: query,
+      maxResults: String(maxResults),
+      printType: 'books',
+    })
+    if (apiKey) params.set('key', apiKey)
+    const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
+
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 8000)
+    const r = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(t)
+    if (!r.ok) {
+      console.warn('[fetchGoogleBooksByTitle] status', r.status, 'q:', query)
+      return []
+    }
+    const d = await r.json()
+    if (!d.items?.length) {
+      console.warn('[fetchGoogleBooksByTitle] no items q:', query, 'totalItems:', d.totalItems)
+      return []
+    }
 
     const seen = new Set<string>()
     const results: GoogleBook[] = []
-    for (const res of responses) {
-      if (res.status !== 'fulfilled' || !res.value?.items) continue
-      for (const item of res.value.items) {
-        const mapped = mapVolume(item)
-        if (!mapped) continue
-        if (seen.has(mapped.isbn)) continue
-        seen.add(mapped.isbn)
-        results.push(mapped)
-        if (results.length >= limit) break
-      }
+    for (const item of d.items) {
+      const mapped = mapVolume(item)
+      if (!mapped) continue
+      if (seen.has(mapped.isbn)) continue
+      seen.add(mapped.isbn)
+      results.push(mapped)
       if (results.length >= limit) break
     }
     return results
-  } catch {
+  } catch (err: any) {
+    console.error('[fetchGoogleBooksByTitle] error:', err?.message || err, 'q:', query)
     return []
   }
 }
