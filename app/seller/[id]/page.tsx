@@ -97,13 +97,12 @@ export default function SellerPage({ params }: PageProps) {
             const q = query.toLowerCase()
             return l.books?.title?.toLowerCase().includes(q) || l.books?.author?.toLowerCase().includes(q)
           }).map(l => {
-            // ใช้รูปจริงที่ผู้ขายอัปโหลด (photos[0]) ถ้ามี — fallback เป็น cover ของหนังสือ
-            const displayImage = l.photos?.[0] || l.books?.cover_url
+            // ใช้รูปจริงที่ผู้ขายอัปโหลด (photos[0]) ถ้ามี — fallback ใช้ proxy ผ่าน isbn
             return (
               <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card">
                   <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    <BookCover coverUrl={displayImage} title={l.books?.title} size={64} />
+                    <BookCover coverUrl={l.photos?.[0]} isbn={!l.photos?.[0] ? l.books?.isbn : undefined} title={l.books?.title} size={64} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.books?.title}</div>
                       {l.books?.author && <div className="book-author">{l.books.author}</div>}

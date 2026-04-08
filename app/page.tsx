@@ -133,7 +133,7 @@ export default function HomePage() {
                 {liveResults.map((b, i) => (
                   <button key={b.id} onClick={() => { router.push(`/book/${b.isbn}`); setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}
                     style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < liveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
-                    <BookCover coverUrl={b.cover_url} title={b.title} size={44} />
+                    <BookCover isbn={b.isbn} title={b.title} size={44} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                       {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
@@ -149,7 +149,7 @@ export default function HomePage() {
                     {googleLiveResults.map((b, i) => (
                       <button key={b.isbn} onClick={() => { router.push(`/book/${b.isbn}`); setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}
                         style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < googleLiveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', opacity: 0.85 }}>
-                        <BookCover coverUrl={b.cover_url} title={b.title} size={44} />
+                        <BookCover isbn={b.isbn} title={b.title} size={44} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                           {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
@@ -211,7 +211,7 @@ export default function HomePage() {
             <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card">
                 <div className="book-card">
-                  <BookCover coverUrl={l.photos?.[0] || l.books?.cover_url} title={l.books?.title} size={60} />
+                  <BookCover coverUrl={l.photos?.[0]} isbn={!l.photos?.[0] ? l.books?.isbn : undefined} title={l.books?.title} size={60} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="book-title" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.books?.title}</div>
                     {l.books?.author && <div className="book-author">{l.books.author}</div>}
@@ -235,7 +235,7 @@ export default function HomePage() {
               <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card">
                   <div className="book-card">
-                    <BookCover coverUrl={b.cover_url} title={b.title} size={60} />
+                    <BookCover isbn={b.isbn} title={b.title} size={60} />
                     <div style={{ flex: 1 }}>
                       <div className="book-title">{b.title}</div>
                       {b.author && <div className="book-author">{b.author}</div>}

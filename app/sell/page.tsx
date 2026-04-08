@@ -383,7 +383,7 @@ function SellPage() {
                       {sellResults.map((b, i) => (
                         <button key={b.id} onClick={() => selectBook(b)}
                           style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', minHeight: 64 }}>
-                          <BookCover coverUrl={b.cover_url} title={b.title} size={48} />
+                          <BookCover isbn={b.isbn} title={b.title} size={48} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.35, color: '#121212', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                             {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
@@ -482,7 +482,7 @@ function SellPage() {
 
           {fetchedBook?.title && (
             <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
-              <BookCover coverUrl={fetchedBook.cover_url} title={fetchedBook.title} size={68} />
+              <BookCover isbn={(fetchedBook as any).isbn || isbn} coverUrl={fetchedBook.cover_url} title={fetchedBook.title} size={68} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{fetchedBook.title}</div>
                 {fetchedBook.author && (

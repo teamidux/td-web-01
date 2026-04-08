@@ -95,21 +95,26 @@ export function useToast() {
 
 export function BookCover({
   coverUrl,
+  isbn,
   title,
   size = 68,
 }: {
   coverUrl?: string
+  isbn?: string
   title?: string
   size?: number
 }) {
+  // ถ้ามี ISBN → ใช้ proxy ของเรา (ซ่อน source + bump quality)
+  // ถ้าไม่มี (เช่น รูปจากผู้ขายเอง) → ใช้ coverUrl ตรงๆ
+  const src = isbn && /^\d{10,13}$/.test(isbn) ? `/api/cover/${isbn}` : coverUrl
   return (
     <div
       className="book-cover"
       style={{ width: size, height: Math.round(size * 1.5) }}
     >
-      {coverUrl ? (
+      {src ? (
         <img
-          src={coverUrl}
+          src={src}
           alt={title}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           onError={(e) => {
