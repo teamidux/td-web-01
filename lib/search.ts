@@ -92,6 +92,9 @@ export function rankBooksByQuery<T extends { title?: string; author?: string }>(
     .map(({ _score, ...rest }: any) => rest)
 }
 
+// DEBUG ชั่วคราว — ดูว่า proxy ทำงานหรือไม่
+export const _proxyDebug: { calls: any[] } = { calls: [] }
+
 // ขอ 1 หน้า (Google cap ~20 ต่อ request แม้ขอ maxResults=40 — ตรวจสอบกับ API จริงแล้ว).
 // ถ้า GOOGLE_BOOKS_PROXY_URL set → call ผ่าน Thai proxy (real Thai IP) แทน
 // เพื่อแก้ปัญหา Google geo-localize ตาม caller IP (Vercel = sin1 ≠ Thailand)
@@ -110,33 +113,48 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
   if (apiKey) params.set('key', apiKey)
 
   let url: string
+  let usedProxy = false
   if (proxyUrl && proxyToken) {
     params.set('t', proxyToken)
     url = `${proxyUrl}?${params.toString()}`
+    usedProxy = true
   } else {
     url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
   }
+
+  const dbg: any = { startIndex, usedProxy, hasProxyUrl: !!proxyUrl, hasProxyToken: !!proxyToken, hasApiKey: !!apiKey }
 
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), 8000)
   try {
     const r = await fetch(url, { signal: ctrl.signal })
     clearTimeout(t)
+    dbg.status = r.status
     if (!r.ok) {
-      console.warn('[Google Books]', r.status, 'q:', qParam, 'startIndex:', startIndex)
+      const body = await r.text().catch(() => '')
+      dbg.error = body.slice(0, 100)
+      _proxyDebug.calls.push(dbg)
       return []
     }
     const d = await r.json()
-    if (!d.items?.length) return []
+    dbg.totalItems = d.totalItems
+    dbg.rawItems = d.items?.length || 0
+    if (!d.items?.length) {
+      _proxyDebug.calls.push(dbg)
+      return []
+    }
     const out: GoogleBook[] = []
     for (const item of d.items) {
       const mapped = mapVolume(item)
       if (mapped) out.push(mapped)
     }
+    dbg.mapped = out.length
+    _proxyDebug.calls.push(dbg)
     return out
   } catch (err: any) {
     clearTimeout(t)
-    console.error('[Google Books] error:', err?.message || err, 'startIndex:', startIndex)
+    dbg.error = `exception:${err?.message || err}`
+    _proxyDebug.calls.push(dbg)
     return []
   }
 }
@@ -150,6 +168,7 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
  * (real Thai IP) ดู infra/books-proxy.php และคู่มือ deploy
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
+  _proxyDebug.calls = []
   const pages = await Promise.all([
     callGoogleSearchPage(query, 0),
     callGoogleSearchPage(query, 20),
