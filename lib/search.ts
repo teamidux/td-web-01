@@ -46,38 +46,41 @@ function mapVolume(item: any): GoogleBook | null {
   }
 }
 
-// ลบ whitespace ออกทั้งหมดเพื่อ compare แบบ space-insensitive
-// แก้ปัญหา "คิดใหญ่ไม่คิดเล็ก" (user) ≠ "คิดใหญ่ ไม่คิดเล็ก" (Google) ที่เป็น byte-wise mismatch
-function stripWs(s: string): string {
-  return s.replace(/\s+/g, '')
+// Normalize สำหรับ compare แบบทนการสะกดต่างกัน:
+// - lowercase + NFC
+// - ตัด "พยัญชนะ + THANTHAKHAT (์)" คู่กัน — แก้ "แฮร์รี่" vs "แฮรี่" (ร์ = silent ร)
+// - ตัด tone marks ที่เหลือ (mai ek/tho/tri/chattawa, nikhahit, yamakkan)
+// - ตัด whitespace — แก้ "คิดใหญ่ไม่คิดเล็ก" vs "คิดใหญ่ ไม่คิดเล็ก"
+export function normalizeForMatch(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFC')
+    .replace(/[\u0E01-\u0E2E]\u0E4C/g, '')
+    .replace(/[\u0E48-\u0E4B\u0E4D\u0E4E]/g, '')
+    .replace(/\s+/g, '')
 }
 
-// Re-rank + filter: prefix match > substring > partial.
-// CRITICAL: ตัด books ที่ไม่มี query ใน title/author ออกเลย
+// Re-rank + filter: exact > prefix > substring > author.
+// ใช้ normalizeForMatch ทั้ง 2 ฝั่งเพื่อทน Thai spelling variation
 // (Google ส่ง fuzzy match บางทีไม่ตรง — กันแสดงเล่มที่ไม่เกี่ยว)
 export function rankBooksByQuery<T extends { title?: string; author?: string }>(books: T[], query: string): T[] {
-  const q = query.toLowerCase().trim()
+  const q = query.trim()
   if (!q) return books
-  const qNoWs = stripWs(q)
+  const qNorm = normalizeForMatch(q)
+  if (!qNorm) return books
 
   return books
     .map(b => {
-      const title = (b.title || '').toLowerCase()
-      const titleNoWs = stripWs(title)
-      const author = (b.author || '').toLowerCase()
-      const authorNoWs = stripWs(author)
+      const titleNorm = normalizeForMatch(b.title || '')
+      const authorNorm = normalizeForMatch(b.author || '')
 
       let score = 0
-      if (title === q || titleNoWs === qNoWs) score = 1000
-      else if (title.startsWith(q) || titleNoWs.startsWith(qNoWs)) score = 500
-      else if (title.includes(q)) {
-        const idx = title.indexOf(q)
+      if (titleNorm === qNorm) score = 1000
+      else if (titleNorm.startsWith(qNorm)) score = 500
+      else if (titleNorm.includes(qNorm)) {
+        const idx = titleNorm.indexOf(qNorm)
         score = 200 - Math.min(idx, 100)
-      } else if (titleNoWs.includes(qNoWs)) {
-        // หา position ใน no-ws title แล้วเอามาเทียบกับ original (รัช position)
-        const idx = titleNoWs.indexOf(qNoWs)
-        score = 180 - Math.min(idx, 100)
-      } else if (author.includes(q) || authorNoWs.includes(qNoWs)) {
+      } else if (authorNorm.includes(qNorm)) {
         score = 50
       }
       return { ...b, _score: score }
@@ -87,11 +90,13 @@ export function rankBooksByQuery<T extends { title?: string; author?: string }>(
     .map(({ _score, ...rest }: any) => rest)
 }
 
-async function callGoogleSearch(qParam: string, limit: number): Promise<GoogleBook[]> {
+// ขอ 1 หน้า (Google cap ~20 ต่อ request แม้ขอ maxResults=40 — ตรวจสอบกับ API จริงแล้ว)
+async function callGoogleSearchPage(qParam: string, startIndex: number): Promise<GoogleBook[]> {
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
   const params = new URLSearchParams({
     q: qParam,
-    maxResults: String(Math.min(40, Math.max(1, limit))),
+    maxResults: '40',
+    startIndex: String(startIndex),
     printType: 'books',
     orderBy: 'relevance',
   })
@@ -104,42 +109,47 @@ async function callGoogleSearch(qParam: string, limit: number): Promise<GoogleBo
     const r = await fetch(url, { signal: ctrl.signal })
     clearTimeout(t)
     if (!r.ok) {
-      console.warn('[Google Books]', r.status, 'q:', qParam)
+      console.warn('[Google Books]', r.status, 'q:', qParam, 'startIndex:', startIndex)
       return []
     }
     const d = await r.json()
     if (!d.items?.length) return []
     const out: GoogleBook[] = []
-    const seen = new Set<string>()
     for (const item of d.items) {
       const mapped = mapVolume(item)
-      if (!mapped || seen.has(mapped.isbn)) continue
-      seen.add(mapped.isbn)
-      out.push(mapped)
-      if (out.length >= limit) break
+      if (mapped) out.push(mapped)
     }
     return out
   } catch (err: any) {
     clearTimeout(t)
-    console.error('[Google Books] error:', err?.message || err)
+    console.error('[Google Books] error:', err?.message || err, 'startIndex:', startIndex)
     return []
   }
 }
 
-// debug counters — แค่ใช้ระหว่าง diagnose
-export const _searchDebug: { lastRawCount?: number; lastRawTitles?: string[] } = {}
-
 /**
- * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง
+ * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง.
+ * ดึง 3 หน้าขนานกัน (startIndex 0/20/40) เพื่อกวาดเล่มที่ Google ดัน rank ลงไปต่ำกว่า top 20
+ * — ปัญหาคลาสสิกของหนังสือชุดเช่น Harry Potter ที่มีหลายเล่ม/หลายภาษา
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
-  // ดึงผลเยอะกว่าที่ต้องการ — เผื่อ re-rank แล้วเลือก top
-  const fetchSize = Math.min(40, Math.max(limit * 2, 20))
-  const results = await callGoogleSearch(query, fetchSize)
-  _searchDebug.lastRawCount = results.length
-  _searchDebug.lastRawTitles = results.slice(0, 10).map(b => b.title)
-  // Re-rank: prefix > substring > partial — แก้ปัญหา Google ไม่ค่อย rank Thai ถูก
-  const ranked = rankBooksByQuery(results, query)
+  const pages = await Promise.all([
+    callGoogleSearchPage(query, 0),
+    callGoogleSearchPage(query, 20),
+    callGoogleSearchPage(query, 40),
+  ])
+  // Merge + dedupe by ISBN — เก็บ order ตาม Google relevance ก่อน rank ของเรา
+  const seen = new Set<string>()
+  const merged: GoogleBook[] = []
+  for (const page of pages) {
+    for (const b of page) {
+      if (seen.has(b.isbn)) continue
+      seen.add(b.isbn)
+      merged.push(b)
+    }
+  }
+  // Re-rank: exact > prefix > substring — แก้ปัญหา Google ไม่ค่อย rank Thai ถูก
+  const ranked = rankBooksByQuery(merged, query)
   return ranked.slice(0, limit)
 }
 

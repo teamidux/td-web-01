@@ -2,7 +2,7 @@
 // คู่ขนาน, merge by ISBN, ไม่มี auto-cache
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle, rankBooksByQuery } from '@/lib/search'
+import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch } from '@/lib/search'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -101,15 +101,10 @@ export async function GET(req: NextRequest) {
   const results = [...withListings, ...noListings]
 
   // 3. ตรวจคุณภาพ match ของ top result — แยก 'exact' (ตรง/prefix) vs 'partial' (substring)
-  // ใช้บอก UI ว่าจะแสดง copy แบบไหน
-  const topTitle = (results[0]?.title || '').toLowerCase()
-  const qLower = q.toLowerCase()
-  const stripWs = (s: string) => s.replace(/\s+/g, '')
-  const isExact =
-    topTitle === qLower ||
-    stripWs(topTitle) === stripWs(qLower) ||
-    topTitle.startsWith(qLower) ||
-    stripWs(topTitle).startsWith(stripWs(qLower))
+  // ใช้ normalize ตัวเดียวกับ rank เพื่อให้ "แฮร์รี่" vs "แฮรี่" ถือเป็น exact ด้วย
+  const topNorm = normalizeForMatch(results[0]?.title || '')
+  const qNorm = normalizeForMatch(q)
+  const isExact = !!qNorm && (topNorm === qNorm || topNorm.startsWith(qNorm))
   const matchQuality: 'exact' | 'partial' | 'none' =
     results.length === 0 ? 'none' : isExact ? 'exact' : 'partial'
 
