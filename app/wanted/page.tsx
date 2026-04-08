@@ -121,7 +121,7 @@ export default function WantedPage() {
               <div key={w.id} className="card" style={{ position: 'relative' }}>
                 <Link href={`/book/${w.books?.isbn || w.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <BookCover coverUrl={w.books?.cover_url} title={w.books?.title} size={52} />
+                    <BookCover coverUrl={w.books?.cover_url} title={w.books?.title} size={60} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.books?.title}</div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>

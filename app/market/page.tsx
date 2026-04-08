@@ -80,7 +80,7 @@ export default function MarketPage() {
                       {idx + 1}
                     </div>
 
-                    <BookCover coverUrl={book.cover_url || undefined} title={book.title} size={68} />
+                    <BookCover coverUrl={book.cover_url || undefined} title={book.title} size={64} />
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>

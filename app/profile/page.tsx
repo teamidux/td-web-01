@@ -287,7 +287,7 @@ export default function ProfilePage() {
 
           {filterListings(active).map(l => (
             <div key={l.id} className="card" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <BookCover coverUrl={l.books?.cover_url} title={l.books?.title} size={48} />
+              <BookCover coverUrl={l.books?.cover_url} title={l.books?.title} size={56} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.books?.title}</div>
                 <div className="price" style={{ marginTop: 3 }}>฿{l.price}</div>
@@ -316,7 +316,7 @@ export default function ProfilePage() {
               const canReactivate = l.sold_at && Date.now() - new Date(l.sold_at).getTime() < 24 * 60 * 60 * 1000
               return (
                 <div key={l.id} className="card" style={{ display: 'flex', gap: 12, alignItems: 'center', opacity: 0.7 }}>
-                  <BookCover coverUrl={l.books?.cover_url} title={l.books?.title} size={48} />
+                  <BookCover coverUrl={l.books?.cover_url} title={l.books?.title} size={56} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.books?.title}</div>
                     <div className="price" style={{ marginTop: 3 }}>฿{l.price}</div>

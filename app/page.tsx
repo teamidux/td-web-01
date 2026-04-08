@@ -132,13 +132,13 @@ export default function HomePage() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,.15)', zIndex: 50, overflow: 'hidden', marginTop: 4 }}>
                 {liveResults.map((b, i) => (
                   <button key={b.id} onClick={() => { router.push(`/book/${b.isbn}`); setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}
-                    style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < liveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
-                    <BookCover coverUrl={b.cover_url} title={b.title} size={36} />
+                    style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < liveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
+                    <BookCover coverUrl={b.cover_url} title={b.title} size={44} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                      {b.author && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.author}</div>}
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+                      {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
                     </div>
-                    <span style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>›</span>
+                    <span style={{ color: 'var(--primary)', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>›</span>
                   </button>
                 ))}
                 {googleLiveResults.length > 0 && (
@@ -148,13 +148,13 @@ export default function HomePage() {
                     </div>
                     {googleLiveResults.map((b, i) => (
                       <button key={b.isbn} onClick={() => { router.push(`/book/${b.isbn}`); setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}
-                        style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < googleLiveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', opacity: 0.8 }}>
-                        <BookCover coverUrl={b.cover_url} title={b.title} size={36} />
+                        style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < googleLiveResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', opacity: 0.85 }}>
+                        <BookCover coverUrl={b.cover_url} title={b.title} size={44} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                          {b.author && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.author}</div>}
+                          <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+                          {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
                         </div>
-                        <span style={{ fontSize: 10, color: 'var(--ink3)', flexShrink: 0 }}>🔔 Wantlist</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', flexShrink: 0 }}>🔔</span>
                       </button>
                     ))}
                   </>
@@ -211,7 +211,7 @@ export default function HomePage() {
             <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card">
                 <div className="book-card">
-                  <BookCover coverUrl={l.photos?.[0] || l.books?.cover_url} title={l.books?.title} size={72} />
+                  <BookCover coverUrl={l.photos?.[0] || l.books?.cover_url} title={l.books?.title} size={60} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="book-title" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.books?.title}</div>
                     {l.books?.author && <div className="book-author">{l.books.author}</div>}
@@ -235,10 +235,10 @@ export default function HomePage() {
               <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card">
                   <div className="book-card">
-                    <BookCover coverUrl={b.cover_url} title={b.title} size={52} />
+                    <BookCover coverUrl={b.cover_url} title={b.title} size={60} />
                     <div style={{ flex: 1 }}>
                       <div className="book-title">{b.title}</div>
-                      <div className="book-author">{b.author}</div>
+                      {b.author && <div className="book-author">{b.author}</div>}
                       <div style={{ marginTop: 6 }}>
                         <span className="badge badge-blue">🔔 {b.wanted_count} คนรอซื้อ</span>
                       </div>

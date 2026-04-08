@@ -103,7 +103,7 @@ export default function SellerPage({ params }: PageProps) {
               <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card">
                   <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    <BookCover coverUrl={displayImage} title={l.books?.title} size={84} />
+                    <BookCover coverUrl={displayImage} title={l.books?.title} size={64} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.books?.title}</div>
                       {l.books?.author && <div className="book-author">{l.books.author}</div>}

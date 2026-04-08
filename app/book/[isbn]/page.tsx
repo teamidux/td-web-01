@@ -3,6 +3,7 @@ import Script from 'next/script'
 import BookDetailClient from './BookDetailClient'
 import { createClient } from '@supabase/supabase-js'
 import { logMissingIsbnServer } from '@/lib/missing-isbn'
+import { cacheBookFromGoogle } from '@/lib/cache-book'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,12 +32,32 @@ async function getBook(isbn: string) {
     if (!d.items?.length) return null
     const info = d.items[0].volumeInfo
     const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
+    const cover_url = thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : ''
+    const title = info.title || ''
+    const author = info.authors?.join(', ') || ''
+    const publisher = info.publisher || ''
+    const language = info.language || 'th'
+
+    // Persist to our DB so subsequent loads + the home/search/market lists pick it up.
+    // Fire-and-forget — don't block render if write fails.
+    if (title) {
+      cacheBookFromGoogle({
+        isbn,
+        title,
+        author,
+        publisher,
+        cover_url,
+        language,
+        description: info.description || '',
+      })
+    }
+
     return {
-      title: info.title || '',
-      author: info.authors?.join(', ') || '',
-      publisher: info.publisher || '',
-      cover_url: thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : '',
-      language: info.language || 'th',
+      title,
+      author,
+      publisher,
+      cover_url,
+      language,
       active_listings_count: 0,
       min_price: null,
     }

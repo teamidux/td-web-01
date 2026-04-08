@@ -94,7 +94,7 @@ function SearchPage() {
             <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card">
                 <div className="book-card">
-                  <BookCover coverUrl={b.cover_url} title={b.title} size={52} />
+                  <BookCover coverUrl={b.cover_url} title={b.title} size={60} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                     <div className="book-author">{b.author}</div>
@@ -127,7 +127,7 @@ function SearchPage() {
                 <Link key={b.isbn} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="card" style={{ opacity: 0.85 }}>
                     <div className="book-card">
-                      <BookCover coverUrl={b.cover_url} title={b.title} size={52} />
+                      <BookCover coverUrl={b.cover_url} title={b.title} size={60} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                         <div className="book-author">{b.author}</div>
