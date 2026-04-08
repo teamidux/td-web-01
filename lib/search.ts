@@ -43,6 +43,43 @@ function mapVolume(item: any): GoogleBook | null {
   }
 }
 
+// OpenLibrary fallback — coverage ต่างจาก Google (มี edition ที่ Google ไม่มี)
+export async function fetchOpenLibraryByQuery(query: string, limit: number = 10): Promise<GoogleBook[]> {
+  try {
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}`
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    const r = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeout)
+    if (!r.ok) return []
+    const d = await r.json()
+    const docs = d.docs || []
+    return docs
+      .map((doc: any): GoogleBook | null => {
+        const isbnList = Array.isArray(doc.isbn) ? doc.isbn : []
+        // เลือก ISBN-13 ก่อน, fallback ISBN-10 → แปลง 13
+        let isbn = isbnList.find((i: string) => /^\d{13}$/.test(i))
+        if (!isbn) {
+          const isbn10 = isbnList.find((i: string) => /^\d{9}[\dX]$/.test(i))
+          if (isbn10) isbn = isbn10to13(isbn10.slice(0, 9))
+        }
+        if (!isbn || !doc.title) return null
+        const coverId = doc.cover_i
+        return {
+          isbn,
+          title: doc.title,
+          author: Array.isArray(doc.author_name) ? doc.author_name.join(', ') : '',
+          publisher: Array.isArray(doc.publisher) ? doc.publisher[0] : '',
+          cover_url: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : '',
+          language: Array.isArray(doc.language) ? doc.language[0] : '',
+        }
+      })
+      .filter(Boolean) as GoogleBook[]
+  } catch {
+    return []
+  }
+}
+
 /**
  * ค้น Google Books — เน้นหนังสือไทย
  * - ไม่ใช้ intitle: (จำกัดเกินไป)

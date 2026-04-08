@@ -1,15 +1,31 @@
-// Google Books search + auto-cache. Slower path — called separately
-// from /api/search/db so the UI can render DB results immediately and
-// Google results can stream in.
+// External book search (Google Books + OpenLibrary) + auto-cache.
+// Slower path — called separately from /api/search/db so DB results
+// render first and external results stream in.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle } from '@/lib/search'
+import { fetchGoogleBooksByTitle, fetchOpenLibraryByQuery, GoogleBook } from '@/lib/search'
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q || q.length < 2) return NextResponse.json({ results: [] })
 
-  const gBooks = await fetchGoogleBooksByTitle(q, 20)
+  // ยิงทั้ง 2 source คู่ขนาน — coverage แตกต่างกัน เช่น
+  // หนังสือ Thai title 'เจอจุดแข็ง' (ISBN 9781595621207) ที่ Google indexed
+  // เป็น 'StrengthsFinder 2.0' → OpenLibrary มีข้อมูลผ่าน edition อื่น
+  const [google, openLib] = await Promise.all([
+    fetchGoogleBooksByTitle(q, 15),
+    fetchOpenLibraryByQuery(q, 10),
+  ])
+
+  // Merge + dedupe by ISBN, Google ก่อน (cover คุณภาพดีกว่า)
+  const seen = new Set<string>()
+  const gBooks: GoogleBook[] = []
+  for (const b of [...google, ...openLib]) {
+    if (seen.has(b.isbn)) continue
+    seen.add(b.isbn)
+    gBooks.push(b)
+  }
+
   if (gBooks.length === 0) return NextResponse.json({ results: [] })
 
   // Auto-cache new books to DB so future searches hit immediately
