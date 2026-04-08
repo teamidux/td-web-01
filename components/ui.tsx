@@ -234,35 +234,14 @@ export function LoginModal({
   onDone,
 }: {
   onClose: () => void
-  onDone: () => void
+  onDone?: () => void
 }) {
-  const { login } = useAuth()
-  const [phone, setPhone] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { msg, show } = useToast()
+  const { loginWithLine } = useAuth()
 
-  // เบอร์มือถือไทย: 10 หลัก ขึ้นต้น 0, จัดเป็น XXX-XXX-XXXX
-  const formatPhone = (raw: string): string => {
-    const digits = raw.replace(/\D/g, '').slice(0, 10)
-    if (digits.length <= 3) return digits
-    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhone(e.target.value))
-  }
-
-  const handleLogin = async () => {
-    const cleaned = phone.replace(/\D/g, '')
-    if (cleaned.length !== 10 || !cleaned.startsWith('0')) {
-      show('กรุณากรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0')
-      return
-    }
-    setLoading(true)
-    await login(cleaned)
-    setLoading(false)
-    onDone()
+  const handleLineLogin = () => {
+    // เก็บ pathname ปัจจุบันเพื่อให้ callback redirect กลับมาที่หน้าเดิม
+    const next = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
+    loginWithLine(next)
   }
 
   return (
@@ -282,59 +261,302 @@ export function LoginModal({
         style={{
           background: 'white',
           borderRadius: '18px 18px 0 0',
-          padding: '24px 20px 40px',
+          padding: '28px 20px 40px',
           width: '100%',
           maxWidth: 480,
           margin: '0 auto',
         }}
       >
-        <Toast msg={msg} />
         <div
           style={{
             fontFamily: "'Kanit', sans-serif",
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: 700,
             color: '#121212',
             lineHeight: 1.3,
             letterSpacing: '-0.02em',
-            marginBottom: 6,
+            marginBottom: 8,
+            textAlign: 'center',
           }}
         >
-          เข้าสู่ระบบ
+          เข้าสู่ระบบ BookMatch
         </div>
         <div
-          style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 22 }}
+          style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 28, textAlign: 'center' }}
         >
-          ใส่เบอร์มือถือเพื่อลงขาย
+          ใช้บัญชี LINE ของคุณ — ปลอดภัย ฟรี ไม่ต้องสร้างรหัสใหม่
         </div>
-        <div className="form-group">
-          <label className="label">เบอร์มือถือ</label>
-          <input
-            className="input"
-            type="tel"
-            inputMode="numeric"
-            value={phone}
-            onChange={handlePhoneChange}
-            placeholder="081-234-5678"
-            maxLength={12}
-            autoComplete="tel-national"
-            style={{ fontSize: 18, fontWeight: 600, letterSpacing: '0.02em', textAlign: 'center' }}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          />
-        </div>
+
         <button
-          className="btn"
-          onClick={handleLogin}
-          disabled={loading}
+          onClick={handleLineLogin}
+          style={{
+            width: '100%',
+            background: '#06C755',
+            color: 'white',
+            border: 'none',
+            borderRadius: 12,
+            minHeight: 56,
+            padding: '14px 16px',
+            fontFamily: 'Kanit',
+            fontWeight: 700,
+            fontSize: 17,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            boxShadow: '0 2px 8px rgba(6,199,85,.25)',
+          }}
         >
-          {loading && <span className="spin" />}
-          เข้าสู่ระบบ
+          <span style={{ fontSize: 22 }}>💚</span>
+          เข้าสู่ระบบด้วย LINE
         </button>
+
+        <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, textAlign: 'center', marginTop: 16 }}>
+          การเข้าสู่ระบบหมายความว่าคุณยอมรับเงื่อนไขการใช้งาน
+        </div>
+
         <button
           className="btn btn-ghost"
-          style={{ marginTop: 8 }}
+          style={{ marginTop: 16 }}
           onClick={onClose}
         >
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Phone OTP verification modal — ใช้ตอน user กดลงประกาศครั้งแรก
+export function PhoneVerifyModal({
+  onClose,
+  onDone,
+}: {
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [step, setStep] = useState<'phone' | 'code'>('phone')
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+  const { msg, show } = useToast()
+  const { reloadUser } = useAuth()
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(t)
+  }, [cooldown])
+
+  const formatPhone = (raw: string): string => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10)
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
+  const sendOtp = async () => {
+    const cleaned = phone.replace(/\D/g, '')
+    if (!/^0\d{9}$/.test(cleaned)) { show('กรุณากรอกเบอร์ 10 หลัก ขึ้นต้น 0'); return }
+    setLoading(true)
+    try {
+      const r = await fetch('/api/verify/phone/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleaned }),
+      })
+      const data = await r.json()
+      if (!r.ok) {
+        if (data.error === 'phone_in_use') show('เบอร์นี้ถูกใช้แล้วโดยบัญชีอื่น')
+        else if (data.error === 'rate_limited') show('โปรดรอ 1 นาทีก่อนขอ OTP ใหม่')
+        else if (data.error === 'sms_failed') show('ส่ง SMS ไม่สำเร็จ ลองใหม่')
+        else show('เกิดข้อผิดพลาด ลองใหม่')
+      } else {
+        setStep('code')
+        setCooldown(60)
+        show('ส่งรหัส OTP แล้ว ตรวจ SMS')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const confirmOtp = async () => {
+    if (!/^\d{6}$/.test(code)) { show('กรอก OTP 6 หลัก'); return }
+    setLoading(true)
+    try {
+      const r = await fetch('/api/verify/phone/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const data = await r.json()
+      if (!r.ok) {
+        if (data.error === 'wrong_code') show(`รหัสไม่ถูกต้อง (เหลือ ${data.attempts_left ?? 0} ครั้ง)`)
+        else if (data.error === 'too_many_attempts') show('ผิดเกินที่กำหนด ขอ OTP ใหม่')
+        else if (data.error === 'no_active_otp') show('OTP หมดอายุ ขอใหม่')
+        else show('ยืนยันไม่สำเร็จ')
+      } else {
+        show('ยืนยันเบอร์เรียบร้อย ✓')
+        await reloadUser()
+        setTimeout(() => onDone(), 600)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '28px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
+        <Toast msg={msg} />
+
+        <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 6 }}>
+          📱 ยืนยันเบอร์มือถือ
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 22 }}>
+          ผู้ขายทุกคนต้องยืนยันเบอร์มือถือเพื่อความปลอดภัยของผู้ซื้อ — ทำครั้งเดียวตลอดอายุบัญชี
+        </div>
+
+        {step === 'phone' && (
+          <>
+            <div className="form-group">
+              <label className="label">เบอร์มือถือ</label>
+              <input
+                className="input"
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={e => setPhone(formatPhone(e.target.value))}
+                placeholder="081-234-5678"
+                maxLength={12}
+                autoComplete="tel-national"
+                style={{ fontSize: 18, fontWeight: 600, letterSpacing: '0.02em', textAlign: 'center' }}
+              />
+            </div>
+            <button className="btn" onClick={sendOtp} disabled={loading}>
+              {loading ? <><span className="spin" />กำลังส่ง...</> : 'รับรหัส OTP'}
+            </button>
+          </>
+        )}
+
+        {step === 'code' && (
+          <>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
+              ส่ง OTP ไปที่ <strong style={{ color: 'var(--ink)' }}>{phone}</strong>
+            </div>
+            <div className="form-group">
+              <label className="label">รหัส OTP (6 หลัก)</label>
+              <input
+                className="input"
+                type="tel"
+                inputMode="numeric"
+                value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                maxLength={6}
+                autoComplete="one-time-code"
+                style={{ fontSize: 24, fontWeight: 700, letterSpacing: '0.3em', textAlign: 'center' }}
+              />
+            </div>
+            <button className="btn" onClick={confirmOtp} disabled={loading || code.length < 6}>
+              {loading ? <><span className="spin" />กำลังยืนยัน...</> : 'ยืนยัน'}
+            </button>
+            <button
+              className="btn btn-ghost"
+              style={{ marginTop: 8 }}
+              onClick={sendOtp}
+              disabled={cooldown > 0 || loading}
+            >
+              {cooldown > 0 ? `ส่งใหม่ใน ${cooldown}s` : 'ส่ง OTP ใหม่'}
+            </button>
+          </>
+        )}
+
+        <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={onClose}>
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ID + Selfie verification modal
+export function IdVerifyModal({
+  onClose,
+  onDone,
+}: {
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [idFile, setIdFile] = useState<File | null>(null)
+  const [selfieFile, setSelfieFile] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const { msg, show } = useToast()
+  const { reloadUser } = useAuth()
+
+  const submit = async () => {
+    if (!idFile || !selfieFile) { show('กรุณาอัปโหลดทั้ง 2 รูป'); return }
+    setSubmitting(true)
+    try {
+      const fd = new FormData()
+      fd.append('id', idFile)
+      fd.append('selfie', selfieFile)
+      const r = await fetch('/api/verify/id', { method: 'POST', body: fd })
+      const data = await r.json()
+      if (!r.ok) {
+        show(data.error || 'ส่งไม่สำเร็จ')
+      } else {
+        show('ส่งรายการตรวจสอบแล้ว — รอ admin ภายใน 24 ชั่วโมง')
+        await reloadUser()
+        setTimeout(() => onDone(), 800)
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '28px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto', maxHeight: '90vh', overflowY: 'auto' }}>
+        <Toast msg={msg} />
+        <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', letterSpacing: '-0.02em', marginBottom: 6 }}>
+          🪪 ยืนยันตัวตนด้วยบัตรประชาชน
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 22 }}>
+          เพิ่มความน่าเชื่อถือให้บัญชีผู้ขาย — ผู้ซื้อจะเห็น Badge "ยืนยันตัวตน" และไว้ใจมากขึ้น
+        </div>
+
+        <div className="form-group">
+          <label className="label">รูปบัตรประชาชน</label>
+          <label style={{ display: 'block', cursor: 'pointer' }}>
+            <input type="file" accept="image/*" onChange={e => setIdFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
+            <div style={{ padding: '20px 16px', border: `2px dashed ${idFile ? 'var(--green)' : 'var(--border)'}`, borderRadius: 12, background: idFile ? 'var(--green-bg)' : 'var(--surface)', textAlign: 'center', fontSize: 14, fontWeight: 600, color: idFile ? 'var(--green)' : 'var(--ink2)' }}>
+              {idFile ? `✓ ${idFile.name}` : '📷 เลือก/ถ่ายรูปบัตรประชาชน'}
+            </div>
+          </label>
+        </div>
+
+        <div className="form-group">
+          <label className="label">รูป selfie ถือบัตรประชาชน</label>
+          <label style={{ display: 'block', cursor: 'pointer' }}>
+            <input type="file" accept="image/*" capture="user" onChange={e => setSelfieFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
+            <div style={{ padding: '20px 16px', border: `2px dashed ${selfieFile ? 'var(--green)' : 'var(--border)'}`, borderRadius: 12, background: selfieFile ? 'var(--green-bg)' : 'var(--surface)', textAlign: 'center', fontSize: 14, fontWeight: 600, color: selfieFile ? 'var(--green)' : 'var(--ink2)' }}>
+              {selfieFile ? `✓ ${selfieFile.name}` : '🤳 ถ่าย selfie ถือบัตรประชาชน'}
+            </div>
+          </label>
+        </div>
+
+        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#92400E', lineHeight: 1.6, marginBottom: 18 }}>
+          🔒 ข้อมูลของคุณถูกเก็บอย่างปลอดภัย ใช้สำหรับ verify ตัวตนเท่านั้น ไม่เผยแพร่
+        </div>
+
+        <button className="btn" onClick={submit} disabled={submitting || !idFile || !selfieFile}>
+          {submitting ? <><span className="spin" />กำลังส่ง...</> : 'ส่งตรวจสอบ'}
+        </button>
+        <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={onClose}>
           ยกเลิก
         </button>
       </div>

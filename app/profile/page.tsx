@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, Listing } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, useToast, Toast } from '@/components/ui'
+import { Nav, BottomNav, BookCover, LoginModal, PhoneVerifyModal, IdVerifyModal, useToast, Toast } from '@/components/ui'
 
 export default function ProfilePage() {
   const { user, logout, updateUser, syncUser } = useAuth()
   const [listings, setListings] = useState<Listing[]>([])
   const [showLogin, setShowLogin] = useState(false)
+  const [showPhoneVerify, setShowPhoneVerify] = useState(false)
+  const [showIdVerify, setShowIdVerify] = useState(false)
   const [confirmSoldId, setConfirmSoldId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
@@ -147,6 +149,8 @@ export default function ProfilePage() {
     <>
       <Nav />
       <Toast msg={msg} />
+      {showPhoneVerify && <PhoneVerifyModal onClose={() => setShowPhoneVerify(false)} onDone={() => setShowPhoneVerify(false)} />}
+      {showIdVerify && <IdVerifyModal onClose={() => setShowIdVerify(false)} onDone={() => setShowIdVerify(false)} />}
 
       {confirmSoldId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -273,6 +277,57 @@ export default function ProfilePage() {
             <div style={{ fontSize: 22, color: '#1D4ED8', fontWeight: 700, lineHeight: 1 }}>›</div>
           </div>
         </Link>
+
+        {/* Verification status — show actions for not-yet-verified */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink2)', marginBottom: 10, letterSpacing: '0.02em' }}>การยืนยันตัวตน</div>
+
+          {(user as any).phone_verified_at ? (
+            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 22 }}>📱</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#15803D' }}>ยืนยันเบอร์โทรแล้ว</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{user.phone}</div>
+              </div>
+              <span style={{ fontSize: 18, color: '#15803D' }}>✓</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowPhoneVerify(true)}
+              style={{ width: '100%', background: '#FEF3C7', border: '1.5px solid #FDE68A', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left' }}
+            >
+              <span style={{ fontSize: 22 }}>📱</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>ยืนยันเบอร์โทร</div>
+                <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>จำเป็นสำหรับการลงประกาศ</div>
+              </div>
+              <span style={{ fontSize: 18, color: '#92400E' }}>›</span>
+            </button>
+          )}
+
+          {(user as any).id_verified_at ? (
+            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 22 }}>🪪</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#15803D' }}>ยืนยันตัวตนแล้ว</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Badge สีเขียวบนโปรไฟล์</div>
+              </div>
+              <span style={{ fontSize: 18, color: '#15803D' }}>✓</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowIdVerify(true)}
+              style={{ width: '100%', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left' }}
+            >
+              <span style={{ fontSize: 22 }}>🪪</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>ยืนยันตัวตน (ไม่บังคับ)</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>เพิ่ม Badge ความน่าเชื่อถือบนโปรไฟล์</div>
+              </div>
+              <span style={{ fontSize: 18, color: 'var(--ink3)' }}>›</span>
+            </button>
+          )}
+        </div>
 
         {listings.length > 0 && (
           <div style={{ padding: '10px 16px 0' }}>

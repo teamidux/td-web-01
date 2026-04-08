@@ -265,11 +265,17 @@ export default function SellerPage({ params }: PageProps) {
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)', flexShrink: 0 }}>{seller?.seller_type === 'store' ? '🏪' : '👤'}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 4 }}>{seller?.display_name}</div>
+            {(seller as any)?.phone_verified_at && (seller as any)?.phone && (
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginBottom: 6, lineHeight: 1.5 }}>
+                📱 {(seller as any).phone.slice(0, 3)}-xxx-{(seller as any).phone.slice(-4)}
+              </div>
+            )}
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 8, lineHeight: 1.5 }}>
               ขายไปแล้ว {seller?.sold_count || 0} ครั้ง
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {seller?.is_verified && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>✓ Verified</span>}
+              {(seller as any)?.id_verified_at && <span className="badge" style={{ background: '#10B981', color: 'white' }}>✅ ยืนยันตัวตน</span>}
+              {(seller as any)?.phone_verified_at && !(seller as any)?.id_verified_at && <span className="badge" style={{ background: 'rgba(255,255,255,.25)', color: 'white' }}>📱 ยืนยันเบอร์</span>}
               {seller?.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>

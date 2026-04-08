@@ -1,12 +1,13 @@
 'use client'
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase, User } from './supabase'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { User } from './supabase'
 
 type AuthCtx = {
   user: User | null
   loading: boolean
-  login: (phone: string) => Promise<void>
-  logout: () => void
+  loginWithLine: (next?: string) => void
+  logout: () => Promise<void>
+  reloadUser: () => Promise<void>
   updateUser: (data: Partial<User>) => Promise<void>
   syncUser: (data: Partial<User>) => void
 }
@@ -14,8 +15,9 @@ type AuthCtx = {
 const AuthContext = createContext<AuthCtx>({
   user: null,
   loading: true,
-  login: async () => {},
-  logout: () => {},
+  loginWithLine: () => {},
+  logout: async () => {},
+  reloadUser: async () => {},
   updateUser: async () => {},
   syncUser: () => {},
 })
@@ -24,58 +26,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const reloadUser = useCallback(async () => {
     try {
-      const saved = localStorage.getItem('bm_user')
-      if (saved) setUser(JSON.parse(saved))
-    } catch { }
-    setLoading(false)
+      const r = await fetch('/api/auth/me', { cache: 'no-store' })
+      const { user } = await r.json()
+      setUser(user || null)
+    } catch {
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const login = async (phone: string) => {
-    const cleaned = phone.replace(/\D/g, '')
-    let { data: existing } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone', cleaned)
-      .maybeSingle()
+  useEffect(() => {
+    reloadUser()
+  }, [reloadUser])
 
-    if (!existing) {
-      const { data: newUser } = await supabase
-        .from('users')
-        .insert({
-          phone: cleaned,
-          display_name: 'นักอ่าน' + cleaned.slice(-4),
-          plan: 'free',
-          listings_limit: 20,
-          sold_count: 0,
-          confirmed_count: 0,
-          is_verified: false,
-          is_pioneer: false,
-          pioneer_count: 0,
-        })
-        .select()
-        .single()
-      existing = newUser
-    }
-
-    if (existing) {
-      setUser(existing)
-      localStorage.setItem('bm_user', JSON.stringify(existing))
-    }
+  // เริ่ม LINE OAuth — redirect ไป /api/auth/line/start ซึ่ง redirect ต่อไป LINE
+  const loginWithLine = (next?: string) => {
+    const qs = next ? `?next=${encodeURIComponent(next)}` : ''
+    window.location.href = `/api/auth/line/start${qs}`
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
     setUser(null)
-    localStorage.removeItem('bm_user')
+    window.location.href = '/'
   }
 
-  // syncUser — อัปเดต local state เท่านั้น (ไม่ call API) ใช้หลัง API อื่นอัปเดต Supabase แล้ว
+  // อัปเดต local state เท่านั้น (ใช้หลัง API อื่นเปลี่ยน DB แล้ว)
   const syncUser = (data: Partial<User>) => {
     if (!user) return
-    const updated = { ...user, ...data }
-    setUser(updated)
-    localStorage.setItem('bm_user', JSON.stringify(updated))
+    setUser({ ...user, ...data })
   }
 
   const updateUser = async (data: Partial<User>) => {
@@ -89,13 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.error || 'บันทึกไม่สำเร็จ')
     }
-    const updated = { ...user, ...data }
-    setUser(updated)
-    localStorage.setItem('bm_user', JSON.stringify(updated))
+    setUser({ ...user, ...data })
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser, syncUser }}>
+    <AuthContext.Provider value={{ user, loading, loginWithLine, logout, reloadUser, updateUser, syncUser }}>
       {children}
     </AuthContext.Provider>
   )

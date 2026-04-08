@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { searchVariants, buildOrFilter } from '@/lib/search'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
+import { Nav, BottomNav, BookCover, LoginModal, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
@@ -64,6 +64,7 @@ function SellPage() {
   const { msg, show } = useToast()
 
   const [showLogin, setShowLogin] = useState(false)
+  const [showPhoneVerify, setShowPhoneVerify] = useState(false)
   const [isbn, setIsbn] = useState(searchParams.get('isbn') || '')
   const [fetchedBook, setFetchedBook] = useState<Partial<Book> | null>(null)
   // notFoundMode: null=ยังค้นหา | 'has_isbn'=มี ISBN แต่ไม่อยู่ในระบบ | 'no_isbn'=ไม่มีบาร์โค้ด
@@ -256,6 +257,8 @@ function SellPage() {
 
   const submit = async () => {
     if (!user) { setShowLogin(true); return }
+    // ผู้ขายต้อง verify เบอร์ก่อนลงประกาศได้ (ครั้งเดียวตลอดอายุบัญชี)
+    if (!user.phone_verified_at) { setShowPhoneVerify(true); return }
     if (!fetchedBook?.title && !manualTitle) { show('กรุณาดึงข้อมูลหนังสือก่อน'); return }
     if (!coverFile) { show('กรุณาใส่รูปหน้าปก'); return }
     if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) { show('กรุณาใส่ราคาที่ถูกต้อง'); return }
@@ -335,6 +338,7 @@ function SellPage() {
       <InAppBanner />
       <Toast msg={msg} />
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} onDone={() => setShowLogin(false)} />}
+      {showPhoneVerify && <PhoneVerifyModal onClose={() => setShowPhoneVerify(false)} onDone={() => setShowPhoneVerify(false)} />}
 
       <div className="page">
         <div style={{ padding: '16px 16px 80px' }}>
