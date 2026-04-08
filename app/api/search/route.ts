@@ -20,21 +20,36 @@ export async function GET(req: NextRequest) {
   )
 
   // ค้น DB และ Google Books คู่ขนาน
+  // ใช้ 2 separate queries แทน .or() — supabase-js OR filter มี edge case
+  // กับ Thai chars บน HTTP/PostgREST ที่ทำให้ query บางตัว return 0 ทั้งที่
+  // SQL ILIKE ปกติทำงานได้ (verified with ขุนช้างขุนแผน case)
   const escaped = q.replace(/[%_]/g, '\\$&')
-  // strip whitespace variant — กันกรณี user พิมพ์ "คิดใหญ่ไม่คิดเล็ก" แต่ DB เก็บ "คิดใหญ่ ไม่คิดเล็ก"
   const escapedNoWs = escaped.replace(/\s+/g, '')
-  const orFilters = [`title.ilike.%${escaped}%`, `author.ilike.%${escaped}%`]
-  if (escapedNoWs !== escaped && escapedNoWs.length > 0) {
-    orFilters.push(`title.ilike.%${escapedNoWs}%`, `author.ilike.%${escapedNoWs}%`)
-  }
+  const variants = new Set([escaped])
+  if (escapedNoWs !== escaped && escapedNoWs.length > 0) variants.add(escapedNoWs)
+
   const dbQuery = (async () => {
     try {
-      const { data } = await supabase
-        .from('books')
-        .select('id, isbn, title, author, cover_url, wanted_count')
-        .or(orFilters.join(','))
-        .limit(30)
-      return data || []
+      const queries: Promise<any>[] = []
+      for (const v of variants) {
+        queries.push(
+          supabase.from('books').select('id, isbn, title, author, cover_url, wanted_count').ilike('title', `%${v}%`).limit(20),
+          supabase.from('books').select('id, isbn, title, author, cover_url, wanted_count').ilike('author', `%${v}%`).limit(10),
+        )
+      }
+      const results = await Promise.all(queries)
+      const merged: any[] = []
+      const seen = new Set<string>()
+      for (const r of results) {
+        for (const b of (r.data || [])) {
+          if (!b.id || seen.has(b.id)) continue
+          seen.add(b.id)
+          merged.push(b)
+          if (merged.length >= 30) break
+        }
+        if (merged.length >= 30) break
+      }
+      return merged
     } catch {
       return []
     }
