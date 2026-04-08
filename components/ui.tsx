@@ -183,10 +183,22 @@ export function LoginModal({
   const [loading, setLoading] = useState(false)
   const { msg, show } = useToast()
 
+  // เบอร์มือถือไทย: 10 หลัก ขึ้นต้น 0, จัดเป็น XXX-XXX-XXXX
+  const formatPhone = (raw: string): string => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10)
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(formatPhone(e.target.value))
+  }
+
   const handleLogin = async () => {
     const cleaned = phone.replace(/\D/g, '')
-    if (cleaned.length < 9) {
-      show('กรุณากรอกเบอร์มือถือ')
+    if (cleaned.length !== 10 || !cleaned.startsWith('0')) {
+      show('กรุณากรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0')
       return
     }
     setLoading(true)
@@ -239,33 +251,18 @@ export function LoginModal({
         </div>
         <div className="form-group">
           <label className="label">เบอร์มือถือ</label>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div
-              style={{
-                background: 'var(--surface)',
-                border: '1.5px solid var(--border)',
-                borderRadius: 12,
-                padding: '14px 16px',
-                minHeight: 48,
-                fontSize: 16,
-                fontWeight: 600,
-                color: 'var(--ink2)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              🇹🇭 +66
-            </div>
-            <input
-              className="input"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="081 234 5678"
-              maxLength={10}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            />
-          </div>
+          <input
+            className="input"
+            type="tel"
+            inputMode="numeric"
+            value={phone}
+            onChange={handlePhoneChange}
+            placeholder="081-234-5678"
+            maxLength={12}
+            autoComplete="tel-national"
+            style={{ fontSize: 18, fontWeight: 600, letterSpacing: '0.02em', textAlign: 'center' }}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+          />
         </div>
         <button
           className="btn"
