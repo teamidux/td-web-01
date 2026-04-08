@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const dbErrors: string[] = []
   const dbQuery = (async () => {
     try {
-      const queries: Promise<any>[] = []
+      const queries: any[] = []
       for (let i = 0; i < variants.length; i++) {
         const v = variants[i]
         queries.push(
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
           supabase.from('books').select('id, isbn, title, author, cover_url, wanted_count').ilike('author', `%${v}%`).limit(10),
         )
       }
-      const results = await Promise.all(queries)
+      const results: any[] = await Promise.all(queries)
       const merged: any[] = []
       const seen = new Set<string>()
       for (const r of results) {
