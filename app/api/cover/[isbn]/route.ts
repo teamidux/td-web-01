@@ -22,7 +22,52 @@ function bumpGoogleQuality(url: string): string {
   return out
 }
 
-// Fetch a URL and return ArrayBuffer if it actually returned an image
+// Read JPEG dimensions from header bytes (no decoding needed)
+function jpegDimensions(buf: ArrayBuffer): { w: number; h: number } | null {
+  const bytes = new Uint8Array(buf)
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null
+  let i = 2
+  while (i < bytes.length) {
+    if (bytes[i] !== 0xff) return null
+    const marker = bytes[i + 1]
+    // SOF0..SOF3, SOF5..SOF7, SOF9..SOF11, SOF13..SOF15 — start-of-frame markers
+    if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) ||
+        (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+      const h = (bytes[i + 5] << 8) | bytes[i + 6]
+      const w = (bytes[i + 7] << 8) | bytes[i + 8]
+      return { w, h }
+    }
+    const segLen = (bytes[i + 2] << 8) | bytes[i + 3]
+    i += 2 + segLen
+  }
+  return null
+}
+
+// Read PNG dimensions from header bytes
+function pngDimensions(buf: ArrayBuffer): { w: number; h: number } | null {
+  const bytes = new Uint8Array(buf)
+  if (bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4e || bytes[3] !== 0x47) return null
+  const w = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19]
+  const h = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23]
+  return { w, h }
+}
+
+function isRealCover(buf: ArrayBuffer, contentType: string): boolean {
+  // Real book covers are at least ~5KB. Placeholder/generic images from
+  // OpenLibrary and Google Books generic thumbnails are usually 1-4KB.
+  if (buf.byteLength < 5000) return false
+
+  // Verify dimensions: real covers are ≥150px wide. OpenLibrary's "Vol N"
+  // generic placeholder is ~130x195. Google's generic book icon is ~128x192.
+  let dims: { w: number; h: number } | null = null
+  if (contentType.includes('jpeg') || contentType.includes('jpg')) dims = jpegDimensions(buf)
+  else if (contentType.includes('png')) dims = pngDimensions(buf)
+
+  if (dims && dims.w < 150) return false
+  return true
+}
+
+// Fetch a URL and return ArrayBuffer only if it's a real book cover
 async function tryFetchImage(url: string): Promise<{ buf: ArrayBuffer; contentType: string } | null> {
   try {
     const r = await fetch(url, {
@@ -33,8 +78,7 @@ async function tryFetchImage(url: string): Promise<{ buf: ArrayBuffer; contentTy
     const contentType = r.headers.get('Content-Type') || 'image/jpeg'
     if (!contentType.startsWith('image/')) return null
     const buf = await r.arrayBuffer()
-    // Reject "no cover" sentinel images (OpenLibrary returns ~800 byte gray rect)
-    if (buf.byteLength < 1000) return null
+    if (!isRealCover(buf, contentType)) return null
     return { buf, contentType }
   } catch {
     return null
