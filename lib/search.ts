@@ -92,12 +92,13 @@ export function rankBooksByQuery<T extends { title?: string; author?: string }>(
     .map(({ _score, ...rest }: any) => rest)
 }
 
-// DEBUG ชั่วคราว — record raw page diagnostics (จะลบหลัง diagnose Google fail บน Vercel)
-export type SearchPageDebug = { startIndex: number; status: number | null; rawItems: number; mapped: number; totalItems?: number; error?: string; rawTitles?: string[]; mappedTitles?: string[] }
-export const _searchPageDebug: { last: SearchPageDebug[]; postRank?: string[]; mergedBeforeRank?: string[] } = { last: [] }
+// ตรวจว่า query มีตัวอักษรไทยหรือไม่ — ใช้ตัดสินว่าจะ langRestrict=th หรือไม่
+function hasThaiChar(s: string): boolean {
+  return /[\u0E00-\u0E7F]/.test(s)
+}
 
 // ขอ 1 หน้า (Google cap ~20 ต่อ request แม้ขอ maxResults=40 — ตรวจสอบกับ API จริงแล้ว)
-async function callGoogleSearchPage(qParam: string, startIndex: number): Promise<GoogleBook[]> {
+async function callGoogleSearchPage(qParam: string, startIndex: number, langRestrict?: string): Promise<GoogleBook[]> {
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
   const params = new URLSearchParams({
     q: qParam,
@@ -106,44 +107,29 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
     printType: 'books',
     orderBy: 'relevance',
   })
+  if (langRestrict) params.set('langRestrict', langRestrict)
   if (apiKey) params.set('key', apiKey)
   const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
 
-  const dbg: SearchPageDebug = { startIndex, status: null, rawItems: 0, mapped: 0 }
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), 8000)
   try {
     const r = await fetch(url, { signal: ctrl.signal })
     clearTimeout(t)
-    dbg.status = r.status
     if (!r.ok) {
-      const body = await r.text().catch(() => '')
-      dbg.error = body.slice(0, 200)
-      console.warn('[Google Books]', r.status, body.slice(0, 200), 'q:', qParam, 'startIndex:', startIndex)
-      _searchPageDebug.last.push(dbg)
+      console.warn('[Google Books]', r.status, 'q:', qParam, 'startIndex:', startIndex)
       return []
     }
     const d = await r.json()
-    dbg.totalItems = d.totalItems
-    dbg.rawItems = d.items?.length || 0
-    if (!d.items?.length) {
-      _searchPageDebug.last.push(dbg)
-      return []
-    }
-    dbg.rawTitles = d.items.slice(0, 8).map((it: any) => it.volumeInfo?.title || '?')
+    if (!d.items?.length) return []
     const out: GoogleBook[] = []
     for (const item of d.items) {
       const mapped = mapVolume(item)
       if (mapped) out.push(mapped)
     }
-    dbg.mapped = out.length
-    dbg.mappedTitles = out.slice(0, 8).map(b => b.title)
-    _searchPageDebug.last.push(dbg)
     return out
   } catch (err: any) {
     clearTimeout(t)
-    dbg.error = String(err?.message || err)
-    _searchPageDebug.last.push(dbg)
     console.error('[Google Books] error:', err?.message || err, 'startIndex:', startIndex)
     return []
   }
@@ -152,14 +138,17 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
 /**
  * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง.
  * ดึง 3 หน้าขนานกัน (startIndex 0/20/40) เพื่อกวาดเล่มที่ Google ดัน rank ลงไปต่ำกว่า top 20
- * — ปัญหาคลาสสิกของหนังสือชุดเช่น Harry Potter ที่มีหลายเล่ม/หลายภาษา
+ * — ปัญหาคลาสสิกของหนังสือชุดเช่น Harry Potter ที่มีหลายเล่ม/หลายภาษา.
+ *
+ * IMPORTANT: ถ้า query มีตัวอักษรไทย เพิ่ม langRestrict=th — มิฉะนั้น Google
+ * จะคืนผลตาม IP ของ caller (Vercel = US) ทำให้ได้แต่หนังสือที่ไม่เกี่ยวข้อง
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
-  _searchPageDebug.last = []
+  const lang = hasThaiChar(query) ? 'th' : undefined
   const pages = await Promise.all([
-    callGoogleSearchPage(query, 0),
-    callGoogleSearchPage(query, 20),
-    callGoogleSearchPage(query, 40),
+    callGoogleSearchPage(query, 0, lang),
+    callGoogleSearchPage(query, 20, lang),
+    callGoogleSearchPage(query, 40, lang),
   ])
   // Merge + dedupe by ISBN — เก็บ order ตาม Google relevance ก่อน rank ของเรา
   const seen = new Set<string>()
@@ -171,10 +160,8 @@ export async function fetchGoogleBooksByTitle(query: string, limit: number = 10)
       merged.push(b)
     }
   }
-  _searchPageDebug.mergedBeforeRank = merged.slice(0, 12).map(b => b.title)
   // Re-rank: exact > prefix > substring — แก้ปัญหา Google ไม่ค่อย rank Thai ถูก
   const ranked = rankBooksByQuery(merged, query)
-  _searchPageDebug.postRank = ranked.slice(0, 12).map(b => b.title)
   return ranked.slice(0, limit)
 }
 

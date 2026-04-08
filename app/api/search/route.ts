@@ -2,7 +2,7 @@
 // คู่ขนาน, merge by ISBN, ไม่มี auto-cache
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch, _searchPageDebug } from '@/lib/search'
+import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch } from '@/lib/search'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,17 +36,13 @@ export async function GET(req: NextRequest) {
       return []
     }
   })()
-  // DEBUG: ดู error จาก Google branch แทนที่จะกลืนเงียบ
-  let googleError: string | null = null
   const [google, dbBooks] = await Promise.all([
     fetchGoogleBooksByTitle(q, 20).catch((err: any) => {
-      googleError = String(err?.message || err)
-      console.error('[search] google fail:', googleError)
+      console.error('[search] google fail:', err?.message || err)
       return [] as any[]
     }),
     dbQuery,
   ])
-  const hasApiKey = !!(process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY)
 
   // ดึง listings count + min_price จริงจาก listings table (ไม่ trust column ใน books)
   const bookIds = (dbBooks || []).map(b => b.id).filter(Boolean)
@@ -115,20 +111,5 @@ export async function GET(req: NextRequest) {
   const matchQuality: 'exact' | 'partial' | 'none' =
     results.length === 0 ? 'none' : isExact ? 'exact' : 'partial'
 
-  return NextResponse.json({
-    results,
-    matchQuality,
-    _debug: {
-      hasApiKey,
-      googleRaw: google.length,
-      dbRaw: dbBooks.length,
-      mergedTotal: allBooks.length,
-      afterRank: ranked.length,
-      googleError,
-      pages: _searchPageDebug.last,
-      mergedBeforeRank: _searchPageDebug.mergedBeforeRank,
-      postRank: _searchPageDebug.postRank,
-      qNorm: normalizeForMatch(q),
-    },
-  })
+  return NextResponse.json({ results, matchQuality })
 }
