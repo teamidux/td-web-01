@@ -501,26 +501,28 @@ function SellPage() {
                 <label className="label">รูปหน้าปก <span style={{ color: 'var(--red)' }}>*</span></label>
 
                 {coverPreview ? (
-                  <div style={{ position: 'relative', width: 90, height: 120, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <div style={{ position: 'relative', width: 130, height: 190, borderRadius: 10, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
                     <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button onClick={removeCover} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.55)', border: 'none', borderRadius: '50%', width: 22, height: 22, color: 'white', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
+                    <button onClick={removeCover} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,.65)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: 'white', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {/* label ครอบ input โดยตรง — วิธีที่เชื่อถือได้ที่สุดบน iOS/Android */}
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    {/* portrait shape นำสายตาให้ user ถ่ายภาพหนังสือแนวตั้ง */}
                     <label onClick={!user ? (e) => { e.preventDefault(); setShowLogin(true) } : undefined}
-                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '16px 8px', background: 'var(--primary-light)', border: '1.5px dashed var(--primary)', borderRadius: 12, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
+                      style={{ width: 130, height: 190, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--primary-light)', border: '1.5px dashed var(--primary)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--primary)', flexShrink: 0 }}>
                       {user && <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
-                      <span style={{ fontSize: 22 }}>📷</span>ถ่ายรูป
+                      <span style={{ fontSize: 32 }}>📷</span>
+                      <span>ถ่ายรูป</span>
                     </label>
                     <label onClick={!user ? (e) => { e.preventDefault(); setShowLogin(true) } : undefined}
-                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '16px 8px', background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>
+                      style={{ width: 130, height: 190, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', flexShrink: 0 }}>
                       {user && <input type="file" accept="image/*" ref={galleryInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
-                      <span style={{ fontSize: 22 }}>🖼️</span>คลังภาพ
+                      <span style={{ fontSize: 32 }}>🖼️</span>
+                      <span>คลังภาพ</span>
                     </label>
                   </div>
                 )}
-                {!coverPreview && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>⚠ กรุณาใส่รูปหน้าปก</div>}
+                {!coverPreview && <div style={{ fontSize: 13, color: 'var(--red)', lineHeight: 1.6, marginTop: 8 }}>⚠ กรุณาใส่รูปหน้าปก แนะนำให้ถ่ายแนวตั้งให้เห็นทั้งเล่ม</div>}
               </div>
 
               <div className="form-group">
