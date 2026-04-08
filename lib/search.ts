@@ -97,8 +97,15 @@ function hasThaiChar(s: string): boolean {
   return /[\u0E00-\u0E7F]/.test(s)
 }
 
+// DEBUG ชั่วคราว — เก็บ count แต่ละ strategy เพื่อหาทางที่ work บน US IP
+export const _strategyDebug: { [k: string]: { rawItems: number; sampleTitles: string[] } } = {}
+
 // ขอ 1 หน้า (Google cap ~20 ต่อ request แม้ขอ maxResults=40 — ตรวจสอบกับ API จริงแล้ว)
-async function callGoogleSearchPage(qParam: string, startIndex: number, langRestrict?: string): Promise<GoogleBook[]> {
+async function callGoogleSearchPage(
+  qParam: string,
+  startIndex: number,
+  opts: { langRestrict?: string; country?: string; strategyKey?: string } = {},
+): Promise<GoogleBook[]> {
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
   const params = new URLSearchParams({
     q: qParam,
@@ -107,7 +114,8 @@ async function callGoogleSearchPage(qParam: string, startIndex: number, langRest
     printType: 'books',
     orderBy: 'relevance',
   })
-  if (langRestrict) params.set('langRestrict', langRestrict)
+  if (opts.langRestrict) params.set('langRestrict', opts.langRestrict)
+  if (opts.country) params.set('country', opts.country)
   if (apiKey) params.set('key', apiKey)
   const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
 
@@ -121,7 +129,16 @@ async function callGoogleSearchPage(qParam: string, startIndex: number, langRest
       return []
     }
     const d = await r.json()
-    if (!d.items?.length) return []
+    const rawItems = d.items?.length || 0
+    if (opts.strategyKey) {
+      const cur = _strategyDebug[opts.strategyKey] || { rawItems: 0, sampleTitles: [] }
+      cur.rawItems += rawItems
+      if (cur.sampleTitles.length < 6 && d.items) {
+        cur.sampleTitles.push(...d.items.slice(0, 6 - cur.sampleTitles.length).map((it: any) => it.volumeInfo?.title || '?'))
+      }
+      _strategyDebug[opts.strategyKey] = cur
+    }
+    if (!rawItems) return []
     const out: GoogleBook[] = []
     for (const item of d.items) {
       const mapped = mapVolume(item)
@@ -144,16 +161,29 @@ async function callGoogleSearchPage(qParam: string, startIndex: number, langRest
  * จะคืนผลตาม IP ของ caller (Vercel = US) ทำให้ได้แต่หนังสือที่ไม่เกี่ยวข้อง
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
-  const lang = hasThaiChar(query) ? 'th' : undefined
-  const pages = await Promise.all([
-    callGoogleSearchPage(query, 0, lang),
-    callGoogleSearchPage(query, 20, lang),
-    callGoogleSearchPage(query, 40, lang),
+  // reset strategy debug
+  for (const k of Object.keys(_strategyDebug)) delete _strategyDebug[k]
+  const isThai = hasThaiChar(query)
+
+  // ลองหลาย strategy ขนานกัน — page 0 เท่านั้นต่อ strategy เพื่อไม่ให้ API call เกินไป
+  // หาตัวที่ work บน US IP, จะ converge เป็น strategy เดียวหลัง verify
+  const allPages = await Promise.all([
+    // Strategy A: plain (current) — 3 หน้า
+    callGoogleSearchPage(query, 0, { strategyKey: 'plain' }),
+    callGoogleSearchPage(query, 20, { strategyKey: 'plain' }),
+    callGoogleSearchPage(query, 40, { strategyKey: 'plain' }),
+    // Strategy B: langRestrict=th
+    ...(isThai ? [callGoogleSearchPage(query, 0, { langRestrict: 'th', strategyKey: 'lang_th' })] : []),
+    // Strategy C: country=TH
+    ...(isThai ? [callGoogleSearchPage(query, 0, { country: 'TH', strategyKey: 'country_th' })] : []),
+    // Strategy D: lang + country
+    ...(isThai ? [callGoogleSearchPage(query, 0, { langRestrict: 'th', country: 'TH', strategyKey: 'lang_country' })] : []),
   ])
+
   // Merge + dedupe by ISBN — เก็บ order ตาม Google relevance ก่อน rank ของเรา
   const seen = new Set<string>()
   const merged: GoogleBook[] = []
-  for (const page of pages) {
+  for (const page of allPages) {
     for (const b of page) {
       if (seen.has(b.isbn)) continue
       seen.add(b.isbn)

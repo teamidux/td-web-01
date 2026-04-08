@@ -2,7 +2,7 @@
 // คู่ขนาน, merge by ISBN, ไม่มี auto-cache
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch } from '@/lib/search'
+import { fetchGoogleBooksByTitle, rankBooksByQuery, normalizeForMatch, _strategyDebug } from '@/lib/search'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
     }),
     dbQuery,
   ])
-  // DEBUG ชั่วคราว — ลบหลัง verify region fix
+  // DEBUG ชั่วคราว — เปรียบเทียบ strategy
   const _dbg = {
     googleCount: google.length,
-    googleSample: google.slice(0, 5).map((b: any) => b.title),
     region: process.env.VERCEL_REGION || 'unknown',
+    strategies: _strategyDebug,
   }
 
   // ดึง listings count + min_price จริงจาก listings table (ไม่ trust column ใน books)
