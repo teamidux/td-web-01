@@ -127,7 +127,7 @@ export default function HomePage() {
             </div>
 
             {/* Live results dropdown */}
-            {(liveResults.length > 0 || googleLiveResults.length > 0) && (
+            {query.trim() && !liveSearching && (liveResults.length > 0 || googleLiveResults.length > 0) && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,.18)', zIndex: 50, overflow: 'hidden', marginTop: 6 }}>
                 {liveResults.length > 0 && (
                   <div style={{ padding: '10px 14px 6px', fontSize: 12, fontWeight: 700, color: 'var(--green)', background: '#F0FDF4', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -166,6 +166,22 @@ export default function HomePage() {
                 <button onClick={doSearch} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%', padding: '14px 16px', background: 'var(--primary)', border: 'none', fontFamily: 'Kanit', fontSize: 15, color: 'white', fontWeight: 600, cursor: 'pointer', textAlign: 'left', minHeight: 48 }}>
                   <span>🔍 ดูผลทั้งหมดสำหรับ "{query}"</span>
                   <span style={{ fontSize: 18, fontWeight: 700 }}>→</span>
+                </button>
+              </div>
+            )}
+
+            {/* Empty state — เมื่อพิมพ์แล้วไม่เจอเลย */}
+            {query.trim() && !liveSearching && liveResults.length === 0 && googleLiveResults.length === 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,.18)', zIndex: 50, overflow: 'hidden', marginTop: 6, padding: '20px 16px', textAlign: 'center' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
+                  ไม่พบ "{query}"
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 14 }}>
+                  ลองค้นคำอื่น หรือสแกน barcode บนหนังสือ
+                </div>
+                <button onClick={doSearch} style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer' }}>
+                  🔍 ค้นต่อในฐานข้อมูล →
                 </button>
               </div>
             )}
