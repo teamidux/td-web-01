@@ -126,10 +126,10 @@ function SearchPage() {
             <>
               <div style={{ padding: '20px 0 12px' }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#121212', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
-                  📚 พบข้อมูลหนังสือ ยังไม่มีคนลงขาย ({googleResults.length})
+                  📚 ผลใกล้เคียง ({googleResults.length})
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.6 }}>
-                  กด "ต้องการเล่มนี้" — เราจะแจ้งเตือนเมื่อมีคนลงขาย
+                  หนังสือที่มีคำว่า "{query}" ในชื่อเรื่อง — ไม่ใช่เล่มที่ต้องการ? ลองพิมพ์ชื่อให้ครบ
                 </div>
               </div>
               {googleResults.map(b => (

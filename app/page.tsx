@@ -154,10 +154,10 @@ export default function HomePage() {
                   <>
                     <div style={{ padding: '12px 14px 8px', background: 'var(--surface)' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '0.04em' }}>
-                        📚 พบข้อมูลหนังสือ ยังไม่มีคนลงขาย
+                        📚 ผลใกล้เคียง
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, lineHeight: 1.5 }}>
-                        กด "ต้องการเล่มนี้" — เราจะแจ้งเตือนเมื่อมีคนลงขาย
+                        เล่มที่มีคำว่า "{query}" — ไม่ใช่? ลองพิมพ์ให้ครบ
                       </div>
                     </div>
                     {googleLiveResults.map((b, i) => (
