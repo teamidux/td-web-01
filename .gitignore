@@ -28,4 +28,5 @@ yarn-error.log*
 # private notes — local only, never push
 FOUNDER_NOTES.md
 NOTES.md
+CONTEXT.md
 *.private.md
