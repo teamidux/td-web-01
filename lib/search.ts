@@ -31,21 +31,44 @@ function extractISBN(info: any): string {
 function mapVolume(item: any): GoogleBook | null {
   const info = item.volumeInfo
   if (!info?.title) return null
-  // ตัดเล่มที่ไม่มี author ออก (ข้อมูลไม่ครบ)
-  if (!info.authors || !Array.isArray(info.authors) || info.authors.length === 0) return null
   const isbn = extractISBN(info)
   if (!isbn) return null
   const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
   return {
     isbn,
     title: info.title,
-    author: info.authors.join(', '),
+    author: Array.isArray(info.authors) ? info.authors.join(', ') : '',
     publisher: info.publisher || '',
     cover_url: thumb
       ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '')
       : '',
     language: info.language || '',
   }
+}
+
+// Re-rank results: prefix match > substring > partial. Better than Google's
+// own relevance for Thai (Google tokenizes Thai poorly).
+export function rankBooksByQuery<T extends { title?: string; author?: string }>(books: T[], query: string): T[] {
+  const q = query.toLowerCase().trim()
+  if (!q) return books
+  return books
+    .map(b => {
+      const title = (b.title || '').toLowerCase()
+      const author = (b.author || '').toLowerCase()
+      let score = 0
+      if (title === q) score = 1000
+      else if (title.startsWith(q)) score = 500
+      else if (title.includes(q)) {
+        // ใกล้ต้น title ยิ่งดี
+        const idx = title.indexOf(q)
+        score = 200 - Math.min(idx, 100)
+      } else if (author.includes(q)) {
+        score = 50
+      }
+      return { ...b, _score: score }
+    })
+    .sort((a, b) => (b as any)._score - (a as any)._score)
+    .map(({ _score, ...rest }: any) => rest)
 }
 
 async function callGoogleSearch(qParam: string, limit: number): Promise<GoogleBook[]> {
@@ -88,26 +111,15 @@ async function callGoogleSearch(qParam: string, limit: number): Promise<GoogleBo
 }
 
 /**
- * ค้น Google Books — intitle: ก่อน, fallback เป็น general ถ้าผลน้อย
+ * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
-  // 1. ลอง intitle: ก่อน — match title field โดยตรง = relevant สุด
-  const inTitleResults = await callGoogleSearch(`intitle:${query}`, limit)
-
-  // 2. ถ้าได้น้อยกว่า 3 → fallback general search
-  if (inTitleResults.length < 3) {
-    const generalResults = await callGoogleSearch(query, limit)
-    // merge dedupe
-    const seen = new Set(inTitleResults.map(b => b.isbn))
-    for (const b of generalResults) {
-      if (seen.has(b.isbn)) continue
-      seen.add(b.isbn)
-      inTitleResults.push(b)
-      if (inTitleResults.length >= limit) break
-    }
-  }
-
-  return inTitleResults
+  // ดึงผลเยอะกว่าที่ต้องการ — เผื่อ re-rank แล้วเลือก top
+  const fetchSize = Math.min(40, Math.max(limit * 2, 20))
+  const results = await callGoogleSearch(query, fetchSize)
+  // Re-rank: prefix > substring > partial — แก้ปัญหา Google ไม่ค่อย rank Thai ถูก
+  const ranked = rankBooksByQuery(results, query)
+  return ranked.slice(0, limit)
 }
 
 /**

@@ -2,7 +2,7 @@
 // คู่ขนาน, merge by ISBN, ไม่มี auto-cache
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksByTitle } from '@/lib/search'
+import { fetchGoogleBooksByTitle, rankBooksByQuery } from '@/lib/search'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,15 +77,16 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // เรียง: เล่มที่มีคนขายก่อน, แล้วตามด้วย DB ที่ไม่มีคนขาย, สุดท้ายคือ Google
-  const results = Array.from(byIsbn.values()).sort((a, b) => {
-    const aHasListing = (a.active_listings_count || 0) > 0 ? 1 : 0
-    const bHasListing = (b.active_listings_count || 0) > 0 ? 1 : 0
-    if (aHasListing !== bHasListing) return bHasListing - aHasListing
-    const aIsDb = a.source === 'db' ? 1 : 0
-    const bIsDb = b.source === 'db' ? 1 : 0
-    return bIsDb - aIsDb
-  })
+  // 1. Rank by relevance (prefix > substring) — แก้ปัญหา Google ranking
+  const allBooks = Array.from(byIsbn.values())
+  const ranked = rankBooksByQuery(allBooks, q)
+
+  // 2. แยกเป็น 2 กลุ่ม: มีคนขาย vs ไม่มี — แต่ละกลุ่มยังเรียงตาม relevance
+  const withListings = ranked.filter(b => (b.active_listings_count || 0) > 0)
+  const noListings = ranked.filter(b => (b.active_listings_count || 0) === 0)
+
+  // เล่มมีคนขายก่อน → เล่มไม่มีคนขายตามมา (ทั้งคู่ระดับ relevance ภายในกลุ่ม)
+  const results = [...withListings, ...noListings]
 
   return NextResponse.json({ results })
 }
