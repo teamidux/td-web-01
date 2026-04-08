@@ -269,18 +269,27 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       <div className="page">
         <Link href="/" className="back-btn">← กลับ</Link>
 
-        <div style={{ background: 'var(--primary)', padding: '16px', display: 'flex', gap: 14 }}>
-          <BookCover coverUrl={book.cover_url} title={book.title} size={68} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, color: 'white', lineHeight: 1.3, marginBottom: 3 }}>{book.title}</div>
-            {book.author && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', marginBottom: 5 }}>{book.author}</div>}
-            <div style={{ fontSize: 11, color: '#93c5fd', fontWeight: 700, marginBottom: 10 }}>ISBN: {isbn}</div>
+        <div style={{ background: 'var(--primary)', padding: '18px 16px', display: 'flex', gap: 14 }}>
+          <BookCover coverUrl={book.cover_url} title={book.title} size={84} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.01em', marginBottom: 6 }}>{book.title}</div>
+            {book.author && (
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,.92)', lineHeight: 1.5, marginBottom: 2 }}>
+                <span style={{ opacity: 0.7 }}>โดย </span>{book.author}
+              </div>
+            )}
+            {book.translator && (
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.85)', lineHeight: 1.5, marginBottom: 2 }}>
+                <span style={{ opacity: 0.7 }}>แปลโดย </span>{book.translator}
+              </div>
+            )}
+            <div style={{ fontSize: 12, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 12 }}>ISBN: {isbn}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '7px 12px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
+              <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
                 {isWanted ? '🔔 อยู่ใน Wanted' : '🔔 ต้องการเล่มนี้'}
               </button>
               <Link href={`/sell?isbn=${isbn}`}>
-                <button style={{ background: 'white', border: 'none', borderRadius: 8, padding: '7px 12px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, color: 'var(--primary)', cursor: 'pointer' }}>
+                <button style={{ background: 'white', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: 'var(--primary)', cursor: 'pointer' }}>
                   ขายเล่มนี้
                 </button>
               </Link>
