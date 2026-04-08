@@ -7,33 +7,81 @@ export type GoogleBook = {
   language?: string
 }
 
-export async function fetchGoogleBooksByTitle(query: string): Promise<GoogleBook[]> {
+// แปลง ISBN-10 → ISBN-13 (ใช้ prefix 978 + checksum mod 10)
+function isbn10to13(isbn10: string): string {
+  const stem = '978' + isbn10.slice(0, 9)
+  let sum = 0
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(stem[i]) * (i % 2 === 0 ? 1 : 3)
+  }
+  const check = (10 - (sum % 10)) % 10
+  return stem + check
+}
+
+function extractISBN(info: any): string {
+  const ids = info.industryIdentifiers || []
+  const isbn13 = ids.find((id: any) => id.type === 'ISBN_13')?.identifier
+  if (isbn13) return isbn13
+  const isbn10 = ids.find((id: any) => id.type === 'ISBN_10')?.identifier
+  if (isbn10 && /^\d{9}[\dX]$/.test(isbn10)) return isbn10to13(isbn10.slice(0, 9))
+  return ''
+}
+
+function mapVolume(item: any): GoogleBook | null {
+  const info = item.volumeInfo
+  if (!info?.title) return null
+  const isbn = extractISBN(info)
+  if (!isbn) return null
+  const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
+  return {
+    isbn,
+    title: info.title,
+    author: info.authors?.join(', ') || '',
+    publisher: info.publisher || '',
+    cover_url: thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : '',
+    language: info.language || '',
+  }
+}
+
+/**
+ * ค้น Google Books — เน้นหนังสือไทย
+ * - ไม่ใช้ intitle: (จำกัดเกินไป)
+ * - langRestrict=th (แต่ Google มักไม่ strict ก็ถือว่าฮินต์ priority)
+ * - printType=books (ตัด magazine/journal)
+ * - รับ ISBN-10 ด้วย แปลงเป็น 13
+ */
+export async function fetchGoogleBooksByTitle(query: string, limit: number = 5): Promise<GoogleBook[]> {
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
-    const url = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=5${apiKey ? `&key=${apiKey}` : ''}`
+    const maxResults = Math.min(40, Math.max(1, limit))
+    // ลองยิง 2 query คู่ขนาน: 1) เน้น Thai 2) ทั่วไป — แล้วรวมผล
+    const base = `https://www.googleapis.com/books/v1/volumes?printType=books&maxResults=${maxResults}${apiKey ? `&key=${apiKey}` : ''}`
+    const urls = [
+      `${base}&q=${encodeURIComponent(query)}&langRestrict=th`,
+      `${base}&q=${encodeURIComponent(query)}`,
+    ]
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const r = await fetch(url, { signal: controller.signal })
+    const timeout = setTimeout(() => controller.abort(), 6000)
+    const responses = await Promise.allSettled(
+      urls.map(u => fetch(u, { signal: controller.signal }).then(r => r.ok ? r.json() : null))
+    )
     clearTimeout(timeout)
-    if (!r.ok) return []
-    const d = await r.json()
-    if (!d.items?.length) return []
-    return d.items
-      .map((item: any) => {
-        const info = item.volumeInfo
-        const isbn13 = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || ''
-        if (!isbn13 || !info.title) return null
-        const thumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || ''
-        return {
-          isbn: isbn13,
-          title: info.title,
-          author: info.authors?.join(', ') || '',
-          publisher: info.publisher || '',
-          cover_url: thumb ? thumb.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : '',
-          language: info.language || '',
-        }
-      })
-      .filter(Boolean) as GoogleBook[]
+
+    const seen = new Set<string>()
+    const results: GoogleBook[] = []
+    for (const res of responses) {
+      if (res.status !== 'fulfilled' || !res.value?.items) continue
+      for (const item of res.value.items) {
+        const mapped = mapVolume(item)
+        if (!mapped) continue
+        if (seen.has(mapped.isbn)) continue
+        seen.add(mapped.isbn)
+        results.push(mapped)
+        if (results.length >= limit) break
+      }
+      if (results.length >= limit) break
+    }
+    return results
   } catch {
     return []
   }

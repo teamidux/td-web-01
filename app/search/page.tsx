@@ -2,8 +2,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, Book } from '@/lib/supabase'
-import { fetchGoogleBooksByTitle, GoogleBook } from '@/lib/search'
+import { Book } from '@/lib/supabase'
+import { GoogleBook } from '@/lib/search'
 import { Nav, BottomNav, BookCover, SkeletonList } from '@/components/ui'
 
 export default function SearchPageWrapper() {
@@ -23,7 +23,6 @@ function SearchPage() {
   const [results, setResults] = useState<Book[]>([])
   const [googleResults, setGoogleResults] = useState<GoogleBook[]>([])
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
   // โหลดผลจาก URL param เมื่อเข้าหน้าครั้งแรก
@@ -44,20 +43,16 @@ function SearchPage() {
     if (!q.trim()) return
     const trimmed = q.trim()
     setLoading(true)
-    setGoogleLoading(trimmed.length >= 3)
     setGoogleResults([])
 
-    // ค้น DB + Google คู่ขนาน — เพื่อให้คนเห็น match อื่นๆ ที่อยู่นอก DB
-    const dbPromise = fetch(`/api/search?q=${encodeURIComponent(trimmed)}`).then(r => r.json())
-    const googlePromise = trimmed.length >= 3 ? fetchGoogleBooksByTitle(trimmed) : Promise.resolve([])
-
-    const [{ results: dbResults }, gBooks] = await Promise.all([dbPromise, googlePromise])
-    setResults(dbResults || [])
+    // /api/search ตอนนี้ทำ DB + Google + auto-cache รวมในตัวเดียว
+    const r = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
+    const { results: combined } = await r.json()
+    const inDb = (combined || []).filter((b: any) => b.source !== 'google')
+    const fromGoogle = (combined || []).filter((b: any) => b.source === 'google')
+    setResults(inDb)
+    setGoogleResults(fromGoogle)
     setLoading(false)
-    // กรอง Google ออก ISBN ที่ซ้ำกับ DB เพื่อไม่แสดงซ้ำ
-    const dbIsbns = new Set((dbResults || []).map((b: any) => b.isbn))
-    setGoogleResults((gBooks || []).filter((b: any) => !dbIsbns.has(b.isbn)))
-    setGoogleLoading(false)
   }
 
   const handleSubmit = () => {
@@ -86,10 +81,16 @@ function SearchPage() {
         <div className="section">
           {loading && <SkeletonList count={4} />}
 
-          {!loading && !googleLoading && results.length === 0 && googleResults.length === 0 && searched && query.trim() && (
+          {!loading && results.length === 0 && googleResults.length === 0 && searched && query.trim() && (
             <div className="empty">
               <div className="empty-icon">🔍</div>
               <div>ไม่พบหนังสือที่ตรงกับ "{query}"</div>
+            </div>
+          )}
+
+          {!loading && results.length > 0 && (
+            <div style={{ padding: '4px 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--green)', letterSpacing: '0.02em' }}>
+              ✓ มีในระบบ มีคนลงขาย ({results.length})
             </div>
           )}
 
@@ -112,19 +113,10 @@ function SearchPage() {
             </Link>
           ))}
 
-          {/* Google Books fallback */}
-          {googleLoading && (
-            <div style={{ textAlign: 'center', padding: 20 }}>
-              <span className="spin" style={{ width: 20, height: 20 }} />
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>กำลังค้นหาในระบบ...</div>
-            </div>
-          )}
-          {!googleLoading && googleResults.length > 0 && (
+          {!loading && googleResults.length > 0 && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 12px' }}>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, whiteSpace: 'nowrap' }}>พบในระบบ — ยังไม่มีผู้ลงขายตอนนี้</span>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <div style={{ padding: '16px 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.02em' }}>
+                📚 มีในฐานข้อมูล ยังไม่มีคนลงขาย ({googleResults.length})
               </div>
               {googleResults.map(b => (
                 <Link key={b.isbn} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
