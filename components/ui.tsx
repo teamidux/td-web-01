@@ -125,37 +125,80 @@ export function BookCover({
 
 export function InAppBanner() {
   const [show, setShow] = useState(false)
+  const [isLine, setIsLine] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     const ua = navigator.userAgent
-    if (/FBAN|FBAV|Instagram|Line\//.test(ua)) setShow(true)
+    const lineUA = /Line\//.test(ua)
+    if (lineUA || /FBAN|FBAV|Instagram/.test(ua)) {
+      setShow(true)
+      setIsLine(lineUA)
+    }
   }, [])
+
   if (!show) return null
+
+  // LINE มี query param พิเศษ — ถ้าเจอ ?openExternalBrowser=1 จะเปิด URL ในเบราว์เซอร์ของระบบทันที
+  const openInExternalBrowser = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('openExternalBrowser', '1')
+    window.location.href = url.toString()
+  }
+
+  const copyLink = () => {
+    navigator.clipboard?.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="inapp-banner">
-      <span>⚠️</span>
-      <div style={{ flex: 1 }}>
-        <strong>เปิดใน Chrome</strong> เพื่อใช้กล้องสแกน ISBN ได้
+      <span style={{ fontSize: 20 }}>⚠️</span>
+      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
+        <strong>{isLine ? 'เปิดในเบราว์เซอร์' : 'เปิดใน Chrome'}</strong>
+        <br />
+        เพื่อใช้กล้องสแกน ISBN ได้
       </div>
-      <button
-        onClick={() => {
-          navigator.clipboard?.writeText(window.location.href)
-          setShow(false)
-        }}
-        style={{
-          background: '#D97706',
-          color: 'white',
-          border: 'none',
-          borderRadius: 8,
-          padding: '10px 14px',
-          minHeight: 44,
-          fontFamily: 'Kanit',
-          fontWeight: 700,
-          fontSize: 13,
-          cursor: 'pointer',
-        }}
-      >
-        Copy Link
-      </button>
+      {isLine ? (
+        <button
+          onClick={openInExternalBrowser}
+          style={{
+            background: '#D97706',
+            color: 'white',
+            border: 'none',
+            borderRadius: 8,
+            padding: '10px 14px',
+            minHeight: 44,
+            fontFamily: 'Kanit',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          เปิดเบราว์เซอร์
+        </button>
+      ) : (
+        <button
+          onClick={copyLink}
+          style={{
+            background: '#D97706',
+            color: 'white',
+            border: 'none',
+            borderRadius: 8,
+            padding: '10px 14px',
+            minHeight: 44,
+            fontFamily: 'Kanit',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {copied ? '✓ คัดลอกแล้ว' : 'Copy Link'}
+        </button>
+      )}
     </div>
   )
 }
