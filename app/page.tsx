@@ -207,7 +207,7 @@ export default function HomePage() {
                 ✨ ลงใหม่ล่าสุด
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
-                หนังสือมือสองที่เพิ่งลงขายในระบบ
+                หนังสือที่พึ่งลงขายในระบบ
               </div>
             </div>
           </div>
