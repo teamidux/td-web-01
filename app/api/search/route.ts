@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   const variants = new Set([escaped])
   if (escapedNoWs !== escaped && escapedNoWs.length > 0) variants.add(escapedNoWs)
 
+  const dbErrors: string[] = []
   const dbQuery = (async () => {
     try {
       const queries: Promise<any>[] = []
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
       const merged: any[] = []
       const seen = new Set<string>()
       for (const r of results) {
+        if (r.error) dbErrors.push(`${r.error.code || ''}:${r.error.message || ''}`)
         for (const b of (r.data || [])) {
           if (!b.id || seen.has(b.id)) continue
           seen.add(b.id)
@@ -50,7 +52,8 @@ export async function GET(req: NextRequest) {
         if (merged.length >= 30) break
       }
       return merged
-    } catch {
+    } catch (err: any) {
+      dbErrors.push(`exception:${err?.message || err}`)
       return []
     }
   })()
@@ -166,5 +169,16 @@ export async function GET(req: NextRequest) {
       })
   }
 
-  return NextResponse.json({ results, matchQuality })
+  return NextResponse.json({
+    results,
+    matchQuality,
+    _dbg: {
+      dbCount: (dbBooks || []).length,
+      googleCount: (google || []).length,
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      dbErrors,
+      variants: Array.from(variants),
+    },
+  })
 }
