@@ -47,9 +47,10 @@ function mapVolume(item: any): GoogleBook | null {
 }
 
 // Normalize สำหรับ compare แบบทนการสะกดต่างกัน:
-// - lowercase + NFC
+// - lowercase + NFC (รวม Sara Am ทั้ง composed และ decomposed)
 // - ตัด "พยัญชนะ + THANTHAKHAT (์)" คู่กัน — แก้ "แฮร์รี่" vs "แฮรี่" (ร์ = silent ร)
 // - ตัด tone marks ที่เหลือ (mai ek/tho/tri/chattawa, nikhahit, yamakkan)
+// - ตัด ๆ (mai yamok) และ ฯ (paiyannoi) — บางชื่อหนังสือใส่ บางเล่มไม่ใส่
 // - ตัด whitespace — แก้ "คิดใหญ่ไม่คิดเล็ก" vs "คิดใหญ่ ไม่คิดเล็ก"
 export function normalizeForMatch(s: string): string {
   return s
@@ -57,6 +58,7 @@ export function normalizeForMatch(s: string): string {
     .normalize('NFC')
     .replace(/[\u0E01-\u0E2E]\u0E4C/g, '')
     .replace(/[\u0E48-\u0E4B\u0E4D\u0E4E]/g, '')
+    .replace(/[\u0E2F\u0E46]/g, '')
     .replace(/\s+/g, '')
 }
 
