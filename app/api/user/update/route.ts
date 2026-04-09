@@ -35,8 +35,10 @@ export async function POST(req: NextRequest) {
       newLineId = parsed.raw
     }
 
-    // ถ้าค่าเปลี่ยนจริง → ต้องมี reauth cookie
-    if (newLineId !== currentLineId) {
+    // ต้องมี reauth ก็ต่อเมื่อ **เปลี่ยน** ค่าที่มีอยู่แล้ว
+    // ถ้าตั้งครั้งแรก (currentLineId === null) → ไม่ต้องยืนยัน
+    const isChanging = currentLineId !== null && newLineId !== currentLineId
+    if (isChanging) {
       const reauthCookie = cookies().get('bm_line_reauth')?.value
       if (!reauthCookie || reauthCookie !== '1') {
         return NextResponse.json({
