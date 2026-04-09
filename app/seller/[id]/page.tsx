@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, Listing, User } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, CondBadge, SkeletonList, useToast, Toast, LoginModal } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, SkeletonList, useToast, Toast } from '@/components/ui'
 
 interface PageProps {
   params: { id: string }
@@ -19,7 +19,7 @@ const REPORT_REASONS = [
 
 export default function SellerPage({ params }: PageProps) {
   const { id } = params
-  const { user } = useAuth()
+  const { user, loginWithLine } = useAuth()
   const [seller, setSeller] = useState<User | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
   const [query, setQuery] = useState('')
@@ -30,7 +30,7 @@ export default function SellerPage({ params }: PageProps) {
   const [reportReason, setReportReason] = useState('')
   const [reportDetails, setReportDetails] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
+  // showLogin removed — login goes directly to LINE OAuth
   const { msg, show } = useToast()
 
   // contact ของแต่ละ listing — ถ้าเป็นเบอร์โทรเปิด tel: ได้, ถ้าไม่ใช่ใช้คัดลอก
@@ -40,7 +40,10 @@ export default function SellerPage({ params }: PageProps) {
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
 
   const submitReport = async () => {
-    if (!user) { setShowLogin(true); return }
+    if (!user) {
+      loginWithLine(typeof window !== 'undefined' ? window.location.pathname : `/seller/${id}`)
+      return
+    }
     if (!reportReason) { show('กรุณาเลือกเหตุผล'); return }
     setReportSubmitting(true)
     try {
@@ -118,7 +121,6 @@ export default function SellerPage({ params }: PageProps) {
     <>
       <Nav />
       <Toast msg={msg} />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onDone={() => setShowLogin(false)} />}
 
       {showReport && (
         <div onClick={() => setShowReport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>

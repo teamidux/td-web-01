@@ -3,16 +3,16 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Book, Listing, fetchBookByISBN, CONDITIONS } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, CondBadge, LoginModal, useToast, Toast, SkeletonList } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, useToast, Toast, SkeletonList } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 
 export default function BookDetailClient({ isbn, initialBook }: { isbn: string; initialBook?: Partial<Book> | null }) {
-  const { user } = useAuth()
+  const { user, loginWithLine } = useAuth()
   const [book, setBook] = useState<Book | null>((initialBook as Book) ?? null)
   const [listings, setListings] = useState<Listing[]>([])
   const [isWanted, setIsWanted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [showLogin, setShowLogin] = useState(false)
+  // showLogin removed — login goes directly to LINE OAuth
   const [showWantedForm, setShowWantedForm] = useState(false)
   const [wantedPrice, setWantedPrice] = useState('')
   const [lightbox, setLightbox] = useState('')
@@ -111,7 +111,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   }
 
   const toggleWanted = async () => {
-    if (!user) { setShowLogin(true); return }
+    if (!user) {
+      loginWithLine(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')
+      return
+    }
     if (isWanted && book?.id) {
       // DB trigger จะลด books.wanted_count ให้อัตโนมัติ — แค่ลบ row ใน wanted
       await supabase.from('wanted').delete().eq('user_id', user.id).eq('book_id', book.id)
@@ -207,7 +210,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     <>
       <Nav />
       <Toast msg={msg} />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onDone={() => { setShowLogin(false); loadData() }} />}
 
       {showWantedForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }} onClick={() => setShowWantedForm(false)}>

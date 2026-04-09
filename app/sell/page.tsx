@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, LoginModal, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
@@ -59,10 +59,11 @@ export default function SellPageWrapper() {
 function SellPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
+  const { user, loginWithLine } = useAuth()
   const { msg, show } = useToast()
 
-  const [showLogin, setShowLogin] = useState(false)
+  // showLogin removed — login goes directly to LINE OAuth
+  const goLogin = () => loginWithLine(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/sell')
   const [showPhoneVerify, setShowPhoneVerify] = useState(false)
   const [isbn, setIsbn] = useState(searchParams.get('isbn') || '')
   const [fetchedBook, setFetchedBook] = useState<Partial<Book> | null>(null)
@@ -195,7 +196,7 @@ function SellPage() {
   }
 
   const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) { setShowLogin(true); return }
+    if (!user) { goLogin(); return }
     const rawFile = e.target.files?.[0]
     if (!rawFile) return
     e.target.value = ''
@@ -259,7 +260,7 @@ function SellPage() {
   }
 
   const submit = async () => {
-    if (!user) { setShowLogin(true); return }
+    if (!user) { goLogin(); return }
     // ผู้ขายต้อง verify เบอร์ก่อนลงประกาศได้ (ครั้งเดียวตลอดอายุบัญชี)
     if (!user.phone_verified_at) { setShowPhoneVerify(true); return }
     if (!fetchedBook?.title && !manualTitle) { show('กรุณาดึงข้อมูลหนังสือก่อน'); return }
@@ -340,7 +341,6 @@ function SellPage() {
       <Nav />
       <InAppBanner />
       <Toast msg={msg} />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onDone={() => setShowLogin(false)} />}
       {showPhoneVerify && <PhoneVerifyModal onClose={() => setShowPhoneVerify(false)} onDone={() => setShowPhoneVerify(false)} />}
 
       <div className="page">
@@ -352,7 +352,13 @@ function SellPage() {
               <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>เข้าสู่ระบบก่อนลงขาย</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>เพื่อให้ผู้ซื้อติดต่อคุณได้</div>
-              <button className="btn" style={{ maxWidth: 180, margin: '0 auto', display: 'block' }} onClick={() => setShowLogin(true)}>เข้าสู่ระบบ</button>
+              <button
+                className="btn"
+                style={{ maxWidth: 240, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#06C755' }}
+                onClick={goLogin}
+              >
+                💚 เข้าสู่ระบบด้วย LINE
+              </button>
             </div>
           ) : (
             <>
@@ -524,13 +530,13 @@ function SellPage() {
                 ) : (
                   <div style={{ display: 'flex', gap: 10 }}>
                     {/* portrait 2:3 — ขนาดพอดีต่อการใช้งาน ไม่ใหญ่จนกินจอ */}
-                    <label onClick={!user ? (e) => { e.preventDefault(); setShowLogin(true) } : undefined}
+                    <label onClick={!user ? (e) => { e.preventDefault(); goLogin() } : undefined}
                       style={{ width: 120, height: 180, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--primary-light)', border: '1.5px dashed var(--primary)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--primary)', flexShrink: 0 }}>
                       {user && <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
                       <span style={{ fontSize: 28 }}>📷</span>
                       <span>ถ่ายรูป</span>
                     </label>
-                    <label onClick={!user ? (e) => { e.preventDefault(); setShowLogin(true) } : undefined}
+                    <label onClick={!user ? (e) => { e.preventDefault(); goLogin() } : undefined}
                       style={{ width: 120, height: 180, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', flexShrink: 0 }}>
                       {user && <input type="file" accept="image/*" ref={galleryInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
                       <span style={{ fontSize: 28 }}>🖼️</span>
