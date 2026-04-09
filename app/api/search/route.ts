@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   if (!q || q.length < 1) return NextResponse.json({ results: [] })
 
   const mode = req.nextUrl.searchParams.get('mode') === 'db' ? 'db' : 'all'
+  const wantDebug = req.nextUrl.searchParams.get('debug') === '1'
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -194,18 +195,20 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     results,
     matchQuality,
-    debug: {
-      query: q,
-      mode,
-      google_raw_count: googleRaw.length,
-      db_match_count: dbBooks.length,
-      merged_count: results.length,
-      to_cache_count: toCache.length,
-      cached_count: cachedCount,
-      cache_error: cacheError,
-      google_isbns: googleRaw.map((b: any) => b.isbn),
-      db_isbns: Array.from(dbIsbnSet),
-      google: googleDebug,
-    },
+    ...(wantDebug && {
+      debug: {
+        query: q,
+        mode,
+        google_raw_count: googleRaw.length,
+        db_match_count: dbBooks.length,
+        merged_count: results.length,
+        to_cache_count: toCache.length,
+        cached_count: cachedCount,
+        cache_error: cacheError,
+        google_isbns: googleRaw.map((b: any) => b.isbn),
+        db_isbns: Array.from(dbIsbnSet),
+        google: googleDebug,
+      },
+    }),
   })
 }
