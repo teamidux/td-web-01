@@ -196,6 +196,9 @@ export async function fetchGoogleBooksRawDebug(query: string): Promise<{
     mapped_count: number
     error: string | null
     duration_ms: number
+    sample_item: any
+    sample_keys: string[]
+    response_top_keys: string[]
   }
 }> {
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
@@ -249,6 +252,9 @@ export async function fetchGoogleBooksRawDebug(query: string): Promise<{
         mapped_count: books.length,
         error: r.ok ? null : `http_${r.status}`,
         duration_ms: Date.now() - start,
+        sample_item: rawItems[0] || null,
+        sample_keys: rawItems[0] ? Object.keys(rawItems[0]) : [],
+        response_top_keys: d ? Object.keys(d) : [],
       },
     }
   } catch (err: any) {
@@ -265,6 +271,9 @@ export async function fetchGoogleBooksRawDebug(query: string): Promise<{
         mapped_count: 0,
         error: err?.name === 'AbortError' ? 'timeout_8s' : (err?.message || String(err)),
         duration_ms: Date.now() - start,
+        sample_item: null,
+        sample_keys: [],
+        response_top_keys: [],
       },
     }
   }
