@@ -30,13 +30,7 @@ export default function OnboardingPage() {
 
   const handleSave = async () => {
     setError('')
-    const trimmed = lineInput.trim()
-    // ตรวจ trap case: user กรอกเบอร์โทร
-    if (/^[\d\s+\-()]{8,}$/.test(trimmed)) {
-      setError('นี่คือเบอร์โทร ไม่ใช่ LINE ID — LINE ID เป็นชื่อผู้ใช้ใน LINE app (เช่น somchai_books)')
-      return
-    }
-    const parsed = parseLineId(trimmed)
+    const parsed = parseLineId(lineInput.trim())
     if (!parsed) {
       setError('LINE ID ไม่ถูกต้อง — ต้องเป็น 4-20 ตัวอักษร (a-z, 0-9, จุด ขีด ขีดเส้นใต้)')
       return
@@ -122,7 +116,7 @@ export default function OnboardingPage() {
                 LINE app → <b>Home</b> → <b>⚙️ Settings</b> → <b>Profile</b> → <b>ID</b>
               </div>
               <div style={{ fontSize: 11, color: '#78350F', marginTop: 6, lineHeight: 1.6, fontStyle: 'italic' }}>
-                ⚠️ <b>ไม่ใช่</b>เบอร์โทร — เป็นชื่อผู้ใช้ที่คุณตั้งใน LINE
+                💡 LINE ID คือชื่อผู้ใช้ที่คุณตั้งใน LINE — บางคนตั้งเป็นตัวเลข บางคนเป็นตัวอักษร ใส่ตามที่อยู่ในแอปได้เลย
               </div>
             </div>
 
