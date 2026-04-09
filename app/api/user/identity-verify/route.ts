@@ -52,7 +52,12 @@ export async function POST(req: NextRequest) {
 
     // Try upload to identity-docs bucket (private)
     // ถ้า bucket ยังไม่มี → log error แต่ยังไม่ fail (mark submitted ไว้ก่อน)
-    for (const [type, file] of [['id_card', idCard], ['bank_book', bankBook]] as const) {
+    const uploads: Array<{ type: string; file: File }> = [
+      { type: 'id_card', file: idCard },
+      { type: 'bank_book', file: bankBook },
+    ]
+    for (let i = 0; i < uploads.length; i++) {
+      const { type, file } = uploads[i]
       const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
       const path = `${user.id}/${type}_${ts}.${ext}`
       const { error: upErr } = await sb.storage
