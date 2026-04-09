@@ -62,28 +62,43 @@ function SearchPage() {
     abortRef.current = ctrl
 
     setLoading(true)
-    const FALLBACK_THRESHOLD = 3
     try {
-      // Step 1: DB ก่อน (เว้นแต่ user force mode=all เช่นกดปุ่ม "ค้นหา")
-      const initialMode = forceMode || 'db'
-      const r1 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=${initialMode}`, { signal: ctrl.signal })
-      const data1 = await r1.json()
-      if (ctrl.signal.aborted) return
-      let allResults = data1.results || []
-      let mq = data1.matchQuality || 'none'
+      // ─────────────────────────────────────────────────────────────
+      // forceMode='all' = ผู้ใช้กดปุ่ม "ค้นหา" → deep search 5 pages
+      // ─────────────────────────────────────────────────────────────
+      // ไป Google ตรง ๆ ทันที ไม่ผ่าน DB ก่อน (เพราะตั้งใจจะ deep search)
+      // หลังได้ผล merge กับ DB ใน server (route.ts ทำให้แล้ว)
+      let allResults: any[]
+      let mq: 'exact' | 'partial' | 'none'
 
-      // Step 2: ถ้า initial DB เจอน้อย → fallback ไป Google + auto-cache
-      // forceMode='all' = ผู้ใช้กดปุ่ม "ค้นหา" → deep search 5 pages parallel
-      // ไม่ force = live search → 1 page เบา ๆ
-      if (initialMode === 'db' && allResults.length < FALLBACK_THRESHOLD) {
+      if (forceMode === 'all') {
         setExpanding(true)
-        const deepPages = forceMode === 'all' ? 5 : 1
-        const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all&pages=${deepPages}`, { signal: ctrl.signal })
-        const data2 = await r2.json()
+        const r = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all&pages=5`, { signal: ctrl.signal })
+        const data = await r.json()
         if (ctrl.signal.aborted) return
-        allResults = data2.results || allResults
-        mq = data2.matchQuality || mq
+        allResults = data.results || []
+        mq = data.matchQuality || 'none'
         setExpanding(false)
+      } else {
+        // Live search — DB ก่อน (ฟรี ไว)
+        const r1 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=db`, { signal: ctrl.signal })
+        const data1 = await r1.json()
+        if (ctrl.signal.aborted) return
+        allResults = data1.results || []
+        mq = data1.matchQuality || 'none'
+
+        // Fallback Google 1 page ถ้า DB ไม่มี exact match
+        // เดิมใช้ count >= 3 แต่ผิด — DB อาจมี 5 เล่มที่บังเอิญ substring match แต่ไม่ใช่เล่มที่หา
+        // ใช้ matchQuality='exact' แทน — ถ้า top result ตรง/prefix → ไม่ต้อง Google
+        if (mq !== 'exact') {
+          setExpanding(true)
+          const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all&pages=1`, { signal: ctrl.signal })
+          const data2 = await r2.json()
+          if (ctrl.signal.aborted) return
+          allResults = data2.results || allResults
+          mq = data2.matchQuality || mq
+          setExpanding(false)
+        }
       }
 
       const withListings = allResults.filter((b: any) => (b.active_listings_count || 0) > 0)
