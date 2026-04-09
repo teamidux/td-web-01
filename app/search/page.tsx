@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Book } from '@/lib/supabase'
@@ -26,6 +26,8 @@ function SearchPage() {
   const [expanding, setExpanding] = useState(false)
   const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const [searched, setSearched] = useState(false)
+  // เก็บ AbortController ของ request ที่กำลังวิ่ง — ใช้ cancel เมื่อ query เปลี่ยน
+  const abortRef = useRef<AbortController | null>(null)
 
   // โหลดผลจาก URL param เมื่อเข้าหน้าครั้งแรก
   useEffect(() => {
@@ -37,29 +39,45 @@ function SearchPage() {
   // debounced live search — DB → ถ้าน้อย auto-fallback Google
   useEffect(() => {
     const trimmed = query.trim()
-    if (!trimmed) { setResults([]); setGoogleResults([]); setSearched(false); return }
-    if (trimmed.length < 3) { setResults([]); setGoogleResults([]); return }
-    const t = setTimeout(() => { doSearch(trimmed); setSearched(true) }, 350)
+    // query สั้น/ว่าง → abort fetch ที่ค้าง + reset loading + เคลียร์ผล
+    if (trimmed.length < 3) {
+      abortRef.current?.abort()
+      abortRef.current = null
+      setLoading(false)
+      setExpanding(false)
+      setResults([])
+      setGoogleResults([])
+      if (!trimmed) setSearched(false)
+      return
+    }
+    const t = setTimeout(() => { doSearch(trimmed); setSearched(true) }, 500)
     return () => clearTimeout(t)
   }, [query])
 
   const doSearch = async (q: string, forceMode?: 'all') => {
     if (!q.trim()) return
+    // Cancel request ก่อนหน้า — กัน race + ประหยัด Google quota
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
     setLoading(true)
     const FALLBACK_THRESHOLD = 3
     try {
       // Step 1: DB ก่อน (เว้นแต่ user force mode=all เช่นกดปุ่ม "ค้นหา")
       const initialMode = forceMode || 'db'
-      const r1 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=${initialMode}`)
+      const r1 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=${initialMode}`, { signal: ctrl.signal })
       const data1 = await r1.json()
+      if (ctrl.signal.aborted) return
       let allResults = data1.results || []
       let mq = data1.matchQuality || 'none'
 
       // Step 2: ถ้า initial DB เจอน้อย → fallback ไป Google + auto-cache
       if (initialMode === 'db' && allResults.length < FALLBACK_THRESHOLD) {
         setExpanding(true)
-        const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all`)
+        const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all`, { signal: ctrl.signal })
         const data2 = await r2.json()
+        if (ctrl.signal.aborted) return
         allResults = data2.results || allResults
         mq = data2.matchQuality || mq
         setExpanding(false)
@@ -70,14 +88,30 @@ function SearchPage() {
       setResults(withListings)
       setGoogleResults(noListings)
       setMatchQuality(mq)
-    } catch {
+    } catch (err: any) {
+      // AbortError = user เปลี่ยน query → เงียบไว้ ไม่ใช่ error
+      if (err?.name === 'AbortError') return
       setResults([])
       setGoogleResults([])
       setMatchQuality('none')
     } finally {
-      setLoading(false)
-      setExpanding(false)
+      // เช็คว่ายัง active request นี้อยู่ไหม — ถ้าโดน abort แล้ว state จะถูก request ใหม่จัดการ
+      if (abortRef.current === ctrl) {
+        setLoading(false)
+        setExpanding(false)
+      }
     }
+  }
+
+  const clearQuery = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setQuery('')
+    setResults([])
+    setGoogleResults([])
+    setLoading(false)
+    setExpanding(false)
+    setSearched(false)
   }
 
   const handleSubmit = () => {
@@ -93,14 +127,45 @@ function SearchPage() {
       <div className="page">
         <div style={{ padding: '16px 0 8px' }}>
           <div className="search-row" style={{ maxWidth: 440, margin: '0 auto 0' }}>
-            <input
-              className="search-input"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="ค้นหาชื่อหนังสือ..."
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              autoFocus
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                className="search-input"
+                style={{ width: '100%', paddingRight: query ? 36 : undefined }}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="ค้นหาชื่อหนังสือ..."
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                autoFocus
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={clearQuery}
+                  aria-label="ล้างคำค้นหา"
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'var(--ink3)',
+                    color: '#fff',
+                    fontSize: 14,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             <button className="btn-search" onClick={handleSubmit}>ค้นหา</button>
           </div>
         </div>
