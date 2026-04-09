@@ -133,9 +133,9 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
     startIndex: String(startIndex),
     printType: 'books',
     orderBy: 'relevance',
-    // projection=lite ลด response size ~50% — เราใช้แค่ title/author/isbn/cover/lang
-    // ไม่ต้องการ description/categories/rating ใน search (detail page ดึง full ทีหลัง)
-    projection: 'lite',
+    // NOTE: เคยใช้ projection=lite เพื่อลด payload — แต่ lite ตัด industryIdentifiers
+    // ออกด้วย ทำให้ extractISBN คืน '' → mapVolume drop ทุกเล่ม → cache pipeline ตาย
+    // ใช้ full projection (default) เพื่อเก็บ ISBN ไว้
   })
   if (apiKey) params.set('key', apiKey)
 
@@ -212,7 +212,6 @@ export async function fetchGoogleBooksRawDebug(query: string): Promise<{
     startIndex: '0',
     printType: 'books',
     orderBy: 'relevance',
-    projection: 'lite',
   })
   if (apiKey) params.set('key', apiKey)
 
