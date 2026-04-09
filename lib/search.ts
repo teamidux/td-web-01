@@ -62,32 +62,59 @@ export function normalizeForMatch(s: string): string {
     .replace(/\s+/g, '')
 }
 
-// Re-rank + filter: exact > prefix > substring > author.
+// Re-rank: exact > prefix > substring > token-match > author > unrelated tail.
 // ใช้ normalizeForMatch ทั้ง 2 ฝั่งเพื่อทน Thai spelling variation
-// (Google ส่ง fuzzy match บางทีไม่ตรง — กันแสดงเล่มที่ไม่เกี่ยว)
-export function rankBooksByQuery<T extends { title?: string; author?: string }>(books: T[], query: string): T[] {
+// (Google ส่ง fuzzy match บางทีไม่ตรง — เราเอามาเรียงแทนการตัดทิ้ง
+// เพราะตัดทิ้งทำให้ "พิมพ์ตรงแต่ไม่เจอ" เกิดบ่อยกับ Thai title ที่มีคำนำหน้า)
+export function rankBooksByQuery<T extends { title?: string; author?: string }>(
+  books: T[],
+  query: string,
+  opts: { dropUnrelated?: boolean } = {}
+): T[] {
   const q = query.trim()
   if (!q) return books
   const qNorm = normalizeForMatch(q)
   if (!qNorm) return books
 
-  return books
-    .map(b => {
-      const titleNorm = normalizeForMatch(b.title || '')
-      const authorNorm = normalizeForMatch(b.author || '')
+  // Token split — รองรับ multi-word query เช่น "ฮารูกิ มูราคามิ" หรือ "harry potter"
+  // แต่ละ token > 1 char ถึงจะใช้ match (กัน noise จากตัวอักษรเดียว)
+  const qTokens = q.split(/\s+/).map(t => normalizeForMatch(t)).filter(t => t.length >= 2)
 
-      let score = 0
-      if (titleNorm === qNorm) score = 1000
-      else if (titleNorm.startsWith(qNorm)) score = 500
-      else if (titleNorm.includes(qNorm)) {
-        const idx = titleNorm.indexOf(qNorm)
-        score = 200 - Math.min(idx, 100)
-      } else if (authorNorm.includes(qNorm)) {
-        score = 50
+  const scored = books.map(b => {
+    const titleNorm = normalizeForMatch(b.title || '')
+    const authorNorm = normalizeForMatch(b.author || '')
+
+    let score = 0
+    if (titleNorm === qNorm) score = 1000
+    else if (titleNorm.startsWith(qNorm)) score = 500
+    else if (titleNorm.includes(qNorm)) {
+      const idx = titleNorm.indexOf(qNorm)
+      score = 200 - Math.min(idx, 100)
+    } else if (qTokens.length > 0) {
+      // Token match — นับจำนวน token ที่อยู่ในชื่อหนังสือ
+      let titleHits = 0
+      let authorHits = 0
+      for (const tok of qTokens) {
+        if (titleNorm.includes(tok)) titleHits++
+        if (authorNorm.includes(tok)) authorHits++
       }
-      return { ...b, _score: score }
-    })
-    .filter((b: any) => b._score > 0)
+      if (titleHits === qTokens.length) score = 150           // ทุก token เจอใน title
+      else if (titleHits > 0) score = 80 + titleHits * 10     // บาง token
+      else if (authorHits === qTokens.length) score = 60      // ทุก token ใน author
+      else if (authorHits > 0) score = 30 + authorHits * 5
+    } else if (authorNorm.includes(qNorm)) {
+      score = 50
+    }
+    return { ...b, _score: score }
+  })
+
+  // ถ้า dropUnrelated=true (เช่น ใช้กับ UI search) ตัดเล่ม score=0 ออก
+  // ถ้า false (เช่น cache pipeline) เก็บไว้ทั้งหมด
+  const filtered = opts.dropUnrelated
+    ? scored.filter((b: any) => b._score > 0)
+    : scored
+
+  return filtered
     .sort((a: any, b: any) => b._score - a._score)
     .map(({ _score, ...rest }: any) => rest)
 }
@@ -145,6 +172,15 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
 }
 
 /**
+ * ดึงผลดิบจาก Google Books — ไม่มี filter ใช้กับ auto-cache pipeline
+ * คืนทั้งหมดที่ Google ส่งมา (ปกติ ~40 เล่ม/call) เพื่อสะสม catalog
+ * แม้เล่มไม่ตรง query ปัจจุบันก็อาจตรงกับ query อื่นในอนาคต
+ */
+export async function fetchGoogleBooksRaw(query: string): Promise<GoogleBook[]> {
+  return callGoogleSearchPage(query, 0)
+}
+
+/**
  * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง.
  * ดึงแค่ 1 หน้า (startIndex=0) เพื่อประหยัด Google API quota
  * (Free tier: 1,000 calls/day) ระยะยาว auto-cache จะทำให้ query ส่วนใหญ่
@@ -155,7 +191,7 @@ async function callGoogleSearchPage(qParam: string, startIndex: number): Promise
  */
 export async function fetchGoogleBooksByTitle(query: string, limit: number = 10): Promise<GoogleBook[]> {
   const books = await callGoogleSearchPage(query, 0)
-  const ranked = rankBooksByQuery(books, query)
+  const ranked = rankBooksByQuery(books, query, { dropUnrelated: true })
   return ranked.slice(0, limit)
 }
 
