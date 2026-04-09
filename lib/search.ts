@@ -181,6 +181,96 @@ export async function fetchGoogleBooksRaw(query: string): Promise<GoogleBook[]> 
 }
 
 /**
+ * Debug variant — ไม่ catch อะไร, return ทุกอย่างที่เกิดขึ้น
+ * ใช้สำหรับ inspect ว่า Google call fail ตรงไหน
+ */
+export async function fetchGoogleBooksRawDebug(query: string): Promise<{
+  books: GoogleBook[]
+  debug: {
+    used_proxy: boolean
+    has_api_key: boolean
+    url_host: string
+    http_status: number | null
+    http_ok: boolean | null
+    raw_items_count: number
+    mapped_count: number
+    error: string | null
+    duration_ms: number
+  }
+}> {
+  const apiKey = process.env.GOOGLE_BOOKS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
+  const proxyUrl = process.env.GOOGLE_BOOKS_PROXY_URL
+  const proxyToken = process.env.GOOGLE_BOOKS_PROXY_TOKEN
+  const usedProxy = !!(proxyUrl && proxyToken)
+
+  const params = new URLSearchParams({
+    q: query,
+    maxResults: '40',
+    startIndex: '0',
+    printType: 'books',
+    orderBy: 'relevance',
+    projection: 'lite',
+  })
+  if (apiKey) params.set('key', apiKey)
+
+  let url: string
+  if (usedProxy) {
+    params.set('t', proxyToken!)
+    url = `${proxyUrl}?${params.toString()}`
+  } else {
+    url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
+  }
+
+  let urlHost = ''
+  try { urlHost = new URL(url).host } catch {}
+
+  const start = Date.now()
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 8000)
+  try {
+    const r = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(t)
+    const d = r.ok ? await r.json() : null
+    const rawItems = d?.items || []
+    const books: GoogleBook[] = []
+    for (const item of rawItems) {
+      const m = mapVolume(item)
+      if (m) books.push(m)
+    }
+    return {
+      books,
+      debug: {
+        used_proxy: usedProxy,
+        has_api_key: !!apiKey,
+        url_host: urlHost,
+        http_status: r.status,
+        http_ok: r.ok,
+        raw_items_count: rawItems.length,
+        mapped_count: books.length,
+        error: r.ok ? null : `http_${r.status}`,
+        duration_ms: Date.now() - start,
+      },
+    }
+  } catch (err: any) {
+    clearTimeout(t)
+    return {
+      books: [],
+      debug: {
+        used_proxy: usedProxy,
+        has_api_key: !!apiKey,
+        url_host: urlHost,
+        http_status: null,
+        http_ok: null,
+        raw_items_count: 0,
+        mapped_count: 0,
+        error: err?.name === 'AbortError' ? 'timeout_8s' : (err?.message || String(err)),
+        duration_ms: Date.now() - start,
+      },
+    }
+  }
+}
+
+/**
  * ค้น Google Books — general search (intitle: ไม่ดีกับ Thai), re-rank ด้วย score เอง.
  * ดึงแค่ 1 หน้า (startIndex=0) เพื่อประหยัด Google API quota
  * (Free tier: 1,000 calls/day) ระยะยาว auto-cache จะทำให้ query ส่วนใหญ่

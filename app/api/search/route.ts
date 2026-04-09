@@ -11,7 +11,7 @@
 // mode=all  → DB + Google + auto-cache — ใช้ตอน user explicit click "ค้นหา"
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchGoogleBooksRaw, normalizeForMatch } from '@/lib/search'
+import { fetchGoogleBooksRawDebug, normalizeForMatch } from '@/lib/search'
 
 // Edge runtime: รันที่ edge ใกล้ user (Singapore สำหรับผู้ใช้ไทย) ไม่ใช่ที่
 // iad1 ตาม Hobby plan default — สำคัญเพราะ Google Books API geo-localize
@@ -73,13 +73,12 @@ export async function GET(req: NextRequest) {
   // 2. GOOGLE QUERY (raw — ไม่ filter)
   // ─────────────────────────────────────────────────────────────────
   const googlePromise = mode === 'db'
-    ? Promise.resolve([] as any[])
-    : fetchGoogleBooksRaw(q).catch((err: any) => {
-        console.error('[search] google fail:', err?.message || err)
-        return [] as any[]
-      })
+    ? Promise.resolve({ books: [] as any[], debug: null as any })
+    : fetchGoogleBooksRawDebug(q)
 
-  const [googleRaw, dbBooks] = await Promise.all([googlePromise, dbQuery])
+  const [googleResult, dbBooks] = await Promise.all([googlePromise, dbQuery])
+  const googleRaw = googleResult.books
+  const googleDebug = googleResult.debug
 
   // ─────────────────────────────────────────────────────────────────
   // 3. ดึง listings count + min_price จริงจาก listings table
@@ -206,6 +205,7 @@ export async function GET(req: NextRequest) {
       cache_error: cacheError,
       google_isbns: googleRaw.map((b: any) => b.isbn),
       db_isbns: Array.from(dbIsbnSet),
+      google: googleDebug,
     },
   })
 }
