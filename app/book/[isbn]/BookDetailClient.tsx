@@ -195,7 +195,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
           <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
             <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
-              ลงขายและเพิ่มข้อมูลหนังสือเล่มนี้เข้าระบบ — เป็นคนแรกที่ขาย โอกาสขายได้เร็วมาก
+              เพิ่มเพื่อแบ่งปันกับชุมชนนักอ่าน — ให้เล่มที่คุณอ่านจบแล้ว ได้ส่งต่อให้คนอื่น
             </div>
             <Link href={`/sell?isbn=${isbn}`}>
               <button className="btn" style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
@@ -371,7 +371,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
                 <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
-                  มีคนรอซื้ออยู่แล้ว — เป็นคนแรกที่ลงขาย โอกาสขายได้เร็วมาก
+                  มีคนรอซื้ออยู่แล้ว — ลงขายเพื่อแบ่งปัน ให้คนที่รออยู่ได้อ่าน
                 </div>
                 <Link href={`/sell?isbn=${isbn}`}>
                   <button className="btn" style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
@@ -383,10 +383,15 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
           {listings.map(l => {
             const isStore = (l.users as any)?.seller_type === 'store'
             const sellerName = isStore ? ((l.users as any)?.store_name || l.users?.display_name) : l.users?.display_name
+            const avatarUrl = (l.users as any)?.avatar_url
             return (
             <div key={l.id} className="card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: isStore ? '#FFF7ED' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{isStore ? '🏪' : '👤'}</div>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={sellerName || ''} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: isStore ? '#FFF7ED' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{isStore ? '🏪' : '👤'}</div>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Link href={`/seller/${l.seller_id}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>

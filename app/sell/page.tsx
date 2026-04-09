@@ -289,7 +289,6 @@ function SellPage() {
             translator: manualTranslator || '',
             cover_url: fetchedBook?.cover_url || '',
             language: fetchedBook?.language || 'th',
-            first_contributor_id: user.id,
             source: 'community',
           }).select().single()
           if (bookErr) throw new Error(bookErr.message)

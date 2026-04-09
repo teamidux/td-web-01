@@ -15,7 +15,6 @@ export type Book = {
   description?: string
   cover_url?: string
   language: string
-  first_contributor_id?: string
   active_listings_count: number
   wanted_count: number
   min_price?: number

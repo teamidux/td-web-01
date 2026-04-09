@@ -156,11 +156,43 @@ export default function HomePage() {
                 onChange={e => { setQuery(e.target.value); setLiveResults([]) }}
                 placeholder="ค้นหาชื่อหนังสือ หรือ ISBN"
                 onKeyDown={e => e.key === 'Enter' && doSearch()}
-                style={{ width: '100%', paddingRight: liveSearching ? 44 : 16 }}
+                style={{ width: '100%', paddingRight: query ? 44 : 16 }}
               />
-              {liveSearching && (
+              {liveSearching ? (
                 <span className="spin" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} />
-              )}
+              ) : query ? (
+                <button
+                  type="button"
+                  aria-label="ล้างคำค้น"
+                  onClick={() => {
+                    setQuery('')
+                    setLiveResults([])
+                    setGoogleLiveResults([])
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    background: '#E5E7EB',
+                    border: 'none',
+                    color: '#475569',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                >
+                  ✕
+                </button>
+              ) : null}
             </div>
 
             {/* Live results dropdown */}
@@ -260,7 +292,7 @@ export default function HomePage() {
             <div className="empty">
               <div className="empty-icon">📚</div>
               <div style={{ marginBottom: 16 }}>ยังไม่มีหนังสือในระบบ</div>
-              <Link href="/sell"><button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ลงขายเป็นคนแรก</button></Link>
+              <Link href="/sell"><button className="btn" style={{ maxWidth: 240, margin: '0 auto', display: 'block' }}>เพิ่มเล่มเพื่อแบ่งปัน</button></Link>
             </div>
           )}
           {recentListings.map((l: any) => (
