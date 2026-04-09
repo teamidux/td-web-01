@@ -107,19 +107,6 @@ export default function OnboardingPage() {
               style={{ width: '100%', boxSizing: 'border-box', fontSize: 18, padding: '14px 16px', fontWeight: 500 }}
             />
 
-            {/* Where to find */}
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', marginTop: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
-                📱 หา LINE ID ของคุณได้ที่
-              </div>
-              <div style={{ fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>
-                LINE app → <b>Home</b> → <b>⚙️ Settings</b> → <b>Profile</b> → <b>ID</b>
-              </div>
-              <div style={{ fontSize: 11, color: '#78350F', marginTop: 6, lineHeight: 1.6, fontStyle: 'italic' }}>
-                💡 LINE ID คือชื่อผู้ใช้ที่คุณตั้งใน LINE — บางคนตั้งเป็นตัวเลข บางคนเป็นตัวอักษร ใส่ตามที่อยู่ในแอปได้เลย
-              </div>
-            </div>
-
             {error && (
               <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', marginTop: 10 }}>
                 <div style={{ fontSize: 13, color: '#991B1B', lineHeight: 1.6, fontWeight: 500 }}>
@@ -147,10 +134,6 @@ export default function OnboardingPage() {
             ยังไม่ใส่ตอนนี้
           </button>
 
-          <div style={{ fontSize: 14, color: '#475569', textAlign: 'center', marginTop: 20, lineHeight: 1.7, fontWeight: 500 }}>
-            เปลี่ยนภายหลังได้ที่หน้า <b>Profile</b><br />
-            <span style={{ fontSize: 13, color: 'var(--ink3)' }}>(จะต้องยืนยันด้วย LINE อีกครั้งเพื่อความปลอดภัย)</span>
-          </div>
         </div>
       </div>
     </>
