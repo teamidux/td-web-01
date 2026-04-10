@@ -41,13 +41,13 @@ export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
 }
 
 export function Nav() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   return (
     <nav className="nav">
       <Link href="/" className="nav-logo">Book<span>Match</span></Link>
       <div style={{ display: 'flex', gap: 8 }}>
         <Link href="/sell">
-          <button className="btn btn-sm" style={{ width: 'auto' }}>
+          <button className="btn btn-sm" style={{ width: 'auto', minWidth: 90, visibility: loading ? 'hidden' : 'visible' }}>
             {user ? '+ ลงขาย' : 'เข้าสู่ระบบ / ลงขาย'}
           </button>
         </Link>
@@ -790,7 +790,7 @@ export function TrustMission({
       {/* Progress bar */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>{count}/{total} ภารกิจ</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>{count}/{total}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: tier.color }}>{percent}%</span>
         </div>
         <div style={{
@@ -915,7 +915,7 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
       {/* Action indicator */}
       {clickable && (
         <span style={{ fontSize: 13, fontWeight: 700, color: '#3B82F6', flexShrink: 0 }}>
-          +{item.weight}% →
+          ทำเลย →
         </span>
       )}
     </div>

@@ -40,15 +40,14 @@ export async function createSession(userId: string, opts?: { ua?: string; ip?: s
 export async function getSessionUser(): Promise<any | null> {
   const token = cookies().get(COOKIE_NAME)?.value
   if (!token) return null
-  const s = admin()
-  const { data: session } = await s
+  // Single query with join — ลด round-trip จาก 2 เหลือ 1
+  const { data: session } = await admin()
     .from('sessions')
-    .select('user_id, expires_at')
+    .select('expires_at, users(*)')
     .eq('token', token)
     .maybeSingle()
   if (!session || new Date(session.expires_at) < new Date()) return null
-  const { data: user } = await s.from('users').select('*').eq('id', session.user_id).maybeSingle()
-  return user
+  return (session as any).users || null
 }
 
 export async function destroySession(): Promise<void> {

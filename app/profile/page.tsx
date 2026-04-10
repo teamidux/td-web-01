@@ -402,16 +402,6 @@ export default function ProfilePage() {
               case 'id_verified':
                 setShowIdentityWizard(true)
                 break
-              case 'oa_friend': {
-                // เปิด LINE OA add link — user จะถูก redirect ไป LINE app
-                // OA Basic ID มาจาก env var (default fallback ของ user ปัจจุบัน)
-                const oaId = process.env.NEXT_PUBLIC_LINE_OA_BASIC_ID || '@943nzbhk'
-                window.open(`https://line.me/R/ti/p/${oaId}`, '_blank')
-                break
-              }
-              case 'login_line':
-                // already done — no action
-                break
             }
           }} />
         </div>

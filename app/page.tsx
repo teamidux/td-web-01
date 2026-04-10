@@ -159,7 +159,15 @@ export default function HomePage() {
                 style={{ width: '100%', paddingRight: query ? 44 : 16 }}
               />
               {liveSearching ? (
-                <span className="spin" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} />
+                <button
+                  type="button"
+                  aria-label="ยกเลิกค้นหา"
+                  onClick={() => { setQuery(''); setLiveResults([]); setGoogleLiveResults([]); setLiveSearching(false); setGoogleLoading(false) }}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 6px' }}
+                >
+                  <span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} />
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'Kanit' }}>ยกเลิก</span>
+                </button>
               ) : query ? (
                 <button
                   type="button"
@@ -243,6 +251,12 @@ export default function HomePage() {
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.6 }}>
                   กำลังค้นในฐานข้อมูลเพิ่มเติม...
                 </div>
+                <button
+                  onClick={() => { setQuery(''); setGoogleLoading(false); setLiveResults([]); setGoogleLiveResults([]) }}
+                  style={{ marginTop: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 16px', fontFamily: 'Kanit', fontSize: 13, color: 'var(--ink3)', cursor: 'pointer' }}
+                >
+                  ยกเลิก
+                </button>
               </div>
             )}
           </div>
