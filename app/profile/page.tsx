@@ -238,17 +238,20 @@ export default function ProfilePage() {
                   rows={4}
                   style={{ width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'Kanit', resize: 'vertical', marginBottom: 4 }}
                 />
+                {/* Honeypot — ซ่อนจากคน bot จะกรอก */}
+                <input name="website" autoComplete="off" tabIndex={-1} style={{ position: 'absolute', left: -9999, opacity: 0, height: 0 }} id="hp_contact" />
                 <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 14, textAlign: 'right' }}>{contactMsg.length}/2000</div>
                 <button
                   className="btn"
                   disabled={contactSending || contactMsg.trim().length < 5}
                   onClick={async () => {
                     setContactSending(true)
+                    const hp = (document.getElementById('hp_contact') as HTMLInputElement)?.value
                     try {
                       const r = await fetch('/api/contact', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: contactMsg }),
+                        body: JSON.stringify({ message: contactMsg, website: hp || undefined }),
                       })
                       if (r.ok) {
                         setContactSent(true)

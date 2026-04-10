@@ -180,9 +180,23 @@ export default function SellerPage({ params }: PageProps) {
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4, textAlign: 'right' }}>{reportDetails.length}/500</div>
             </div>
 
+            {/* Honeypot */}
+            <input name="website" autoComplete="off" tabIndex={-1} style={{ position: 'absolute', left: -9999, opacity: 0, height: 0 }} id="hp_report" />
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
+              <input type="checkbox" id="report_confirm" style={{ marginTop: 3, width: 16, height: 16, accentColor: '#DC2626', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: '#374151', lineHeight: 1.6 }}>
+                ข้าพเจ้ายืนยันว่าข้อมูลที่ให้ไว้เป็นความจริง การรายงานอันเป็นเท็จหรือกลั่นแกล้งอาจถูกระงับบัญชีและอาจเข้าข่ายความผิดตาม พ.ร.บ.คอมพิวเตอร์
+              </span>
+            </label>
+
             <button
               className="btn"
-              onClick={submitReport}
+              onClick={() => {
+                const confirmed = (document.getElementById('report_confirm') as HTMLInputElement)?.checked
+                if (!confirmed) { show('กรุณายืนยันว่าข้อมูลเป็นความจริง'); return }
+                submitReport()
+              }}
               disabled={reportSubmitting || !reportReason}
               style={{ background: '#DC2626', marginBottom: 8 }}
             >

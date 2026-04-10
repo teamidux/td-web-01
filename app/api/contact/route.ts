@@ -17,7 +17,9 @@ function db() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser().catch(() => null)
 
-  const { subject, message, email } = await req.json()
+  const { subject, message, email, website } = await req.json()
+  // Honeypot — bot จะกรอก field นี้ คนจริงไม่เห็น
+  if (website) return NextResponse.json({ ok: true }) // ตอบ success เงียบๆ ไม่เก็บ
   if (!message || typeof message !== 'string' || message.trim().length < 5) {
     return NextResponse.json({ error: 'ข้อความสั้นเกินไป' }, { status: 400 })
   }

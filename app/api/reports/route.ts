@@ -5,8 +5,9 @@ const VALID_REASONS = ['scam', 'fake_book', 'no_ship', 'inappropriate', 'other']
 
 export async function POST(req: NextRequest) {
   try {
-    const { reportedUserId, reporterUserId, listingId, reason, details } = await req.json()
-
+    const { reportedUserId, reporterUserId, listingId, reason, details, website } = await req.json()
+    // Honeypot
+    if (website) return NextResponse.json({ ok: true })
     if (!reportedUserId || typeof reportedUserId !== 'string') {
       return NextResponse.json({ error: 'missing reportedUserId' }, { status: 400 })
     }
