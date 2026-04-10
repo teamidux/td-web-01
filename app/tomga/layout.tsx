@@ -8,7 +8,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading || !user) return
-    fetch('/api/admin/check')
+    fetch('/api/tomga/check')
       .then(r => r.json())
       .then(d => setAllowed(d.isAdmin))
       .catch(() => setAllowed(false))

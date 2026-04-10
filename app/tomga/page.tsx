@@ -4,8 +4,8 @@ import { Nav } from '@/components/ui'
 
 export default function AdminPage() {
   const menus = [
-    { href: '/admin/verify', icon: '🪪', title: 'ตรวจยืนยันตัวตน', desc: 'อนุมัติ/ปฏิเสธ บัตรประชาชน + สมุดบัญชี' },
-    { href: '/admin/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้าฐานข้อมูล' },
+    { href: '/tomga/verify', icon: '🪪', title: 'ตรวจยืนยันตัวตน', desc: 'อนุมัติ/ปฏิเสธ บัตรประชาชน + สมุดบัญชี' },
+    { href: '/tomga/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้าฐานข้อมูล' },
   ]
 
   return (

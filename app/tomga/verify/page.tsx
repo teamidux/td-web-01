@@ -23,7 +23,7 @@ export default function AdminVerifyPage() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/verify')
+      const res = await fetch('/api/tomga/verify')
       const { pending: p } = await res.json()
       setPending(p || [])
     } catch { setPending([]) }
@@ -36,7 +36,7 @@ export default function AdminVerifyPage() {
     if (!confirm(action === 'approve' ? 'อนุมัติ user นี้?' : 'ปฏิเสธ user นี้? (user จะส่งใหม่ได้)')) return
     setActing(userId)
     try {
-      await fetch('/api/admin/verify', {
+      await fetch('/api/tomga/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action }),

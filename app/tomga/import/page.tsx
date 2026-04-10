@@ -58,7 +58,7 @@ export default function AdminImportPage() {
     setError('')
     setResult(null)
     try {
-      const res = await fetch('/api/admin/import-books', {
+      const res = await fetch('/api/tomga/import-books', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ books: rows, source: source.trim() }),
