@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { isAdmin } from '@/lib/admin'
 
 export const runtime = 'nodejs'
 
@@ -15,7 +16,7 @@ function admin() {
 // GET — list users with id_verify_submitted_at but no id_verified_at
 export async function GET() {
   const user = await getSessionUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!user || !isAdmin(user.id)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const sb = admin()
   const { data, error } = await sb

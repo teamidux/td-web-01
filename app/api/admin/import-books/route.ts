@@ -1,10 +1,10 @@
 // Admin: import books from CSV
 // POST body: JSON array of { isbn, title, author, source }
-// Requires logged-in user (any user for now — add admin check later)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { isAdmin } from '@/lib/admin'
 
 export const runtime = 'nodejs'
 
@@ -17,7 +17,7 @@ function admin() {
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!user || !isAdmin(user.id)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const { books, source } = await req.json()
   if (!Array.isArray(books) || books.length === 0) {
