@@ -724,7 +724,7 @@ export function TrustBadge({ user, size = 'sm' }: { user: any; size?: 'sm' | 'md
   // tier level >= 3 ใช้ SVG shield แทน emoji
   const useShield = tier.level >= 3
   // label ตัดหน้า emoji ออก (ถ้าใช้ shield icon แทน)
-  const label = useShield ? tier.shortLabel.replace(/^[🛡️🔵✅]\s*/u, '') : tier.shortLabel
+  const label = useShield ? tier.shortLabel.replace(/^[^\w\s]+\s*/,'') : tier.shortLabel
   return (
     <span style={{
       display: 'inline-flex',

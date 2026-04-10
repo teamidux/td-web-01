@@ -54,23 +54,34 @@ export default function ProfilePage() {
     return `${Math.floor(days / 365)} ปี`
   }
 
+  const [editLineId, setEditLineId] = useState('')
+  const [editLineError, setEditLineError] = useState('')
+
   const startEdit = () => {
     setEditName(user?.display_name || '')
     setEditSellerType(user?.seller_type || 'individual')
     setEditStoreName(user?.store_name || '')
+    setEditLineId(user?.line_id || '')
+    setEditLineError('')
     setEditing(true)
   }
 
   const saveProfile = async () => {
     if (editSellerType === 'store' && !editStoreName.trim()) { show('กรุณาใส่ชื่อร้าน'); return }
     if (editSellerType === 'individual' && !editName.trim()) { show('กรุณาใส่ชื่อ'); return }
+    // validate LINE ID ถ้ากรอก
+    const trimmedLine = editLineId.trim()
+    if (trimmedLine) {
+      const parsed = parseLineId(trimmedLine)
+      if (!parsed) { setEditLineError('LINE ID ต้องเป็น 4-20 ตัวอักษร (a-z, 0-9, จุด ขีด ขีดเส้นใต้)'); return }
+    }
+    setEditLineError('')
     setSaving(true)
     try {
       const storeName = editSellerType === 'store' ? editStoreName.trim() : undefined
       await updateUser({
-        // ถ้าเป็นร้านค้า ให้ sync display_name = store_name เพื่อให้ชื่อที่แสดงตรงกันทุกที่
         display_name: editSellerType === 'store' ? editStoreName.trim() : editName.trim(),
-        // line_id ไม่ได้แก้ที่นี่ — มี flow แยก (re-auth)
+        line_id: trimmedLine || (null as any),
         seller_type: editSellerType,
         store_name: storeName,
       })
@@ -309,6 +320,11 @@ export default function ProfilePage() {
                 <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editStoreName} onChange={e => setEditStoreName(e.target.value)} placeholder="เช่น ร้านหนังสือบ้านหนังสือ" />
               </div>
             )}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID</label>
+              <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editLineId} onChange={e => { setEditLineId(e.target.value); setEditLineError('') }} placeholder="เช่น mylineid" />
+              {editLineError && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 4 }}>{editLineError}</div>}
+            </div>
             <div style={{ marginBottom: 24 }} />
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveProfile} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
