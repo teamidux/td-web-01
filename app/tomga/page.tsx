@@ -94,6 +94,42 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Phase indicator */}
+            {(() => {
+              const weeklyContacts = data.northStar.contacts.d7
+              const phase = weeklyContacts >= 200 ? 3 : weeklyContacts >= 50 ? 2 : 1
+              const phases = [
+                { n: 1, label: 'Match & Connect', target: '50 กดติดต่อ/สัปดาห์', focus: 'หา user, เพิ่ม catalog, distribution', color: '#2563EB' },
+                { n: 2, label: 'Trust & Track Record', target: '200 ดีล/สัปดาห์', focus: 'ระบบ confirm ขายสำเร็จ, review/rating', color: '#7C3AED' },
+                { n: 3, label: 'Escrow & Logistics', target: 'Scale', focus: 'เงินผ่านระบบ, ขนส่ง, ทีม dispute', color: '#059669' },
+              ]
+              const current = phases[phase - 1]
+              const next = phases[phase] || null
+              return (
+                <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ background: current.color, color: 'white', borderRadius: 8, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>Phase {phase}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>{current.label}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.7, marginBottom: 6 }}>
+                    โฟกัส: <b>{current.focus}</b>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#92400E' }}>
+                    <span>กดติดต่อ 7 วัน: <b>{weeklyContacts}</b></span>
+                    {next && <span>เป้าถัดไป: <b>{next.target}</b></span>}
+                  </div>
+                  {/* Progress to next phase */}
+                  {next && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ height: 6, background: '#FDE68A', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: current.color, borderRadius: 3, width: `${Math.min(100, (weeklyContacts / (phase === 1 ? 50 : 200)) * 100)}%`, transition: 'width .5s' }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             {/* Metrics grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 28 }}>
               {[
