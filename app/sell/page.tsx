@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet, LoginButton } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
@@ -401,13 +401,7 @@ function SellPage() {
               <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>เข้าสู่ระบบก่อนลงขาย</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>เพื่อให้ผู้ซื้อติดต่อคุณได้</div>
-              <button
-                className="btn"
-                style={{ maxWidth: 240, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#06C755' }}
-                onClick={goLogin}
-              >
-                💚 เข้าสู่ระบบด้วย LINE
-              </button>
+              <LoginButton onClick={goLogin} />
             </div>
           ) : (
             <>

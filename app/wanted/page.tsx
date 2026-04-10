@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase, Wanted } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, useToast, Toast, SkeletonList } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, SkeletonList, LoginButton } from '@/components/ui'
 import { registerSW, getPushState, subscribePush, unsubscribePush } from '@/lib/push'
 
 export default function WantedPage() {
@@ -70,13 +70,7 @@ export default function WantedPage() {
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔔</div>
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>รายการที่คุณตามหา</div>
         <div style={{ fontSize: 14, color: 'var(--ink3)', marginBottom: 24 }}>เข้าสู่ระบบเพื่อเพิ่มหนังสือที่ต้องการ</div>
-        <button
-          className="btn"
-          style={{ maxWidth: 240, margin: '0 auto', background: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
-          onClick={() => loginWithLine('/wanted')}
-        >
-          💚 เข้าสู่ระบบด้วย LINE
-        </button>
+        <LoginButton onClick={() => loginWithLine('/wanted')} />
       </div>
       <BottomNav />
     </>

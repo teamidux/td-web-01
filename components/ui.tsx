@@ -65,17 +65,49 @@ export function BottomNav() {
     { href: '/profile', icon: '👤', label: 'โปรไฟล์' },
   ]
   return (
-    <div className="bottom-nav">
-      {tabs.map(t => (
-        <Link
-          key={t.href}
-          href={t.href}
-          className={`bnav-item ${pathname === t.href ? 'active' : ''}`}
-        >
-          <span>{t.icon}</span>
-          <span>{t.label}</span>
-        </Link>
-      ))}
+    <>
+      <div style={{ textAlign: 'center', padding: '12px 0 70px', fontSize: 11, color: '#94A3B8' }}>
+        <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}>ข้อตกลงการใช้บริการ</Link>
+      </div>
+      <div className="bottom-nav">
+        {tabs.map(t => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`bnav-item ${pathname === t.href ? 'active' : ''}`}
+          >
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+          </Link>
+        ))}
+      </div>
+    </>
+  )
+}
+
+export function LoginButton({ onClick }: { onClick: () => void }) {
+  const [agreed, setAgreed] = useState(false)
+  return (
+    <div style={{ maxWidth: 280, margin: '0 auto' }}>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', marginBottom: 14 }}>
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={e => setAgreed(e.target.checked)}
+          style={{ marginTop: 3, width: 16, height: 16, accentColor: '#06C755', flexShrink: 0 }}
+        />
+        <span style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+          ฉันยอมรับ <a href="/terms" target="_blank" rel="noopener" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>ข้อตกลงการใช้บริการ</a>
+        </span>
+      </label>
+      <button
+        className="btn"
+        disabled={!agreed}
+        onClick={onClick}
+        style={{ width: '100%', background: agreed ? '#06C755' : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+      >
+        💚 เข้าสู่ระบบด้วย LINE
+      </button>
     </div>
   )
 }

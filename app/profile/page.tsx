@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, Listing } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, LoginButton } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 import type { TrustItemKey } from '@/lib/trust'
 
@@ -191,13 +191,7 @@ export default function ProfilePage() {
         <div style={{ fontSize: 48, marginBottom: 16 }}>👤</div>
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>เข้าสู่ระบบก่อน</div>
         <div style={{ fontSize: 14, color: 'var(--ink3)', marginBottom: 24 }}>เพื่อดูและจัดการหนังสือที่ลงขาย</div>
-        <button
-          className="btn"
-          style={{ maxWidth: 240, margin: '0 auto', background: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
-          onClick={() => loginWithLine('/profile')}
-        >
-          💚 เข้าสู่ระบบด้วย LINE
-        </button>
+        <LoginButton onClick={() => loginWithLine('/profile')} />
       </div>
       <BottomNav />
     </>
