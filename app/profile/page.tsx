@@ -356,10 +356,9 @@ export default function ProfilePage() {
             {user.line_id && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <TrustBadge user={user} size="md" />
-              {user.seller_type === 'store'
-                ? <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏪 ร้านค้า / สำนักพิมพ์</span>
-                : <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>📚 Free Plan</span>
-              }
+              {user.seller_type === 'store' && (
+                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏪 ร้านค้า / สำนักพิมพ์</span>
+              )}
               {user.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>

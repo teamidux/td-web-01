@@ -78,6 +78,7 @@ function SellPage() {
   const [shipping, setShipping] = useState('buyer')
   const [contact, setContact] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showVerifyPrompt, setShowVerifyPrompt] = useState<{ needsLineId: boolean; needsPhone: boolean; needsId: boolean; isbn: string } | null>(null)
   const [marketPrice, setMarketPrice] = useState<{ min: number; max: number; avg: number } | null>(null)
   const [manualTitle, setManualTitle] = useState('')
   const [manualAuthor, setManualAuthor] = useState('')
@@ -328,7 +329,15 @@ function SellPage() {
       if (listErr) throw new Error(listErr.message)
 
       show('ลงขายเรียบร้อยแล้ว 🎉')
-      setTimeout(() => router.push(`/book/${currentIsbn}`), 1500)
+      // เช็คว่าควรแสดง popup เชิญลงทะเบียนไหม
+      const needsLineId = !user.line_id
+      const needsPhone = !user.phone_verified_at
+      const needsId = !user.id_verified_at
+      if (needsLineId || needsPhone || needsId) {
+        setShowVerifyPrompt({ needsLineId, needsPhone, needsId, isbn: currentIsbn })
+      } else {
+        setTimeout(() => router.push(`/book/${currentIsbn}`), 1500)
+      }
     } catch (e: any) {
       show('❌ ' + (e.message || 'เกิดข้อผิดพลาด'))
     }
@@ -340,6 +349,47 @@ function SellPage() {
       <Nav />
       <InAppBanner />
       <Toast msg={msg} />
+
+      {/* Popup เชิญลงทะเบียน หลังลงขายสำเร็จ */}
+      {showVerifyPrompt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '28px 22px', width: '100%', maxWidth: 360, textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>ลงขายสำเร็จแล้ว!</div>
+            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 20 }}>
+              เพิ่มความน่าเชื่อถือเพื่อให้ลูกค้ามั่นใจ<br />และติดต่อคุณได้เร็วขึ้น
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, textAlign: 'left' }}>
+              {showVerifyPrompt.needsLineId && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#991B1B', lineHeight: 1.5 }}>
+                  <b>⚠️ ยังไม่มี LINE ID</b> — ลูกค้าจะติดต่อคุณไม่ได้เลย
+                </div>
+              )}
+              {showVerifyPrompt.needsPhone && (
+                <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#0369A1', lineHeight: 1.5 }}>
+                  📱 <b>ยืนยันเบอร์โทร</b> — ได้ป้าย "ลงทะเบียนแล้ว"
+                </div>
+              )}
+              {showVerifyPrompt.needsId && (
+                <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
+                  🪪 <b>ยืนยันตัวตน</b> — ได้ป้าย "🛡️ Verified Seller"
+                </div>
+              )}
+            </div>
+
+            <button className="btn" onClick={() => { router.push('/profile') }} style={{ marginBottom: 8 }}>
+              ไปลงทะเบียนเลย
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => { setShowVerifyPrompt(null); router.push(`/book/${showVerifyPrompt.isbn}`) }}
+            >
+              ไว้ทีหลัง
+            </button>
+          </div>
+        </div>
+      )}
       {showPhoneVerify && <PhoneVerifyModal onClose={() => setShowPhoneVerify(false)} onDone={() => setShowPhoneVerify(false)} />}
 
       <div className="page">

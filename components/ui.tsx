@@ -716,14 +716,13 @@ function ShieldIcon({ size = 14, color = 'currentColor' }: { size?: number; colo
 }
 
 export function TrustBadge({ user, size = 'sm' }: { user: any; size?: 'sm' | 'md' | 'lg' }) {
-  const { tier, count } = computeTrustScore(user)
-  if (!user || count === 0) return null
+  const { tier } = computeTrustScore(user)
+  if (!user) return null
   const fontSize = size === 'lg' ? 13 : size === 'md' ? 12 : 11
   const padding = size === 'lg' ? '6px 12px' : size === 'md' ? '5px 10px' : '3px 8px'
   const iconSize = size === 'lg' ? 16 : size === 'md' ? 14 : 12
-  // tier level >= 3 ใช้ SVG shield แทน emoji
-  const useShield = tier.level >= 3
-  // label ตัดหน้า emoji ออก (ถ้าใช้ shield icon แทน)
+  // Verified Seller ใช้ SVG shield
+  const useShield = tier.level >= 2
   const label = useShield ? tier.shortLabel.replace(/^[^\w\s]+\s*/,'') : tier.shortLabel
   return (
     <span style={{
@@ -829,7 +828,7 @@ export function TrustMission({
           color: '#78350F',
           lineHeight: 1.6,
         }}>
-          🏆 <b>ทำครบ 100%</b> รับป้าย <b>Verified Pro ✨</b> — ลูกค้าเชื่อมั่น ปิดดีลเร็วขึ้น
+          🏆 <b>ทำครบ</b> รับป้าย <b>🛡️ Verified Seller</b> — ลูกค้าเชื่อมั่น ปิดดีลเร็วขึ้น
         </div>
       )}
       {isComplete && (
@@ -844,7 +843,7 @@ export function TrustMission({
           fontWeight: 600,
           textAlign: 'center',
         }}>
-          🎉 ภารกิจครบทั้งหมดแล้ว — Verified Pro ✨
+          🎉 ยินดีด้วย! คุณเป็น Verified Seller แล้ว 🛡️
         </div>
       )}
     </div>
@@ -1004,8 +1003,11 @@ export function IdentityVerifyWizard({
         {step === 1 ? (
           <>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#121212', marginBottom: 4 }}>📇 ถ่ายบัตรประชาชน</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 8 }}>
               วางบัตรในกรอบ — ถ่ายให้เห็นชัดทั้ง 4 มุม
+            </div>
+            <div style={{ fontSize: 11, color: '#0369A1', background: '#E0F2FE', borderRadius: 8, padding: '6px 10px', marginBottom: 14, lineHeight: 1.5 }}>
+              🔒 ใช้เพื่อลงทะเบียนผู้ขายกับ BookMatch เท่านั้น — ไม่เผยแพร่หรือใช้เพื่อวัตถุประสงค์อื่น
             </div>
 
             {/* ID card preview / capture area — landscape ratio */}
@@ -1135,7 +1137,9 @@ export function IdentityVerifyWizard({
         )}
 
         <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
-          🔒 ข้อมูลของคุณปลอดภัย — ใช้ตรวจสอบตัวตนเท่านั้น<br />
+          🔒 ข้อมูลของคุณปลอดภัย เก็บในระบบเข้ารหัส<br />
+          ใช้เพื่อลงทะเบียนผู้ขายกับ BookMatch เท่านั้น<br />
+          ไม่เผยแพร่หรือส่งต่อบุคคลที่สาม<br />
           แอดมินจะตรวจภายใน 24 ชั่วโมง
         </div>
       </div>
