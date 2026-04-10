@@ -705,11 +705,26 @@ export function PageLoading() {
 // (computeTrustScore + types imported at top of file)
 // ─────────────────────────────────────────────────────────────────────────
 
+function ShieldIcon({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" fill={color} opacity={0.15} />
+      <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" stroke={color} strokeWidth={1.5} fill="none" />
+      <path d="M9.5 12l2 2 3.5-4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  )
+}
+
 export function TrustBadge({ user, size = 'sm' }: { user: any; size?: 'sm' | 'md' | 'lg' }) {
   const { tier, count } = computeTrustScore(user)
   if (!user || count === 0) return null
   const fontSize = size === 'lg' ? 13 : size === 'md' ? 12 : 11
   const padding = size === 'lg' ? '6px 12px' : size === 'md' ? '5px 10px' : '3px 8px'
+  const iconSize = size === 'lg' ? 16 : size === 'md' ? 14 : 12
+  // tier level >= 3 ใช้ SVG shield แทน emoji
+  const useShield = tier.level >= 3
+  // label ตัดหน้า emoji ออก (ถ้าใช้ shield icon แทน)
+  const label = useShield ? tier.shortLabel.replace(/^[🛡️🔵✅]\s*/u, '') : tier.shortLabel
   return (
     <span style={{
       display: 'inline-flex',
@@ -723,8 +738,8 @@ export function TrustBadge({ user, size = 'sm' }: { user: any; size?: 'sm' | 'md
       fontWeight: 700,
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ fontSize: fontSize + 1 }}>{tier.emoji}</span>
-      {tier.shortLabel.replace(/^[🆕🔰⭐✓🔵🟢]\s*/, '')}
+      {useShield && <ShieldIcon size={iconSize} color={tier.color} />}
+      {label}
     </span>
   )
 }
@@ -925,8 +940,10 @@ export function IdentityVerifyWizard({
   const [bankPreview, setBankPreview] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const idInputRef = useRef<HTMLInputElement>(null)
-  const bankInputRef = useRef<HTMLInputElement>(null)
+  const idCameraRef = useRef<HTMLInputElement>(null)
+  const idGalleryRef = useRef<HTMLInputElement>(null)
+  const bankCameraRef = useRef<HTMLInputElement>(null)
+  const bankGalleryRef = useRef<HTMLInputElement>(null)
   const { reloadUser } = useAuth()
 
   const handlePhoto = (file: File | null, type: 'id' | 'bank') => {
@@ -1004,20 +1021,36 @@ export function IdentityVerifyWizard({
             </div>
 
             <input
-              ref={idInputRef}
+              ref={idCameraRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(e) => handlePhoto(e.target.files?.[0] || null, 'id')}
+              onChange={(e) => { handlePhoto(e.target.files?.[0] || null, 'id'); e.target.value = '' }}
               style={{ display: 'none' }}
             />
-            <button
-              className="btn"
-              onClick={() => idInputRef.current?.click()}
-              style={{ marginBottom: 8, background: idCardFile ? 'var(--surface)' : 'var(--primary)', color: idCardFile ? 'var(--ink2)' : 'white', border: idCardFile ? '1px solid var(--border)' : 'none' }}
-            >
-              {idCardFile ? '🔄 ถ่ายใหม่' : '📷 เปิดกล้อง'}
-            </button>
+            <input
+              ref={idGalleryRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => { handlePhoto(e.target.files?.[0] || null, 'id'); e.target.value = '' }}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                className="btn"
+                onClick={() => idCameraRef.current?.click()}
+                style={{ flex: 1, background: idCardFile ? 'var(--surface)' : 'var(--primary)', color: idCardFile ? 'var(--ink2)' : 'white', border: idCardFile ? '1px solid var(--border)' : 'none' }}
+              >
+                📷 {idCardFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
+              </button>
+              <button
+                className="btn"
+                onClick={() => idGalleryRef.current?.click()}
+                style={{ flex: 1, background: 'var(--surface)', color: 'var(--ink2)', border: '1px solid var(--border)' }}
+              >
+                🖼️ เลือกจากอัลบั้ม
+              </button>
+            </div>
 
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
               💡 <b>เคล็ดลับ:</b> ถ่ายในที่สว่าง · ไม่สะท้อนแสง · เห็นตัวอักษรชัด
@@ -1051,20 +1084,36 @@ export function IdentityVerifyWizard({
             </div>
 
             <input
-              ref={bankInputRef}
+              ref={bankCameraRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(e) => handlePhoto(e.target.files?.[0] || null, 'bank')}
+              onChange={(e) => { handlePhoto(e.target.files?.[0] || null, 'bank'); e.target.value = '' }}
               style={{ display: 'none' }}
             />
-            <button
-              className="btn"
-              onClick={() => bankInputRef.current?.click()}
-              style={{ marginBottom: 8, background: bankFile ? 'var(--surface)' : 'var(--primary)', color: bankFile ? 'var(--ink2)' : 'white', border: bankFile ? '1px solid var(--border)' : 'none' }}
-            >
-              {bankFile ? '🔄 ถ่ายใหม่' : '📷 เปิดกล้อง'}
-            </button>
+            <input
+              ref={bankGalleryRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => { handlePhoto(e.target.files?.[0] || null, 'bank'); e.target.value = '' }}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                className="btn"
+                onClick={() => bankCameraRef.current?.click()}
+                style={{ flex: 1, background: bankFile ? 'var(--surface)' : 'var(--primary)', color: bankFile ? 'var(--ink2)' : 'white', border: bankFile ? '1px solid var(--border)' : 'none' }}
+              >
+                📷 {bankFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
+              </button>
+              <button
+                className="btn"
+                onClick={() => bankGalleryRef.current?.click()}
+                style={{ flex: 1, background: 'var(--surface)', color: 'var(--ink2)', border: '1px solid var(--border)' }}
+              >
+                🖼️ เลือกจากอัลบั้ม
+              </button>
+            </div>
 
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
               💡 ปิดเลขบัญชีได้ ขอแค่ <b>ชื่อ</b>เห็นชัด — ตรงกับบัตรประชาชน

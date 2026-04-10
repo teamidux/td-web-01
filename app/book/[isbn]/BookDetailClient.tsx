@@ -152,7 +152,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   // LINE ID จาก profile (ถ้ามี และต่างจาก contact field)
   const contactProfileLine = contactListing?.users?.line_id?.trim() || ''
   const profileLineInfo = contactProfileLine ? parseLineId(contactProfileLine) : null
-  const showProfileLine = !!profileLineInfo && profileLineInfo.raw !== contactLineInfo?.raw
+  // แสดง LINE ID จาก profile เสมอถ้ามี (แม้จะซ้ำกับ contact field — เพื่อให้มีปุ่ม Add LINE)
+  const showProfileLine = !!profileLineInfo
 
   const prices = listings.map(l => l.price)
   const minP = prices.length ? Math.min(...prices) : null
@@ -278,7 +279,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             {/* Profile LINE ID (รองจาก contact field) — แสดงถ้าต่างจาก contact ที่กรอก */}
             {showProfileLine && profileLineInfo && (
               <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE สำรอง (จากโปรไฟล์)</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ผู้ขาย</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', color: '#15803D' }}>{profileLineInfo.display}</div>
                   <button onClick={() => navigator.clipboard.writeText(profileLineInfo.raw).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: 'white', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 14px', color: '#15803D', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
@@ -427,7 +428,14 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
-                <button onClick={() => { setContactListing(l); setCopied(false) }} style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={() => {
+                  setContactListing(l); setCopied(false)
+                  fetch('/api/listings/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
+                  }).catch(() => {})
+                }} style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                   ติดต่อ
                 </button>
               </div>

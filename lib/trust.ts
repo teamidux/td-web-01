@@ -7,13 +7,12 @@
 //   4. id_verified    → users.id_verified_at is not null
 //   5. oa_friend      → users.line_oa_friend_at is not null
 //
-// Tier badge ตาม count completed:
-//   0: ไม่มี badge
-//   1: 🆕 ผู้ใช้ใหม่
-//   2: 🔰 มือใหม่
-//   3: ⭐ ผู้ใช้ทั่วไป (ฟ้าอ่อน)
-//   4: 🔵 Trusted (ฟ้าเข้ม)
-//   5: 🟢 Verified Pro ✨ (เขียว)
+// Tier badge ตามสิ่งที่ user ทำจริง:
+//   login อย่างเดียว          → 🆕 ผู้ใช้ใหม่
+//   + ใส่ LINE ID             → 👤 ผู้ใช้ทั่วไป
+//   + ยืนยันเบอร์โทร          → 📱 ยืนยันมือถือแล้ว
+//   + ยืนยันตัวตน (บัตร+บัญชี) → 🛡️ ลงทะเบียนแล้ว
+//   + ครบทุกอย่าง             → ✅ Verified Pro
 
 import type { User } from './supabase'
 
@@ -53,12 +52,12 @@ export type TrustScore = {
 }
 
 export const TRUST_TIERS: TrustTier[] = [
-  { level: 0, label: 'ผู้ใช้ใหม่',     shortLabel: 'ใหม่',     emoji: '🆕', color: '#94A3B8', bgColor: '#F1F5F9' },
-  { level: 1, label: 'มือใหม่',         shortLabel: 'มือใหม่', emoji: '🔰', color: '#64748B', bgColor: '#F1F5F9' },
-  { level: 2, label: 'ผู้ใช้ทั่วไป',    shortLabel: 'ทั่วไป',  emoji: '⭐', color: '#0891B2', bgColor: '#ECFEFF' },
-  { level: 3, label: 'ยืนยันแล้ว',      shortLabel: '✓ Verified', emoji: '✓', color: '#0369A1', bgColor: '#E0F2FE' },
-  { level: 4, label: 'Trusted Seller',  shortLabel: '🔵 Trusted', emoji: '🔵', color: '#1D4ED8', bgColor: '#DBEAFE' },
-  { level: 5, label: 'Verified Pro ✨', shortLabel: '🟢 Pro',  emoji: '🟢', color: '#15803D', bgColor: '#DCFCE7' },
+  { level: 0, label: 'ผู้ใช้ใหม่',        shortLabel: '🆕 ใหม่',          emoji: '🆕', color: '#94A3B8', bgColor: '#F1F5F9' },
+  { level: 1, label: 'ผู้ใช้ทั่วไป',       shortLabel: '👤 ทั่วไป',        emoji: '👤', color: '#64748B', bgColor: '#F1F5F9' },
+  { level: 2, label: 'ยืนยันมือถือแล้ว',    shortLabel: '📱 ยืนยันแล้ว',    emoji: '📱', color: '#0891B2', bgColor: '#ECFEFF' },
+  { level: 3, label: 'ลงทะเบียนแล้ว',      shortLabel: '🛡️ ลงทะเบียน',    emoji: '🛡️', color: '#0369A1', bgColor: '#E0F2FE' },
+  { level: 4, label: 'Trusted Seller',    shortLabel: '🔵 Trusted',       emoji: '🔵', color: '#1D4ED8', bgColor: '#DBEAFE' },
+  { level: 5, label: 'Verified Pro',      shortLabel: '✅ Verified Pro',   emoji: '✅', color: '#15803D', bgColor: '#DCFCE7' },
 ]
 
 /**
@@ -125,7 +124,17 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
 
   const count = items.filter(i => i.status === 'done').length
   const percent = Math.round((count / items.length) * 100)
-  const tier = TRUST_TIERS[Math.min(count, TRUST_TIERS.length - 1) as 0 | 1 | 2 | 3 | 4 | 5]
+
+  // Tier ตามสิ่งที่ user ทำจริง (ไม่ใช่แค่นับจำนวน)
+  const has = (key: TrustItemKey) => items.find(i => i.key === key)?.status === 'done'
+  let tierLevel: 0 | 1 | 2 | 3 | 4 | 5 = 0
+  if (has('login_line')) tierLevel = 0                          // แค่ login → ผู้ใช้ใหม่
+  if (has('login_line') && has('line_id')) tierLevel = 1        // + LINE ID → ผู้ใช้ทั่วไป
+  if (tierLevel >= 1 && has('phone_verified')) tierLevel = 2    // + เบอร์โทร → ยืนยันมือถือแล้ว
+  if (tierLevel >= 2 && has('id_verified')) tierLevel = 3       // + บัตร+บัญชี → ลงทะเบียนแล้ว
+  if (tierLevel >= 3 && has('oa_friend')) tierLevel = 4         // + OA friend → Trusted
+  if (count === 5) tierLevel = 5                                // ครบหมด → Verified Pro
+  const tier = TRUST_TIERS[tierLevel]
 
   return {
     count,
