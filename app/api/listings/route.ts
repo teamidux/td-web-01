@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const { data: ls, error } = await supabase
     .from('listings')
-    .select('*, users(id, display_name, sold_count, confirmed_count, is_verified, line_id, phone, seller_type, store_name, phone_verified_at, id_verified_at, line_oa_friend_at, avatar_url)')
+    .select('*, users(id, display_name, sold_count, confirmed_count, is_verified, seller_type, store_name, phone_verified_at, id_verified_at, line_oa_friend_at, avatar_url)')
     .eq('book_id', bookId)
     .eq('status', 'active')
     .order('price')
