@@ -106,9 +106,9 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
     icon: '🪪',
   })
 
-  const doneCount = (hasLineId ? 1 : 0) + (hasPhone ? 1 : 0) + (hasId ? 1 : 0)
-  const total = 3
-  const percent = Math.round((doneCount / total) * 100)
+  const doneCount = items.filter(i => i.status === 'done').length
+  const total = items.length
+  const percent = total > 0 ? Math.round((doneCount / total) * 100) : 100
 
   // Tier ตามสิ่งที่ user ทำจริง
   let tierLevel: 0 | 1 | 2 | 3 | 4 | 5 = 0
