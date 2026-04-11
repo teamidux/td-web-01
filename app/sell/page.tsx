@@ -362,32 +362,37 @@ function SellPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 18, padding: '28px 22px', width: '100%', maxWidth: 360, textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>ลงขายสำเร็จแล้ว!</div>
-            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 20 }}>
-              เพิ่มความน่าเชื่อถือเพื่อให้ลูกค้ามั่นใจ<br />และติดต่อคุณได้เร็วขึ้น
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 19, fontWeight: 700, marginBottom: 8 }}>
+              หนังสือของคุณขึ้นระบบแล้ว!
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, textAlign: 'left' }}>
-              {showVerifyPrompt.needsLineId && (
-                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#991B1B', lineHeight: 1.5 }}>
-                  <b>⚠️ ยังไม่มี LINE ID</b> — ลูกค้าจะติดต่อคุณไม่ได้เลย
+            {showVerifyPrompt.needsLineId ? (
+              // เคสร้ายแรง: ไม่มี LINE ID → ลูกค้าติดต่อไม่ได้เลย
+              <>
+                <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#991B1B', marginBottom: 4 }}>⚠️ ยังไม่มี LINE ID</div>
+                  <div style={{ fontSize: 13, color: '#7F1D1D', lineHeight: 1.6 }}>
+                    ลูกค้าจะติดต่อคุณไม่ได้เลย — กรุณาเพิ่ม LINE ID ในโปรไฟล์ก่อน
+                  </div>
                 </div>
-              )}
-              {showVerifyPrompt.needsPhone && (
-                <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#0369A1', lineHeight: 1.5 }}>
-                  📱 <b>ยืนยันเบอร์โทร</b> — ได้ป้าย "ลงทะเบียนแล้ว"
+                <button className="btn" onClick={() => { router.push('/profile') }} style={{ marginBottom: 8, background: '#DC2626' }}>
+                  เพิ่ม LINE ID เลย
+                </button>
+              </>
+            ) : (
+              // เคสชวนยืนยันเบอร์ (copy B)
+              <>
+                <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.75, marginBottom: 18 }}>
+                  อีกขั้นเดียว — <b>ยืนยันเบอร์โทร</b><br />
+                  เพื่อให้ได้ป้าย 📱 <b>ลงทะเบียนแล้ว</b><br />
+                  <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ลูกค้าที่เห็นป้ายนี้จะกล้าสั่งซื้อจากคุณเยอะกว่า</span>
                 </div>
-              )}
-              {showVerifyPrompt.needsId && (
-                <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-                  🪪 <b>ยืนยันตัวตน</b> — ได้ป้าย "🛡️ Verified Seller"
-                </div>
-              )}
-            </div>
+                <button className="btn" onClick={() => { router.push('/profile') }} style={{ marginBottom: 8 }}>
+                  ยืนยันเบอร์โทร
+                </button>
+              </>
+            )}
 
-            <button className="btn" onClick={() => { router.push('/profile') }} style={{ marginBottom: 8 }}>
-              ไปลงทะเบียนเลย
-            </button>
             <button
               className="btn btn-ghost"
               onClick={() => { setShowVerifyPrompt(null); router.push(`/book/${showVerifyPrompt.isbn}`) }}

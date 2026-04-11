@@ -31,9 +31,10 @@ export async function GET(req: NextRequest) {
     redirect_uri: redirectUri,
     state,
     scope: 'profile openid',
-    // Note: ไม่ใส่ bot_prompt ที่นี่ — Add OA prompt จะถูกแสดงในหน้า /wanted
-    // เพราะ user ที่อยาก notification คือ "ผู้ซื้อ" (ใช้ wanted list)
-    // ไม่ใช่ผู้ขายที่แค่ login มาประกาศ → แสดง prompt ตอน login = annoy คนผิด context
+    // aggressive: โชว์ checkbox "Add @BookMatch เป็นเพื่อน" บนหน้า LINE consent
+    // pre-checked → user กดยืนยัน login ก็ add OA ให้เลย → notification ใช้งานได้ทันที
+    // ทั้งผู้ซื้อ (รับแจ้ง wanted-match) และ seller (รับแจ้งมีคนติดต่อ) ต้องการ OA เท่ากัน
+    bot_prompt: 'aggressive',
   })
   const lineUrl = `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`
   return NextResponse.redirect(lineUrl)

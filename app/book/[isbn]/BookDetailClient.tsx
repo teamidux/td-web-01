@@ -23,6 +23,18 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
   useEffect(() => { loadData() }, [isbn])
 
+  // หลัง login กลับมาพร้อม ?action=wanted → เปิดฟอร์มตามหาอัตโนมัติ
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!user || !book || isWanted) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('action') === 'wanted') {
+      setShowWantedForm(true)
+      // ล้าง query string ออก ไม่ให้ refresh แล้วเด้งซ้ำ
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [user, book, isWanted])
+
   // Auto-save book + increment view_count ทุกครั้งที่เปิดหน้า detail
   // (ครั้งแรก = insert, ครั้งต่อไป = increment)
   useEffect(() => {
@@ -112,7 +124,9 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
   const toggleWanted = async () => {
     if (!user) {
-      loginWithLine(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')
+      // ติด action=wanted ไปใน next URL → หลัง login กลับมา auto เปิดฟอร์มตามหา
+      const next = typeof window !== 'undefined' ? `${window.location.pathname}?action=wanted` : '/'
+      loginWithLine(next)
       return
     }
     if (isWanted && book?.id) {
