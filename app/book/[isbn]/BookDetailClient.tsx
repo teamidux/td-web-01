@@ -346,11 +346,11 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             <div style={{ fontSize: 12, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 12 }}>ISBN: {isbn}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
-                {isWanted ? '🔔 กำลังตามหา' : '🔔 ตามหาเล่มนี้'}
+                {isWanted ? '✕ เลิกตามหา' : '🔔 ตามหาเล่มนี้'}
               </button>
               <Link href={`/sell?isbn=${isbn}`}>
-                <button style={{ background: 'white', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: 'var(--primary)', cursor: 'pointer' }}>
-                  ขายเล่มนี้
+                <button style={{ background: '#16A34A', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,.3)' }}>
+                  💰 ขายเล่มนี้
                 </button>
               </Link>
             </div>

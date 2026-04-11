@@ -439,10 +439,10 @@ export function PhoneVerifyModal({
         <Toast msg={msg} />
 
         <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 6 }}>
-          📱 ยืนยันเบอร์มือถือ
+          📱 ยืนยันเบอร์มือถือ <span style={{ fontSize: 14, fontWeight: 600, color: '#16A34A' }}>(ทำครั้งเดียว จบตลอดไป)</span>
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 22 }}>
-          ผู้ขายทุกคนต้องยืนยันเบอร์มือถือเพื่อความปลอดภัยของผู้ซื้อ — ทำครั้งเดียวตลอดอายุบัญชี
+          เพื่อความปลอดภัยของผู้ซื้อ — ยืนยันแล้วไม่ต้องทำซ้ำอีก
         </div>
 
         {step === 'phone' && (

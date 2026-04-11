@@ -20,8 +20,14 @@ type DashData = {
   }
 }
 
+type NotifStats = {
+  sms: { today: number; month: number; cost_baht: string }
+  line: { push_today: number; push_yesterday: number; reply_today: number; reply_yesterday: number; month_total: number | null; month_quota: number | null; quota_type: string | null }
+}
+
 export default function AdminPage() {
   const [data, setData] = useState<DashData | null>(null)
+  const [notif, setNotif] = useState<NotifStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -29,6 +35,10 @@ export default function AdminPage() {
       .then(r => r.json())
       .then(d => { if (!d.error) setData(d) })
       .finally(() => setLoading(false))
+    fetch('/api/tomga/notification-stats')
+      .then(r => r.json())
+      .then(d => { if (!d.error) setNotif(d) })
+      .catch(() => {})
   }, [])
 
   const menus = [
@@ -169,6 +179,69 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {/* Notification usage — คุมต้นทุน SMS + LINE */}
+            {notif && (
+              <div style={{ marginBottom: 36 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>การใช้งาน Notification</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                  {/* SMS */}
+                  <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 16, padding: '22px 24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <span style={{ fontSize: 22 }}>📱</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>SMS OTP</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94A3B8', background: '#F1F5F9', borderRadius: 6, padding: '2px 8px' }}>thaibulksms</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>วันนี้</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{notif.sms.today}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>เดือนนี้</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{notif.sms.month}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1F5F9', fontSize: 13, color: '#64748B' }}>
+                      ต้นทุนเดือนนี้ ~<b style={{ color: '#DC2626' }}>฿{notif.sms.cost_baht}</b> <span style={{ fontSize: 11, color: '#CBD5E1' }}>(ประมาณ ฿0.40/ข้อความ)</span>
+                    </div>
+                  </div>
+
+                  {/* LINE */}
+                  <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 16, padding: '22px 24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <span style={{ fontSize: 22 }}>💬</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>LINE Messaging</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: '#16A34A', background: '#DCFCE7', borderRadius: 6, padding: '2px 8px' }}>ฟรี</span>
+                    </div>
+                    {notif.line.month_total !== null && notif.line.month_quota !== null ? (
+                      <>
+                        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>ส่งเดือนนี้ / quota</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', lineHeight: 1, marginBottom: 8 }}>
+                          {notif.line.month_total} <span style={{ fontSize: 16, color: '#94A3B8', fontWeight: 600 }}>/ {notif.line.quota_type === 'none' ? '∞' : notif.line.month_quota}</span>
+                        </div>
+                        {notif.line.quota_type !== 'none' && (
+                          <div style={{ height: 6, background: '#F1F5F9', borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${Math.min(100, (notif.line.month_total / notif.line.month_quota) * 100)}%`,
+                              background: notif.line.month_total / notif.line.month_quota > 0.8 ? '#DC2626' : notif.line.month_total / notif.line.month_quota > 0.5 ? '#D97706' : '#16A34A',
+                              transition: 'width .5s',
+                            }} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>ดึง quota จาก LINE API ไม่สำเร็จ — เช็ค LINE_OA_CHANNEL_ACCESS_TOKEN</div>
+                    )}
+                    <div style={{ paddingTop: 12, borderTop: '1px solid #F1F5F9', fontSize: 12, color: '#64748B', display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                      <span>Push เมื่อวาน: <b>{notif.line.push_yesterday}</b></span>
+                      <span>Reply เมื่อวาน: <b>{notif.line.reply_yesterday}</b></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Recent activity */}
             <div style={{ marginBottom: 36 }}>
