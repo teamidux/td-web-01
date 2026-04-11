@@ -42,18 +42,34 @@ export async function POST(req: NextRequest) {
 
     const userIds = wanted.map(w => w.user_id)
 
-    // ดึง line_user_id ของคนที่ add OA แล้ว
+    // ดึงเฉพาะคนที่ add OA แล้ว (ไม่งั้นส่งไปก็ fail + เสียเครดิต)
+    // ต้องมีทั้ง line_user_id + line_oa_friend_at
     const { data: users } = await sb
       .from('users')
       .select('id, display_name, line_user_id')
       .in('id', userIds)
       .not('line_user_id', 'is', null)
+      .not('line_oa_friend_at', 'is', null)
 
     let sent = 0
+    const notifiedUserIds: string[] = []
     for (const u of users || []) {
       const msg = `📚 หนังสือที่คุณตามหามีคนลงขายแล้ว!\n\n"${book.title}"\nราคา ฿${price || '—'}\n\nดูรายละเอียด:\nbookmatch.app/book/${bookIsbn}`
       const result = await pushLineText(u.line_user_id, msg)
-      if (result.success) sent++
+      if (result.success) {
+        sent++
+        notifiedUserIds.push(u.id)
+      }
+    }
+
+    // ลบ wanted row ของคนที่แจ้งเตือนสำเร็จ — กัน spam ข้อความซ้ำ
+    // ถ้า user ดูแล้วไม่ถูกใจ seller → ไปกด "🔔 ตามหาเล่มนี้" ใหม่ที่หน้า book ได้
+    if (notifiedUserIds.length) {
+      await sb
+        .from('wanted')
+        .delete()
+        .eq('book_id', book_id)
+        .in('user_id', notifiedUserIds)
     }
 
     return NextResponse.json({ ok: true, sent, total_wanted: wanted.length })
