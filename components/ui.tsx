@@ -936,15 +936,30 @@ export function TrustBadge({ user, size = 'sm' }: { user: any; size?: 'sm' | 'md
       badges.push(pill(t.bgColor, t.color, iconOnly ? '🪪' : t.shortLabel, t.label, 'id'))
     }
     if (hasBoth) {
+      // Verified Seller — แสดงเต็ม ไม่ใช่แค่ icon (badge ระดับสูงสุด ควรเด่น)
       const t = TRUST_TIERS.verified
       badges.push(
-        pill(
-          t.bgColor,
-          t.color,
-          <ShieldIcon size={shieldSize} color={t.color} />,
-          'Verified Seller',
-          'verified'
-        )
+        <span
+          key="verified"
+          title={t.label}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            background: t.bgColor,
+            color: t.color,
+            borderRadius: 999,
+            padding: size === 'lg' ? '6px 14px' : '4px 12px',
+            fontSize: size === 'lg' ? 13 : 12,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            lineHeight: 1,
+            height: iconOnly ? pillSize : 'auto',
+          }}
+        >
+          <ShieldIcon size={shieldSize} color={t.color} />
+          Verified Seller
+        </span>
       )
     }
   }
