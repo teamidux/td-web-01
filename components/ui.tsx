@@ -385,7 +385,10 @@ export function LoginModal({
   )
 }
 
-// Phone OTP verification modal — ใช้ตอน user กดลงประกาศครั้งแรก
+// Phone OTP verification modal — Firebase Phone Auth flow
+// 1. signInWithPhoneNumber(recaptcha) → Google ส่ง SMS
+// 2. user ใส่ code → confirmationResult.confirm(code) → ได้ Firebase user
+// 3. getIdToken() → ส่งไป /api/verify/phone/firebase-confirm → server update DB
 export function PhoneVerifyModal({
   onClose,
   onDone,
@@ -400,12 +403,21 @@ export function PhoneVerifyModal({
   const [cooldown, setCooldown] = useState(0)
   const { msg, show } = useToast()
   const { reloadUser } = useAuth()
+  const confirmationRef = useRef<any>(null)
+  const recaptchaRef = useRef<any>(null)
 
   useEffect(() => {
     if (cooldown <= 0) return
     const t = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000)
     return () => clearInterval(t)
   }, [cooldown])
+
+  // Cleanup reCAPTCHA on unmount
+  useEffect(() => {
+    return () => {
+      try { recaptchaRef.current?.clear() } catch {}
+    }
+  }, [])
 
   const formatPhone = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 10)
@@ -419,22 +431,37 @@ export function PhoneVerifyModal({
     if (!/^0\d{9}$/.test(cleaned)) { show('กรุณากรอกเบอร์ 10 หลัก ขึ้นต้น 0'); return }
     setLoading(true)
     try {
-      const r = await fetch('/api/verify/phone/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleaned }),
-      })
-      const data = await r.json()
-      if (!r.ok) {
-        if (data.error === 'phone_in_use') show('เบอร์นี้ถูกใช้แล้วโดยบัญชีอื่น')
-        else if (data.error === 'rate_limited') show('โปรดรอ 1 นาทีก่อนขอ OTP ใหม่')
-        else if (data.error === 'sms_failed') show('ส่ง SMS ไม่สำเร็จ ลองใหม่')
-        else show('เกิดข้อผิดพลาด ลองใหม่')
-      } else {
-        setStep('code')
-        setCooldown(60)
-        show('ส่งรหัส OTP แล้ว ตรวจ SMS')
+      // Dynamic import — firebase SDK เฉพาะ client
+      const [{ getFirebaseAuth }, { RecaptchaVerifier, signInWithPhoneNumber }] = await Promise.all([
+        import('@/lib/firebase-client'),
+        import('firebase/auth'),
+      ])
+      const auth = getFirebaseAuth()
+
+      // Reuse reCAPTCHA หรือสร้างใหม่ถ้าไม่มี
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, 'bm-recaptcha-container', {
+          size: 'invisible',
+        })
       }
+
+      // E.164 format: 08xxxxxxxx → +66xxxxxxxxx
+      const e164 = '+66' + cleaned.slice(1)
+      const result = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
+      confirmationRef.current = result
+
+      setStep('code')
+      setCooldown(60)
+      show('ส่งรหัส OTP แล้ว ตรวจ SMS')
+    } catch (e: any) {
+      console.warn('[firebase phone]', e?.code, e?.message)
+      if (e?.code === 'auth/invalid-phone-number') show('เบอร์ไม่ถูกต้อง')
+      else if (e?.code === 'auth/too-many-requests') show('ขอ OTP บ่อยเกินไป โปรดลองใหม่ภายหลัง')
+      else if (e?.code === 'auth/quota-exceeded') show('ระบบใช้งานเต็ม ลองใหม่พรุ่งนี้')
+      else show('ส่ง OTP ไม่สำเร็จ ลองใหม่')
+      // Reset reCAPTCHA หลัง error
+      try { recaptchaRef.current?.clear() } catch {}
+      recaptchaRef.current = null
     } finally {
       setLoading(false)
     }
@@ -442,24 +469,35 @@ export function PhoneVerifyModal({
 
   const confirmOtp = async () => {
     if (!/^\d{6}$/.test(code)) { show('กรอก OTP 6 หลัก'); return }
+    if (!confirmationRef.current) { show('ขอ OTP ใหม่'); setStep('phone'); return }
     setLoading(true)
     try {
-      const r = await fetch('/api/verify/phone/confirm', {
+      // Confirm OTP ผ่าน Firebase
+      const result = await confirmationRef.current.confirm(code)
+      const idToken = await result.user.getIdToken()
+
+      // ส่ง ID token ไป backend verify + บันทึก DB
+      const r = await fetch('/api/verify/phone/firebase-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ idToken }),
       })
       const data = await r.json()
       if (!r.ok) {
-        if (data.error === 'wrong_code') show(`รหัสไม่ถูกต้อง (เหลือ ${data.attempts_left ?? 0} ครั้ง)`)
-        else if (data.error === 'too_many_attempts') show('ผิดเกินที่กำหนด ขอ OTP ใหม่')
-        else if (data.error === 'no_active_otp') show('OTP หมดอายุ ขอใหม่')
-        else show('ยืนยันไม่สำเร็จ')
-      } else {
-        show('ยืนยันเบอร์เรียบร้อย ✓')
-        await reloadUser()
-        setTimeout(() => onDone(), 600)
+        if (data.error === 'phone_in_use') show('เบอร์นี้ถูกใช้แล้วโดยบัญชีอื่น')
+        else if (data.error === 'already_verified') show('เบอร์นี้ยืนยันแล้ว')
+        else show('บันทึกไม่สำเร็จ: ' + (data.error || 'unknown'))
+        return
       }
+
+      show('ยืนยันเบอร์เรียบร้อย ✓')
+      await reloadUser()
+      setTimeout(() => onDone(), 600)
+    } catch (e: any) {
+      console.warn('[firebase confirm]', e?.code, e?.message)
+      if (e?.code === 'auth/invalid-verification-code') show('รหัสไม่ถูกต้อง')
+      else if (e?.code === 'auth/code-expired') show('รหัสหมดอายุ ขอใหม่')
+      else show('ยืนยันไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -535,6 +573,9 @@ export function PhoneVerifyModal({
         <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={onClose}>
           ยกเลิก
         </button>
+
+        {/* reCAPTCHA container — invisible, Firebase ต้องมี element นี้แม้จะไม่เห็น */}
+        <div id="bm-recaptcha-container" />
       </div>
     </div>
   )
