@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { User } from './supabase'
 
 type AuthCtx = {
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthCtx>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   const reloadUser = useCallback(async () => {
     try {
@@ -55,24 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // อัปเดต local state เท่านั้น (ใช้หลัง API อื่นเปลี่ยน DB แล้ว)
-  const syncUser = (data: Partial<User>) => {
-    if (!user) return
-    setUser({ ...user, ...data })
-  }
+  // Functional setState กัน stale closure — ไม่ reference `user` ตอน render
+  const syncUser = useCallback((data: Partial<User>) => {
+    setUser(u => u ? { ...u, ...data } : null)
+    router.refresh() // force re-fetch server component data
+  }, [router])
 
-  const updateUser = async (data: Partial<User>) => {
-    if (!user) return
+  const updateUser = useCallback(async (data: Partial<User>) => {
+    const currentUser = user
+    if (!currentUser) return
     const res = await fetch('/api/user/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, data }),
+      body: JSON.stringify({ userId: currentUser.id, data }),
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.error || 'บันทึกไม่สำเร็จ')
     }
-    setUser({ ...user, ...data })
-  }
+    setUser(u => u ? { ...u, ...data } : null)
+    router.refresh()
+  }, [user, router])
 
   return (
     <AuthContext.Provider value={{ user, loading, loginWithLine, logout, reloadUser, updateUser, syncUser }}>

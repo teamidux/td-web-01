@@ -170,7 +170,8 @@ export async function POST(req: NextRequest) {
   if (!userId || !['ban', 'unban', 'soft_delete', 'delete_avatar', 'reset_verify'].includes(action)) {
     return NextResponse.json({ error: 'invalid params' }, { status: 400 })
   }
-  if (userId === adminId) {
+  // Block self-action ยกเว้น reset_verify (อนุญาตให้ admin reset ตัวเองเพื่อ test)
+  if (userId === adminId && action !== 'reset_verify') {
     return NextResponse.json({ error: 'ห้าม action ตัวเอง' }, { status: 400 })
   }
 

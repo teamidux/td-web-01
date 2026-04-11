@@ -45,13 +45,17 @@ export function Nav() {
   return (
     <nav className="nav">
       <Link href="/" className="nav-logo">Book<span>Match</span></Link>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Link href="/sell">
-          <button className="btn btn-sm" style={{ width: 'auto', minWidth: 90, visibility: loading ? 'hidden' : 'visible' }}>
-            {user ? '+ ลงขาย' : 'เข้าสู่ระบบ / ลงขาย'}
-          </button>
-        </Link>
-      </div>
+      {/* ปุ่มลงขายบน Nav — เอาออกแล้ว user ใช้ FAB/BottomNav แทน
+          ถ้ายังไม่ login โชว์เฉพาะปุ่ม login */}
+      {!loading && !user && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/sell">
+            <button className="btn btn-sm" style={{ width: 'auto', minWidth: 90 }}>
+              เข้าสู่ระบบ
+            </button>
+          </Link>
+        </div>
+      )}
     </nav>
   )
 }

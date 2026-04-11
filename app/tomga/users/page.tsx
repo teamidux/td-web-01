@@ -69,11 +69,16 @@ function AdminUsersPage() {
   const doAction = async (userId: string, action: 'ban' | 'unban' | 'soft_delete' | 'delete_avatar' | 'reset_verify', reason?: string) => {
     setActing(userId)
     try {
-      await fetch('/api/tomga/users', {
+      const res = await fetch('/api/tomga/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action, reason }),
       })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert('ไม่สำเร็จ: ' + (d.error || `HTTP ${res.status}`))
+        return
+      }
       setActionTarget(null)
       setActionReason('')
       await load()

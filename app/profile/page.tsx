@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, Listing } from '@/lib/supabase'
@@ -60,6 +60,56 @@ export default function ProfilePage() {
 
   const [editLineId, setEditLineId] = useState('')
   const [editLineError, setEditLineError] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  // Compress + resize image → max 400×400, <100KB
+  const compressAvatar = (file: File): Promise<File> => {
+    return new Promise(resolve => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const canvas = document.createElement('canvas')
+        const MAX = 400
+        let { width, height } = img
+        // Crop to square center
+        const minSide = Math.min(width, height)
+        const sx = (width - minSide) / 2
+        const sy = (height - minSide) / 2
+        canvas.width = MAX
+        canvas.height = MAX
+        canvas.getContext('2d')!.drawImage(img, sx, sy, minSide, minSide, 0, 0, MAX, MAX)
+        canvas.toBlob(blob => {
+          if (!blob) { resolve(file); return }
+          resolve(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }))
+        }, 'image/jpeg', 0.8)
+      }
+      img.onerror = () => resolve(file)
+      img.src = url
+    })
+  }
+
+  const uploadAvatar = async (file: File) => {
+    if (!user) return
+    setUploadingAvatar(true)
+    try {
+      const compressed = await compressAvatar(file)
+      const path = `avatars/${user.id}/${Date.now()}.jpg`
+      const { error: upErr } = await supabase.storage
+        .from('listing-photos')
+        .upload(path, compressed, { contentType: 'image/jpeg', upsert: false })
+      if (upErr) { show('อัปโหลดไม่สำเร็จ: ' + upErr.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(path)
+      // Update users table directly (service role ไม่ต้อง — anon key + RLS)
+      const { error: updErr } = await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id)
+      if (updErr) { show('บันทึกไม่สำเร็จ: ' + updErr.message); return }
+      syncUser({ avatar_url: publicUrl })
+      show('เปลี่ยนรูป profile แล้ว')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const startEdit = () => {
     setEditName(user?.display_name || '')
@@ -138,6 +188,7 @@ export default function ProfilePage() {
       .from('listings')
       .select('*, books(isbn, title, author, cover_url, view_count)')
       .eq('seller_id', user.id)
+      .neq('status', 'removed')
       .order('created_at', { ascending: false })
     setListings(data || [])
   }
@@ -403,7 +454,11 @@ export default function ProfilePage() {
 
       <div className="page">
         <div style={{ background: 'var(--primary)', padding: '24px 16px', display: 'flex', gap: 14, alignItems: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)', overflow: 'hidden', flexShrink: 0 }}>
+          <div
+            onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+            style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)', overflow: 'hidden', flexShrink: 0, cursor: 'pointer', position: 'relative' }}
+            title="คลิกเพื่อเปลี่ยนรูป"
+          >
             {user.avatar_url ? (
               <img
                 src={user.avatar_url}
@@ -414,7 +469,27 @@ export default function ProfilePage() {
             ) : (
               user.seller_type === 'store' ? '🏪' : '👤'
             )}
+            {uploadingAvatar && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="spin" style={{ width: 20, height: 20, borderColor: 'white', borderTopColor: 'transparent' }} />
+              </div>
+            )}
+            {/* Camera badge corner */}
+            <div style={{ position: 'absolute', bottom: -2, right: -2, background: 'white', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, border: '1.5px solid var(--primary)' }}>
+              📷
+            </div>
           </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={e => {
+              const f = e.target.files?.[0]
+              if (f) uploadAvatar(f)
+              e.target.value = '' // reset so same file can be selected again
+            }}
+          />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, color: 'white', marginBottom: 3 }}>
               {user.seller_type === 'store' && user.store_name ? user.store_name : user.display_name}
@@ -507,7 +582,7 @@ export default function ProfilePage() {
 
           {active.length === 0 && !query && (
             <div className="empty">
-              <div className="empty-icon">📭</div>
+              <div className="empty-icon">📚</div>
               <div style={{ marginBottom: 12 }}>ยังไม่มีหนังสือที่ลงขาย</div>
               <Link href="/sell"><button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ลงขายเลย</button></Link>
             </div>
@@ -569,13 +644,7 @@ export default function ProfilePage() {
         )}
 
         <div className="section" style={{ marginTop: 12 }}>
-          <Link href="/wanted" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 20 }}>🔔</span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600 }}>รายการที่คุณตามหา</div></div>
-              <span style={{ color: 'var(--ink3)' }}>›</span>
-            </div>
-          </Link>
+          {/* "รายการที่คุณตามหา" ตัดออก — BottomNav มี 🔔 ตามหา อยู่แล้ว */}
           <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => setShowContact(true)}>
             <span style={{ fontSize: 20 }}>💬</span>
             <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600 }}>ติดต่อเรา / แจ้งปัญหา</div></div>
