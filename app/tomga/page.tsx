@@ -34,6 +34,7 @@ export default function AdminPage() {
   const menus = [
     { href: '/tomga/verify', icon: '🪪', title: 'ตรวจยืนยันตัวตน', desc: 'อนุมัติ/ปฏิเสธ เอกสาร', badge: data?.pendingVerify },
     { href: '/tomga/users', icon: '👥', title: 'จัดการ User', desc: data?.suspiciousUsers ? `🚩 ${data.suspiciousUsers} น่าสงสัย · ${data.bannedUsers || 0} banned` : 'Ban, soft delete, ระบบ detect พฤติกรรมน่าสงสัย', badge: data?.suspiciousUsers || 0 },
+    { href: '/tomga/books', icon: '📖', title: 'จัดการข้อมูลหนังสือ', desc: 'แก้ชื่อ, ผู้แต่ง, รูปปก, รายละเอียด', badge: 0 },
     { href: '/tomga/messages', icon: '💬', title: 'ข้อความ & รายงาน', desc: 'ข้อความจากสมาชิก + รายงานโกง', badge: 0 },
     { href: '/tomga/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้าฐานข้อมูล', badge: 0 },
   ]
