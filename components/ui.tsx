@@ -455,10 +455,16 @@ export function PhoneVerifyModal({
       show('ส่งรหัส OTP แล้ว ตรวจ SMS')
     } catch (e: any) {
       console.warn('[firebase phone]', e?.code, e?.message)
-      if (e?.code === 'auth/invalid-phone-number') show('เบอร์ไม่ถูกต้อง')
-      else if (e?.code === 'auth/too-many-requests') show('ขอ OTP บ่อยเกินไป โปรดลองใหม่ภายหลัง')
-      else if (e?.code === 'auth/quota-exceeded') show('ระบบใช้งานเต็ม ลองใหม่พรุ่งนี้')
-      else show('ส่ง OTP ไม่สำเร็จ ลองใหม่')
+      // Show exact error code บนจอ เพื่อ debug ง่ายขึ้น
+      const code = e?.code || 'unknown'
+      if (code === 'auth/invalid-phone-number') show('เบอร์ไม่ถูกต้อง')
+      else if (code === 'auth/too-many-requests') show('ขอ OTP บ่อยเกินไป โปรดลองใหม่ภายหลัง')
+      else if (code === 'auth/quota-exceeded') show('ระบบใช้งานเต็ม ลองใหม่พรุ่งนี้')
+      else if (code === 'auth/unauthorized-domain') show('❌ Domain ไม่ได้ authorize ใน Firebase Console')
+      else if (code === 'auth/billing-not-enabled') show('❌ Firebase ต้อง upgrade เป็น Blaze plan')
+      else if (code === 'auth/captcha-check-failed') show('❌ reCAPTCHA fail — refresh หน้าแล้วลองใหม่')
+      else if (code === 'auth/operation-not-allowed') show('❌ Phone provider ไม่ได้เปิด ใน Firebase Authentication')
+      else show(`❌ ${code}: ${(e?.message || '').slice(0, 80)}`)
       // Reset reCAPTCHA หลัง error
       try { recaptchaRef.current?.clear() } catch {}
       recaptchaRef.current = null
