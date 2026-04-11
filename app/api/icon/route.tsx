@@ -10,8 +10,8 @@ export const runtime = 'nodejs'
 export async function GET(req: NextRequest) {
   const size = Number(req.nextUrl.searchParams.get('size') || 192)
 
-  // Load logo2 (square 1080×1080 — เหมาะกับ icon)
-  const logoPath = path.join(process.cwd(), 'public', 'logo2.png')
+  // Load bookmatch.png (square 1080×1080 — เหมาะกับ icon)
+  const logoPath = path.join(process.cwd(), 'public', 'bookmatch.png')
   const logoBuffer = await fs.readFile(logoPath).catch(() => null)
   const logoDataUri = logoBuffer
     ? `data:image/png;base64,${logoBuffer.toString('base64')}`
