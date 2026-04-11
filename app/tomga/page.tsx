@@ -11,6 +11,8 @@ type DashData = {
     wanted: { today: number; d7: number }
   }
   pendingVerify: number
+  suspiciousUsers: number
+  bannedUsers: number
   recent: {
     contacts: any[]
     listings: any[]
@@ -31,6 +33,7 @@ export default function AdminPage() {
 
   const menus = [
     { href: '/tomga/verify', icon: '🪪', title: 'ตรวจยืนยันตัวตน', desc: 'อนุมัติ/ปฏิเสธ เอกสาร', badge: data?.pendingVerify },
+    { href: '/tomga/users', icon: '👥', title: 'จัดการ User', desc: data?.suspiciousUsers ? `🚩 ${data.suspiciousUsers} น่าสงสัย · ${data.bannedUsers || 0} banned` : 'Ban, soft delete, ระบบ detect พฤติกรรมน่าสงสัย', badge: data?.suspiciousUsers || 0 },
     { href: '/tomga/messages', icon: '💬', title: 'ข้อความ & รายงาน', desc: 'ข้อความจากสมาชิก + รายงานโกง', badge: 0 },
     { href: '/tomga/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้าฐานข้อมูล', badge: 0 },
   ]
@@ -140,6 +143,8 @@ export default function AdminPage() {
                 { label: 'สมาชิกใหม่', today: data.northStar.users.today, d7: data.northStar.users.d7, total: data.totals.users, icon: '👤', color: '#7C3AED' },
                 { label: 'ตามหาใหม่', today: data.northStar.wanted.today, d7: data.northStar.wanted.d7, total: data.totals.activeWanted, icon: '🔔', color: '#D97706' },
                 { label: 'หนังสือในระบบ', today: null, d7: null, total: data.totals.books, icon: '📚', color: '#059669' },
+                { label: 'User น่าสงสัย', today: null, d7: null, total: data.suspiciousUsers, icon: '🚩', color: '#DC2626' },
+                { label: 'User ถูก Ban', today: null, d7: null, total: data.bannedUsers, icon: '🛑', color: '#991B1B' },
               ].map((m, i) => (
                 <div key={i} style={{
                   background: 'white',

@@ -47,7 +47,11 @@ export async function getSessionUser(): Promise<any | null> {
     .eq('token', token)
     .maybeSingle()
   if (!session || new Date(session.expires_at) < new Date()) return null
-  return (session as any).users || null
+  const u = (session as any).users
+  if (!u) return null
+  // Banned หรือ soft-deleted → ถือว่าไม่มี session
+  if (u.banned_at || u.deleted_at) return null
+  return u
 }
 
 export async function destroySession(): Promise<void> {
