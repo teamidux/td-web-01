@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth'
-import { computeTrustScore, type TrustItemKey, type TrustItem } from '@/lib/trust'
+import { computeTrustScore, TRUST_TIERS, type TrustItemKey, type TrustItem } from '@/lib/trust'
 
 // resize รูปก่อนส่ง barcode scan — แก้ปัญหา iPhone (EXIF rotation + ภาพใหญ่เกิน / HEIC)
 export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
