@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 type U = {
   id: string
@@ -28,8 +29,18 @@ const FLAG_META: Record<string, { icon: string; label: string; color: string; bg
   reported: { icon: '⚠️', label: 'ถูกรายงาน', color: '#BE185D', bg: '#FCE7F3' },
 }
 
-export default function AdminUsersPage() {
-  const [tab, setTab] = useState<'all' | 'suspicious' | 'banned' | 'deleted'>('all')
+export default function AdminUsersPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 60, textAlign: 'center', color: '#94A3B8' }}>Loading...</div>}>
+      <AdminUsersPage />
+    </Suspense>
+  )
+}
+
+function AdminUsersPage() {
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get('tab') as 'all' | 'suspicious' | 'banned' | 'deleted') || 'all'
+  const [tab, setTab] = useState<'all' | 'suspicious' | 'banned' | 'deleted'>(initialTab)
   const [q, setQ] = useState('')
   const [users, setUsers] = useState<U[]>([])
   const [stats, setStats] = useState<Stats>({ all: 0, suspicious: 0, banned: 0 })
@@ -74,14 +85,6 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      {/* Admin Nav */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #E2E8F0', marginBottom: 8 }}>
-        <Link href="/tomga" style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
-          BookMatch <span style={{ fontSize: 14, color: '#94A3B8', fontWeight: 500 }}>Admin</span>
-        </Link>
-        <Link href="/tomga" style={{ fontSize: 15, color: '#64748B', textDecoration: 'none', fontFamily: 'Kanit' }}>← Dashboard</Link>
-      </nav>
-
       <div style={{ padding: '24px 0 80px' }}>
         <h1 style={{ fontFamily: "'Kanit', sans-serif", fontSize: 28, fontWeight: 800, color: '#0F172A', margin: 0, marginBottom: 6 }}>
           จัดการ User

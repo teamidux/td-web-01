@@ -40,6 +40,8 @@ export async function GET() {
     { count: wanted7d },
     { count: pendingVerify },
     { count: bannedCount },
+    { count: unreadMessages },
+    { count: pendingReports },
     { data: recentContacts },
     { data: recentListings },
     { data: recentUsers },
@@ -66,6 +68,10 @@ export async function GET() {
     sb.from('users').select('*', { count: 'exact', head: true }).not('id_verify_submitted_at', 'is', null).is('id_verified_at', null),
     // Banned users
     sb.from('users').select('*', { count: 'exact', head: true }).not('banned_at', 'is', null),
+    // Unread messages
+    sb.from('contact_messages').select('*', { count: 'exact', head: true }).is('read_at', null),
+    // Pending reports
+    sb.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     // Recent activity
     sb.from('contact_events').select('listing_id, created_at, listings(books(title))').order('created_at', { ascending: false }).limit(5),
     sb.from('listings').select('id, created_at, price, books(title)').order('created_at', { ascending: false }).limit(5),
@@ -127,6 +133,8 @@ export async function GET() {
     pendingVerify: pendingVerify || 0,
     suspiciousUsers: suspiciousCount,
     bannedUsers: bannedCount || 0,
+    unreadMessages: unreadMessages || 0,
+    pendingReports: pendingReports || 0,
     recent: {
       contacts: recentContacts || [],
       listings: recentListings || [],

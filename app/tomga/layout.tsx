@@ -1,6 +1,25 @@
 'use client'
 import { useState, useEffect, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
+
+function AdminHeader() {
+  const pathname = usePathname()
+  const isDashboard = pathname === '/tomga'
+  return (
+    <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #E2E8F0', marginBottom: 8 }}>
+      <Link href="/tomga" style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+        BookMatch <span style={{ fontSize: 14, color: '#94A3B8', fontWeight: 500 }}>Admin</span>
+      </Link>
+      {isDashboard ? (
+        <Link href="/" style={{ fontSize: 15, color: '#64748B', textDecoration: 'none', fontFamily: 'Kanit' }}>← กลับหน้าเว็บ</Link>
+      ) : (
+        <Link href="/tomga" style={{ fontSize: 15, color: '#64748B', textDecoration: 'none', fontFamily: 'Kanit' }}>← Dashboard</Link>
+      )}
+    </nav>
+  )
+}
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -45,6 +64,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', minHeight: '100vh', padding: '0 24px', boxSizing: 'border-box' }}>
+      <AdminHeader />
       {children}
     </div>
   )

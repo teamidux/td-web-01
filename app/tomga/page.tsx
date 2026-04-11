@@ -13,6 +13,8 @@ type DashData = {
   pendingVerify: number
   suspiciousUsers: number
   bannedUsers: number
+  unreadMessages: number
+  pendingReports: number
   recent: {
     contacts: any[]
     listings: any[]
@@ -45,7 +47,7 @@ export default function AdminPage() {
     { href: '/tomga/verify', icon: '🪪', title: 'ตรวจยืนยันตัวตน', desc: 'อนุมัติ/ปฏิเสธ เอกสาร', badge: data?.pendingVerify },
     { href: '/tomga/users', icon: '👥', title: 'จัดการ User', desc: data?.suspiciousUsers ? `🚩 ${data.suspiciousUsers} น่าสงสัย · ${data.bannedUsers || 0} banned` : 'Ban, soft delete, ระบบ detect พฤติกรรมน่าสงสัย', badge: data?.suspiciousUsers || 0 },
     { href: '/tomga/books', icon: '📖', title: 'จัดการข้อมูลหนังสือ', desc: 'แก้ชื่อ, ผู้แต่ง, รูปปก, รายละเอียด', badge: 0 },
-    { href: '/tomga/messages', icon: '💬', title: 'ข้อความ & รายงาน', desc: 'ข้อความจากสมาชิก + รายงานโกง', badge: 0 },
+    { href: '/tomga/messages', icon: '💬', title: 'ข้อความ & รายงาน', desc: (data?.unreadMessages || data?.pendingReports) ? `📬 ${data?.unreadMessages || 0} ข้อความใหม่ · ${data?.pendingReports || 0} รายงานใหม่` : 'ข้อความจากสมาชิก + รายงานโกง', badge: (data?.unreadMessages || 0) + (data?.pendingReports || 0) },
     { href: '/tomga/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้าฐานข้อมูล', badge: 0 },
   ]
 
@@ -60,14 +62,6 @@ export default function AdminPage() {
 
   return (
     <>
-      {/* Admin Nav */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #E2E8F0', marginBottom: 8 }}>
-        <Link href="/tomga" style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
-          BookMatch <span style={{ fontSize: 14, color: '#94A3B8', fontWeight: 500 }}>Admin</span>
-        </Link>
-        <Link href="/" style={{ fontSize: 15, color: '#64748B', textDecoration: 'none', fontFamily: 'Kanit' }}>← กลับหน้าเว็บ</Link>
-      </nav>
-
       <div style={{ padding: '24px 0 80px' }}>
 
         {/* Header */}
@@ -153,31 +147,42 @@ export default function AdminPage() {
                 { label: 'ลงขายใหม่', today: data.northStar.listings.today, d7: data.northStar.listings.d7, total: data.totals.activeListings, icon: '📦', color: '#2563EB' },
                 { label: 'สมาชิกใหม่', today: data.northStar.users.today, d7: data.northStar.users.d7, total: data.totals.users, icon: '👤', color: '#7C3AED' },
                 { label: 'ตามหาใหม่', today: data.northStar.wanted.today, d7: data.northStar.wanted.d7, total: data.totals.activeWanted, icon: '🔔', color: '#D97706' },
-                { label: 'หนังสือในระบบ', today: null, d7: null, total: data.totals.books, icon: '📚', color: '#059669' },
-                { label: 'User น่าสงสัย', today: null, d7: null, total: data.suspiciousUsers, icon: '🚩', color: '#DC2626' },
-                { label: 'User ถูก Ban', today: null, d7: null, total: data.bannedUsers, icon: '🛑', color: '#991B1B' },
-              ].map((m, i) => (
-                <div key={i} style={{
-                  background: 'white',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 16,
-                  padding: '24px 22px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <span style={{ fontSize: 22 }}>{m.icon}</span>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: '#64748B' }}>{m.label}</span>
-                  </div>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                    {m.total?.toLocaleString()}
-                  </div>
-                  {m.today !== null && (
-                    <div style={{ fontSize: 15, color: '#94A3B8', marginTop: 10, display: 'flex', gap: 16 }}>
-                      <span>วันนี้ <b style={{ color: (m.today ?? 0) > 0 ? '#16A34A' : '#94A3B8' }}>+{m.today}</b></span>
-                      <span>7d <b style={{ color: '#64748B' }}>+{m.d7}</b></span>
+                { label: 'หนังสือในระบบ', today: null, d7: null, total: data.totals.books, icon: '📚', color: '#059669', href: null },
+                { label: 'User น่าสงสัย', today: null, d7: null, total: data.suspiciousUsers, icon: '🚩', color: '#DC2626', href: '/tomga/users?tab=suspicious' },
+                { label: 'User ถูก Ban', today: null, d7: null, total: data.bannedUsers, icon: '🛑', color: '#991B1B', href: '/tomga/users?tab=banned' },
+              ].map((m, i) => {
+                const card = (
+                  <div key={i} style={{
+                    background: 'white',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 16,
+                    padding: '24px 22px',
+                    cursor: m.href ? 'pointer' : 'default',
+                    transition: 'box-shadow .15s, border-color .15s',
+                  }}
+                  onMouseOver={e => { if (m.href) { (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,.06)'; (e.currentTarget as HTMLElement).style.borderColor = '#CBD5E1' } }}
+                  onMouseOut={e => { if (m.href) { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.borderColor = '#E2E8F0' } }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <span style={{ fontSize: 22 }}>{m.icon}</span>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: '#64748B' }}>{m.label}</span>
+                      {m.href && <span style={{ marginLeft: 'auto', fontSize: 18, color: '#CBD5E1' }}>›</span>}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div style={{ fontSize: 36, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                      {m.total?.toLocaleString()}
+                    </div>
+                    {m.today !== null && (
+                      <div style={{ fontSize: 15, color: '#94A3B8', marginTop: 10, display: 'flex', gap: 16 }}>
+                        <span>วันนี้ <b style={{ color: (m.today ?? 0) > 0 ? '#16A34A' : '#94A3B8' }}>+{m.today}</b></span>
+                        <span>7d <b style={{ color: '#64748B' }}>+{m.d7}</b></span>
+                      </div>
+                    )}
+                  </div>
+                )
+                return m.href
+                  ? <Link key={i} href={m.href} style={{ textDecoration: 'none', color: 'inherit' }}>{card}</Link>
+                  : card
+              })}
             </div>
 
             {/* Notification usage — คุมต้นทุน SMS + LINE */}
