@@ -122,6 +122,16 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     return newBook.id
   }
 
+  // ปุ่ม "ขายเล่มนี้" → ถ้ายังไม่ login ให้ trigger LINE login เลย ไม่ใช่พาไป /sell แล้วโผล่ login box
+  const goSell = () => {
+    const target = `/sell?isbn=${isbn}`
+    if (!user) {
+      loginWithLine(target)
+      return
+    }
+    window.location.href = target
+  }
+
   const toggleWanted = async () => {
     if (!user) {
       // ติด action=wanted ไปใน next URL → หลัง login กลับมา auto เปิดฟอร์มตามหา
@@ -212,9 +222,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
               ลงขายและเพิ่มข้อมูลหนังสือเล่มนี้เข้าระบบ — เป็นคนแรกที่ขาย โอกาสขายได้เร็วมาก
             </div>
-            <Link href={`/sell?isbn=${isbn}`}>
-              <button className="btn" style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
-            </Link>
+            <button className="btn" onClick={goSell} style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
           </div>
         </div>
       </div>
@@ -348,11 +356,9 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
                 {isWanted ? '✕ เลิกตามหา' : '🔔 ตามหาเล่มนี้'}
               </button>
-              <Link href={`/sell?isbn=${isbn}`}>
-                <button style={{ background: '#16A34A', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,.3)' }}>
-                  💰 ขายเล่มนี้
-                </button>
-              </Link>
+              <button onClick={goSell} style={{ background: '#16A34A', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,.3)' }}>
+                💰 ขายเล่มนี้
+              </button>
             </div>
           </div>
         </div>
@@ -388,9 +394,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
                   มีคนรอซื้ออยู่แล้ว — เป็นคนแรกที่ลงขาย โอกาสขายได้เร็วมาก
                 </div>
-                <Link href={`/sell?isbn=${isbn}`}>
-                  <button className="btn" style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
-                </Link>
+                <button className="btn" onClick={goSell} style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
               </div>
             </>
           )}

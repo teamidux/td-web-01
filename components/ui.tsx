@@ -66,9 +66,7 @@ export function BottomNav() {
   ]
   return (
     <>
-      <div style={{ textAlign: 'center', padding: '12px 0 70px', fontSize: 11, color: '#94A3B8' }}>
-        <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}>ข้อตกลงการใช้บริการ</Link>
-      </div>
+      <div style={{ height: 70 }} />
       <div className="bottom-nav">
         {tabs.map(t => (
           <Link
@@ -82,6 +80,15 @@ export function BottomNav() {
         ))}
       </div>
     </>
+  )
+}
+
+// Footer terms link — แสดงเฉพาะหน้า home (ที่อื่นรกสายตา)
+export function TermsFooter() {
+  return (
+    <div style={{ textAlign: 'center', padding: '20px 0 12px', fontSize: 11, color: '#94A3B8' }}>
+      <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}>ข้อตกลงการใช้บริการ</Link>
+    </div>
   )
 }
 

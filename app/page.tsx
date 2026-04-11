@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, SkeletonList } from '@/components/ui'
+import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -362,6 +362,7 @@ export default function HomePage() {
           </div>
         )}
         <div style={{ height: 12 }} />
+        <TermsFooter />
       </div>
       <BottomNav />
     </>
