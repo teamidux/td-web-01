@@ -59,8 +59,13 @@ export default function SellerPage({ params }: PageProps) {
       })
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
-        if (data.error === 'already reported recently') show('คุณรายงานผู้ขายนี้ไปแล้วในช่วง 24 ชั่วโมง')
-        else show('ส่งรายงานไม่สำเร็จ ลองใหม่')
+        const err = data.error || ''
+        if (err === 'already reported recently') show('คุณรายงานผู้ขายนี้ไปแล้วในช่วง 24 ชั่วโมง')
+        else if (err === 'must be logged in to report') show('กรุณา login ก่อนรายงาน')
+        else if (err === 'cannot report yourself') show('ไม่สามารถรายงานตัวเองได้')
+        else if (err === 'invalid reason') show('กรุณาเลือกเหตุผลที่ถูกต้อง')
+        else if (err.includes('relation') || err.includes('column')) show('ระบบ report ยังไม่พร้อม — admin แก้ให้')
+        else show('ส่งไม่สำเร็จ: ' + (err || 'unknown'))
       } else {
         show('ขอบคุณที่แจ้ง — ทีมงานจะตรวจสอบโดยเร็ว 🙏')
         setShowReport(false)
