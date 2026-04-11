@@ -18,11 +18,14 @@ export const metadata: Metadata = {
     siteName: 'BookMatch',
     title: 'BookMatch — ตลาดหนังสือมือสอง',
     description: 'ซื้อขายหนังสือมือสองออนไลน์ ค้นหาด้วย ISBN หรือชื่อหนังสือ เจอผู้ขายได้ทันที',
+    // TODO: รอรูป og-default.png (1200×630) จาก user → วางใน /public
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'BookMatch' }],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'BookMatch — ตลาดหนังสือมือสอง',
     description: 'ซื้อขายหนังสือมือสองออนไลน์ ค้นหาด้วย ISBN หรือชื่อหนังสือ เจอผู้ขายได้ทันที',
+    images: ['/og-default.png'],
   },
   robots: { index: true, follow: true },
 }

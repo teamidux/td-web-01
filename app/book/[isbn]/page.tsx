@@ -82,15 +82,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url: `${siteUrl}/book/${isbn}`,
       siteName: 'BookMatch',
-      images: book.cover_url ? [{ url: book.cover_url, alt: book.title }] : [],
+      // ใช้รูปปกหนังสือถ้ามี — ไม่งั้น fallback site default
+      images: book.cover_url
+        ? [{ url: book.cover_url, alt: book.title }]
+        : [{ url: '/og-default.png', width: 1200, height: 630, alt: 'BookMatch' }],
       type: 'website',
       locale: 'th_TH',
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `${book.title} — BookMatch`,
       description,
-      images: book.cover_url ? [book.cover_url] : [],
+      images: book.cover_url ? [book.cover_url] : ['/og-default.png'],
     },
   }
 }
