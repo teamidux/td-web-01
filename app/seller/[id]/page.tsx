@@ -335,10 +335,10 @@ export default function SellerPage({ params }: PageProps) {
           <div className="section-title" style={{ marginBottom: 12 }}>หนังสือที่กำลังขาย ({listings.length} เล่ม)</div>
 
           {listings.length === 0 && (
-            <div className="empty"><div className="empty-icon">📭</div><div>ไม่มีหนังสือที่กำลังขาย</div></div>
+            <div className="empty"><div className="empty-icon">📚</div><div>ไม่มีหนังสือที่กำลังขาย</div></div>
           )}
 
-          {listings.length > 0 && (
+          {listings.length >= 5 && (
             <input
               className="input"
               style={{ marginBottom: 12 }}
