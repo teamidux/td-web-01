@@ -1149,10 +1149,47 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
           fontWeight: 700,
           color: isDone ? '#15803D' : isPending ? '#92400E' : '#121212',
           lineHeight: 1.4,
-          marginBottom: 2,
+          marginBottom: 4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexWrap: 'wrap',
         }}>
-          <span style={{ marginRight: 6 }}>{item.icon}</span>
-          {item.title}
+          <span>{item.icon}</span>
+          <span>{item.title}</span>
+          {/* Badge preview — แสดงป้ายจริงที่จะได้ */}
+          {!isDone && !isPending && item.key === 'phone_verified' && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              background: TRUST_TIERS.phone.bgColor,
+              color: TRUST_TIERS.phone.color,
+              borderRadius: 999,
+              padding: '2px 8px',
+              fontSize: 10,
+              fontWeight: 700,
+              lineHeight: 1,
+            }}>
+              📱 ลงทะเบียนแล้ว
+            </span>
+          )}
+          {!isDone && !isPending && item.key === 'id_verified' && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              background: TRUST_TIERS.id.bgColor,
+              color: TRUST_TIERS.id.color,
+              borderRadius: 999,
+              padding: '2px 8px',
+              fontSize: 10,
+              fontWeight: 700,
+              lineHeight: 1,
+            }}>
+              🪪 ยืนยันตัวตนแล้ว
+            </span>
+          )}
         </div>
         <div style={{
           fontSize: 12,

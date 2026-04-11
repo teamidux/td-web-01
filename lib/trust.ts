@@ -80,7 +80,7 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
     key: 'phone_verified',
     status: hasPhone ? 'done' : 'todo',
     title: 'ยืนยันเบอร์โทร',
-    benefit: 'ได้รับป้าย 📱 ลงทะเบียนมือถือแล้ว',
+    benefit: 'รับป้ายลงทะเบียน — ลูกค้ามั่นใจว่าเบอร์โทรใช้งานได้จริง',
     icon: '📱',
   })
 
@@ -88,7 +88,7 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
     key: 'id_verified',
     status: hasId ? 'done' : idPending ? 'pending' : 'todo',
     title: 'ยืนยันตัวตน',
-    benefit: 'บัตรประชาชน + สมุดบัญชี — ได้ป้าย 🛡️ Verified Seller',
+    benefit: 'บัตรประชาชน + สมุดบัญชี — รับป้ายยืนยันตัวตน ลูกค้ากล้าสั่งมากขึ้น',
     icon: '🪪',
   })
 
