@@ -362,8 +362,8 @@ function SellPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 18, padding: '28px 22px', width: '100%', maxWidth: 360, textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 19, fontWeight: 700, marginBottom: 8 }}>
-              หนังสือของคุณขึ้นระบบแล้ว!
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 19, fontWeight: 700, marginBottom: 12 }}>
+              ลงขายสำเร็จ!
             </div>
 
             {showVerifyPrompt.needsLineId ? (
@@ -380,15 +380,13 @@ function SellPage() {
                 </button>
               </>
             ) : (
-              // เคสชวนยืนยันเบอร์ (copy B)
               <>
-                <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.75, marginBottom: 18 }}>
-                  อีกขั้นเดียว — <b>ยืนยันเบอร์โทร</b><br />
-                  เพื่อให้ได้ป้าย 📱 <b>ลงทะเบียนแล้ว</b><br />
-                  <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ลูกค้าที่เห็นป้ายนี้จะกล้าสั่งซื้อจากคุณเยอะกว่า</span>
+                <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.75, marginBottom: 20 }}>
+                  อย่าลืม<b>ยืนยันเบอร์โทร</b> —<br />
+                  ลูกค้าจะมั่นใจ และกล้าติดต่อคุณมากขึ้น
                 </div>
                 <button className="btn" onClick={() => { router.push('/profile') }} style={{ marginBottom: 8 }}>
-                  ยืนยันเบอร์โทร
+                  ยืนยันเบอร์เลย
                 </button>
               </>
             )}
