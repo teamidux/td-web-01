@@ -101,9 +101,17 @@ export default function ProfilePage() {
         .upload(path, compressed, { contentType: 'image/jpeg', upsert: false })
       if (upErr) { show('อัปโหลดไม่สำเร็จ: ' + upErr.message); return }
       const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(path)
-      // Update users table directly (service role ไม่ต้อง — anon key + RLS)
-      const { error: updErr } = await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id)
-      if (updErr) { show('บันทึกไม่สำเร็จ: ' + updErr.message); return }
+      // Update ผ่าน /api/user/update (service role bypass RLS)
+      const res = await fetch('/api/user/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, data: { avatar_url: publicUrl } }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        show('บันทึกไม่สำเร็จ: ' + (d.error || d.message || 'unknown'))
+        return
+      }
       syncUser({ avatar_url: publicUrl })
       show('เปลี่ยนรูป profile แล้ว')
     } finally {

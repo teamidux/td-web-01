@@ -305,26 +305,29 @@ export default function SellerPage({ params }: PageProps) {
               {seller?.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>
-          <button
-            onClick={() => setShowReport(true)}
-            style={{
-              background: 'rgba(255,255,255,.15)',
-              border: '1px solid rgba(255,255,255,.3)',
-              borderRadius: 10,
-              padding: '8px 12px',
-              minHeight: 40,
-              color: 'white',
-              fontFamily: 'Kanit',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-            }}
-            title="รายงานผู้ขาย"
-          >
-            🚨 รายงาน
-          </button>
+          {/* ซ่อนปุ่มรายงานถ้าดู profile ตัวเอง */}
+          {user?.id !== id && (
+            <button
+              onClick={() => setShowReport(true)}
+              style={{
+                background: 'rgba(255,255,255,.15)',
+                border: '1px solid rgba(255,255,255,.3)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                minHeight: 40,
+                color: 'white',
+                fontFamily: 'Kanit',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+              }}
+              title="รายงานผู้ขาย"
+            >
+              🚨 รายงาน
+            </button>
+          )}
         </div>
 
         <div style={{ background: 'var(--surface)', padding: '18px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>

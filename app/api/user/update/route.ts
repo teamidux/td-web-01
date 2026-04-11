@@ -17,6 +17,16 @@ export async function POST(req: NextRequest) {
   if (typeof data.display_name === 'string') allowed.display_name = data.display_name.trim()
   if (data.seller_type === 'individual' || data.seller_type === 'store') allowed.seller_type = data.seller_type
   if (data.store_name !== undefined) allowed.store_name = typeof data.store_name === 'string' ? data.store_name.trim() || null : null
+  // avatar_url: user upload รูปเอง → ต้องเป็น URL จาก Supabase storage ของเรา (กัน external inject)
+  if (typeof data.avatar_url === 'string') {
+    const url = data.avatar_url.trim()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    if (url.startsWith(supabaseUrl) || url === '') {
+      allowed.avatar_url = url || null
+    } else {
+      return NextResponse.json({ error: 'invalid_avatar_url' }, { status: 400 })
+    }
+  }
 
   // line_id: ต้องผ่าน 2 layers
   // 1. Format ต้อง valid (parseLineId)
