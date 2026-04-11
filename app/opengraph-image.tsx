@@ -18,21 +18,16 @@ export default async function Image() {
     ? `data:image/png;base64,${logoBuffer.toString('base64')}`
     : null
 
-  // Load Thai font (Kanit) from Google Fonts — ใช้กับ tagline ภาษาไทย
+  // Load Thai font (Kanit Bold) — ต้องใช้ TTF เพราะ satori ไม่รองรับ woff2
+  // ดึงจาก Google Fonts GitHub repo (serve raw TTF)
   let fontBuffer: ArrayBuffer | null = null
   try {
-    const cssRes = await fetch('https://fonts.googleapis.com/css2?family=Kanit:wght@700&display=swap', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    })
-    const css = await cssRes.text()
-    const match = css.match(/src: url\((https:\/\/[^)]+\.woff2)\)/)
-    if (match) {
-      fontBuffer = await fetch(match[1]).then(r => r.arrayBuffer())
-    }
+    const fontRes = await fetch(
+      'https://raw.githubusercontent.com/google/fonts/main/ofl/kanit/Kanit-Bold.ttf'
+    )
+    if (fontRes.ok) fontBuffer = await fontRes.arrayBuffer()
   } catch {
-    // Font load failed — fallback to default
+    // Font load failed — fallback to default (Thai อาจเพี้ยน)
   }
 
   return new ImageResponse(
