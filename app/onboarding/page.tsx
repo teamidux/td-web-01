@@ -131,8 +131,11 @@ export default function OnboardingPage() {
             disabled={saving}
             style={{ fontSize: 14 }}
           >
-            ยังไม่ใส่ตอนนี้
+            ไว้ทีหลัง
           </button>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
+            ต้องตั้งก่อนจะลงขายได้
+          </div>
 
         </div>
       </div>
