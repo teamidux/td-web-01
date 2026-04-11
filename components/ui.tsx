@@ -1158,47 +1158,51 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
           fontSize: 12,
           color: isDone ? '#166534' : isPending ? '#B45309' : 'var(--ink3)',
           lineHeight: 1.7,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          flexWrap: 'wrap',
         }}>
-          {/* Badge preview inline กับคำอธิบาย */}
-          {!isDone && !isPending && item.key === 'phone_verified' && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              background: TRUST_TIERS.phone.bgColor,
-              color: TRUST_TIERS.phone.color,
-              borderRadius: 999,
-              padding: '2px 8px',
-              fontSize: 10,
-              fontWeight: 700,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}>
-              📱 ลงทะเบียนแล้ว
-            </span>
-          )}
-          {!isDone && !isPending && item.key === 'id_verified' && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              background: TRUST_TIERS.id.bgColor,
-              color: TRUST_TIERS.id.color,
-              borderRadius: 999,
-              padding: '2px 8px',
-              fontSize: 10,
-              fontWeight: 700,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}>
-              🪪 ยืนยันตัวตนแล้ว
-            </span>
-          )}
-          <span>{isPending ? 'รอตรวจสอบ ~24 ชั่วโมง' : item.benefit}</span>
+          {(() => {
+            if (isPending) return 'รอตรวจสอบ ~24 ชั่วโมง'
+            if (isDone) return item.benefit
+            // Render badge pill แทรกหลัง 'รับป้าย ' ในประโยค
+            const badge = item.key === 'phone_verified' ? (
+              <span key="b" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                background: TRUST_TIERS.phone.bgColor,
+                color: TRUST_TIERS.phone.color,
+                borderRadius: 999,
+                padding: '2px 8px',
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 1,
+                verticalAlign: 'middle',
+                margin: '0 4px',
+              }}>📱 ลงทะเบียนแล้ว</span>
+            ) : item.key === 'id_verified' ? (
+              <span key="b" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                background: TRUST_TIERS.id.bgColor,
+                color: TRUST_TIERS.id.color,
+                borderRadius: 999,
+                padding: '2px 8px',
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 1,
+                verticalAlign: 'middle',
+                margin: '0 4px',
+              }}>🪪 ยืนยันตัวตนแล้ว</span>
+            ) : null
+            if (!badge) return item.benefit
+            // Split ตรง 'รับป้าย' — แทรก badge ไว้ต่อจากคำนี้
+            const parts = item.benefit.split('รับป้าย')
+            return (
+              <>
+                {parts[0]}รับป้าย{badge}{parts[1]}
+              </>
+            )
+          })()}
         </div>
       </div>
 
