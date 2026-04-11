@@ -1,9 +1,10 @@
 // Trust mission logic — compute completion + tier + badge from user object
 //
-// Tier badge:
-//   login ด้วย LINE             → 👤 สมาชิก
-//   + ยืนยันเบอร์โทร             → 📱 ลงทะเบียนมือถือแล้ว
-//   + ยืนยันตัวตน (บัตร+บัญชี)   → 🛡️ Verified Seller
+// Tier badge (ต้องครบ "ทั้งคู่" ถึงจะเป็น Verified Seller):
+//   login ด้วย LINE                     → 👤 สมาชิก
+//   + ยืนยันเบอร์โทร (ไม่มี ID)          → 📱 ลงทะเบียนมือถือแล้ว
+//   + ยืนยันตัวตน (ไม่มี phone)         → 🪪 ยืนยันตัวตนแล้ว
+//   + ครบทั้ง phone + ID                → 🛡️ Verified Seller
 //
 // Mission items (แสดงใน profile):
 //   - LINE ID (แสดงเฉพาะคนยังไม่กรอก)
@@ -47,6 +48,7 @@ export type TrustScore = {
 export const TRUST_TIERS: Record<string, TrustTier> = {
   member:     { level: 0, label: 'สมาชิก',              shortLabel: '👤 สมาชิก',            emoji: '👤', color: '#64748B', bgColor: '#F1F5F9' },
   phone:      { level: 1, label: 'ลงทะเบียนมือถือแล้ว',   shortLabel: '📱 ลงทะเบียนแล้ว',    emoji: '📱', color: '#0891B2', bgColor: '#ECFEFF' },
+  id:         { level: 1, label: 'ยืนยันตัวตนแล้ว',       shortLabel: '🪪 ยืนยันตัวตนแล้ว',  emoji: '🪪', color: '#D97706', bgColor: '#FEF3C7' },
   verified:   { level: 2, label: 'Verified Seller',     shortLabel: '🛡️ Verified Seller',  emoji: '🛡️', color: '#1D4ED8', bgColor: '#DBEAFE' },
 }
 
@@ -94,10 +96,11 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
   const total = items.length
   const percent = total > 0 ? Math.round((doneCount / total) * 100) : 100
 
-  // Tier
+  // Tier — ต้องครบ "ทั้งคู่" ถึงจะเป็น Verified Seller
   let tier = TRUST_TIERS.member
-  if (hasPhone) tier = TRUST_TIERS.phone
-  if (hasId) tier = TRUST_TIERS.verified
+  if (hasPhone && !hasId) tier = TRUST_TIERS.phone
+  else if (hasId && !hasPhone) tier = TRUST_TIERS.id
+  else if (hasPhone && hasId) tier = TRUST_TIERS.verified
 
   return { count: doneCount, total, percent, items, tier }
 }

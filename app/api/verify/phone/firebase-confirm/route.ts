@@ -67,11 +67,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Update users record
+  const now = new Date().toISOString()
   const { error } = await sb
     .from('users')
     .update({
       phone: cleaned,
-      phone_verified_at: new Date().toISOString(),
+      phone_verified_at: now,
     })
     .eq('id', user.id)
 
@@ -79,5 +80,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'db_error', detail: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, phone: cleaned })
+  // Return updated fields ให้ client sync context ได้ทันที (กัน race condition)
+  return NextResponse.json({
+    ok: true,
+    phone: cleaned,
+    phone_verified_at: now,
+  })
 }

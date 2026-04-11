@@ -396,13 +396,13 @@ export function PhoneVerifyModal({
   onClose: () => void
   onDone: () => void
 }) {
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
+  const [step, setStep] = useState<'phone' | 'code' | 'success'>('phone')
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const { msg, show } = useToast()
-  const { reloadUser } = useAuth()
+  const { reloadUser, syncUser } = useAuth()
   const confirmationRef = useRef<any>(null)
   const recaptchaRef = useRef<any>(null)
 
@@ -496,9 +496,17 @@ export function PhoneVerifyModal({
         return
       }
 
-      show('ยืนยันเบอร์เรียบร้อย ✓')
-      await reloadUser()
-      setTimeout(() => onDone(), 600)
+      // Sync context ทันทีจาก response (กัน race condition ของ reloadUser)
+      if (data.phone_verified_at) {
+        syncUser({ phone: data.phone, phone_verified_at: data.phone_verified_at })
+      }
+      // Background refetch ให้ user state ตรง DB 100%
+      reloadUser().catch(() => {})
+
+      // เข้าสู่ success state — โชว์ celebration effect
+      setStep('success')
+      // ปิด modal หลังจาก user ดู celebration 2.5 วิ
+      setTimeout(() => onDone(), 2500)
     } catch (e: any) {
       console.warn('[firebase confirm]', e?.code, e?.message)
       if (e?.code === 'auth/invalid-verification-code') show('รหัสไม่ถูกต้อง')
@@ -534,13 +542,56 @@ export function PhoneVerifyModal({
                 placeholder="081-234-5678"
                 maxLength={12}
                 autoComplete="tel-national"
+                disabled={loading}
                 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '0.02em', textAlign: 'center' }}
               />
             </div>
-            <button className="btn" onClick={sendOtp} disabled={loading}>
-              {loading ? <><span className="spin" />กำลังส่ง...</> : 'รับรหัส OTP'}
+            <button className="btn" onClick={sendOtp} disabled={loading} style={{ opacity: loading ? 0.6 : 1 }}>
+              {loading ? (
+                <><span className="spin" style={{ marginRight: 8 }} />กำลังส่ง OTP กรุณารอสักครู่...</>
+              ) : 'รับรหัส OTP'}
             </button>
+            {loading && (
+              <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 10, lineHeight: 1.6 }}>
+                กำลังตรวจสอบ reCAPTCHA และส่ง SMS<br />
+                อาจใช้เวลา 5-15 วินาที
+              </div>
+            )}
           </>
+        )}
+
+        {step === 'success' && (
+          <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 88,
+              height: 88,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
+              fontSize: 48,
+              marginBottom: 18,
+              animation: 'bm-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              boxShadow: '0 10px 30px rgba(22,163,74,.35)',
+            }}>
+              ✓
+            </div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 800, color: '#0F172A', marginBottom: 8 }}>
+              ยืนยันเบอร์สำเร็จ! 🎉
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 16 }}>
+              คุณได้รับป้าย <b style={{ color: '#0891B2' }}>📱 ลงทะเบียนมือถือแล้ว</b><br />
+              ลูกค้าจะเห็นและมั่นใจในตัวคุณมากขึ้น
+            </div>
+            <style>{`
+              @keyframes bm-pop {
+                0% { transform: scale(0); opacity: 0; }
+                60% { transform: scale(1.15); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+          </div>
         )}
 
         {step === 'code' && (

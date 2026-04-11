@@ -9,7 +9,7 @@ import { parseLineId } from '@/lib/line-id'
 import type { TrustItemKey } from '@/lib/trust'
 
 export default function ProfilePage() {
-  const { user, logout, updateUser, syncUser, loginWithLine } = useAuth()
+  const { user, loading: authLoading, logout, updateUser, syncUser, loginWithLine } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
@@ -183,6 +183,17 @@ export default function ProfilePage() {
     setConfirmDeleteId(null)
     show('ลบประกาศแล้ว')
   }
+
+  // Auth loading — อย่า flash login page ก่อน
+  if (authLoading) return (
+    <>
+      <Nav />
+      <div style={{ padding: '80px 20px', textAlign: 'center', color: '#94A3B8' }}>
+        <span className="spin" style={{ width: 28, height: 28 }} />
+      </div>
+      <BottomNav />
+    </>
+  )
 
   if (!user) return (
     <>
