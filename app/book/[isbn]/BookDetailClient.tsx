@@ -113,27 +113,20 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     return () => { supabase.removeChannel(channel) }
   }, [isbn])
 
-  // ถ้า book ยังไม่อยู่ใน DB (มาจาก Google Books) → save ก่อนแล้วคืน bookId
+  // ถ้า book ยังไม่อยู่ใน DB (มาจาก Google Books) → save ผ่าน API แล้วดึง id กลับ
   const ensureBookInDB = async (): Promise<string | null> => {
     if (book?.id) return book.id
     if (!book?.title) return null
+    // ใช้ /api/books/view ที่มีอยู่แล้ว — มันจะ insert ถ้ายังไม่มี
+    await fetch('/api/books/view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isbn, title: book.title, author: book.author, cover_url: book.cover_url, publisher: book.publisher, language: book.language }),
+    })
+    // ดึง id กลับมา
     const { data: existing } = await supabase.from('books').select('id').eq('isbn', isbn).maybeSingle()
-    if (existing?.id) {
-      setBook(b => b ? { ...b, id: existing.id } : b)
-      bookIdRef.current = existing.id
-      return existing.id
-    }
-    const { data: newBook, error } = await supabase.from('books').insert({
-      isbn,
-      title: book.title,
-      author: book.author || '',
-      publisher: book.publisher || '',
-      cover_url: book.cover_url || '',
-      language: book.language || 'th',
-      source: 'community',
-    }).select('id').single()
-    if (error || !newBook) return null
-    setBook(b => b ? { ...b, id: newBook.id } : b)
+    if (!existing?.id) return null
+    setBook(b => b ? { ...b, id: existing.id } : b)
     bookIdRef.current = newBook.id
     return newBook.id
   }
@@ -156,8 +149,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       return
     }
     if (isWanted && book?.id) {
-      // DB trigger จะลด books.wanted_count ให้อัตโนมัติ — แค่ลบ row ใน wanted
-      await supabase.from('wanted').delete().eq('user_id', user.id).eq('book_id', book.id)
+      // ลบ wanted ผ่าน API (กัน anon key abuse)
+      await fetch('/api/wanted', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: book.id }) })
       const newCount = Math.max(0, (book.wanted_count || 1) - 1)
       setIsWanted(false)
       setBook(b => b ? { ...b, wanted_count: newCount } : b)
@@ -171,13 +164,11 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     if (!user) return
     const bookId = await ensureBookInDB()
     if (!bookId) { show('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'); return }
-    // DB trigger จะเพิ่ม books.wanted_count ให้อัตโนมัติ — แค่ insert wanted row
-    await supabase.from('wanted').insert({
-      user_id: user.id,
-      book_id: bookId,
-      isbn,
-      max_price: wantedPrice ? parseFloat(wantedPrice) : null,
-      status: 'waiting',
+    // เพิ่ม wanted ผ่าน API (กัน anon key abuse)
+    await fetch('/api/wanted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: bookId, isbn, max_price: wantedPrice ? parseFloat(wantedPrice) : null }),
     })
     const newCount = (book?.wanted_count || 0) + 1
     setIsWanted(true)

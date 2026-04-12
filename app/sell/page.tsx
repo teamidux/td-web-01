@@ -283,29 +283,6 @@ function SellPage() {
 
     try {
       const currentIsbn = (fetchedBook as any)?.isbn || (notFoundMode === 'no_isbn' ? bmIsbn : isbn)
-      let bookId = (fetchedBook as any)?.id
-      let existingCoverUrl = fetchedBook?.cover_url || ''
-
-      if (!bookId) {
-        const { data: existing } = await supabase.from('books').select('id, cover_url').eq('isbn', currentIsbn).maybeSingle()
-        if (existing?.id) {
-          bookId = existing.id
-          existingCoverUrl = existing.cover_url || ''
-        } else {
-          const { data: newBook, error: bookErr } = await supabase.from('books').insert({
-            isbn: currentIsbn,
-            title: fetchedBook?.title || manualTitle,
-            author: fetchedBook?.author || manualAuthor || '',
-            translator: manualTranslator || '',
-            cover_url: fetchedBook?.cover_url || '',
-            language: fetchedBook?.language || 'th',
-            source: 'community',
-          }).select().single()
-          if (bookErr) throw new Error(bookErr.message)
-          bookId = newBook.id
-        }
-      }
-
       // Upload รูปหน้าปกไปยัง Supabase Storage
       const uploadPath = `covers/${user.id}/${Date.now()}.jpg`
       const { error: upErr } = await supabase.storage
@@ -319,23 +296,30 @@ function SellPage() {
       }
       const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(uploadPath)
 
-      // Update cover_url ในตาราง books ถ้ายังไม่มีรูป
-      if (!existingCoverUrl && bookId) {
-        await supabase.from('books').update({ cover_url: publicUrl }).eq('id', bookId)
-      }
-
-      const { error: listErr } = await supabase.from('listings').insert({
-        book_id: bookId,
-        seller_id: user.id,
-        condition: cond,
-        price: parseFloat(price),
-        price_includes_shipping: shipping === 'free',
-        contact: contact.trim(),
-        notes: notes.trim() || null,
-        photos: [publicUrl],
-        status: 'active',
+      // สร้าง listing ผ่าน API (กัน anon key abuse)
+      const createRes = await fetch('/api/listings/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isbn: currentIsbn,
+          title: fetchedBook?.title || manualTitle,
+          author: fetchedBook?.author || manualAuthor || '',
+          translator: manualTranslator || '',
+          cover_url: fetchedBook?.cover_url || '',
+          language: fetchedBook?.language || 'th',
+          condition: cond,
+          price: parseFloat(price),
+          price_includes_shipping: shipping === 'free',
+          contact: contact.trim(),
+          notes: notes.trim() || null,
+          photos: [publicUrl],
+          existing_book_id: (fetchedBook as any)?.id || null,
+          existing_cover_url: fetchedBook?.cover_url || '',
+        }),
       })
-      if (listErr) throw new Error(listErr.message)
+      const createData = await createRes.json()
+      if (!createRes.ok) throw new Error(createData.error || 'สร้าง listing ไม่สำเร็จ')
+      const bookId = createData.book_id
 
       // แจ้งเตือนคนที่ตามหาเล่มนี้ (fire-and-forget ไม่ block UX)
       fetch('/api/notify/wanted-match', {

@@ -55,7 +55,7 @@ export default function WantedPage() {
   }
 
   const remove = async (id: string) => {
-    await supabase.from('wanted').delete().eq('id', id)
+    await fetch('/api/wanted', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wanted_id: id }) })
     setItems(prev => prev.filter(w => w.id !== id))
     show('ลบออกจากรายการตามหาแล้ว')
   }
