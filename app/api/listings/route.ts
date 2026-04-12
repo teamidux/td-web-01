@@ -18,7 +18,17 @@ export async function GET(req: NextRequest) {
     .eq('status', 'active')
     .order('price')
 
-  if (!error) return NextResponse.json({ listings: ls || [] })
+  // ซ่อน LINE ID + เบอร์โทรจาก public API — ดึงแยกผ่าน /api/listings/contact-info (ต้อง login)
+  if (!error) {
+    const safe = (ls || []).map((l: any) => {
+      if (l.users) {
+        const { line_id, phone, ...safeUser } = l.users
+        return { ...l, users: safeUser }
+      }
+      return l
+    })
+    return NextResponse.json({ listings: safe })
+  }
 
   // FK join ล้มเหลว — fallback ไม่มี users join
   console.error('[listings API] join error:', error.message)

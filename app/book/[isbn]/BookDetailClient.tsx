@@ -17,6 +17,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const [wantedPrice, setWantedPrice] = useState('')
   const [lightbox, setLightbox] = useState('')
   const [contactListing, setContactListing] = useState<Listing | null>(null)
+  const [contactPII, setContactPII] = useState<{ line_id: string | null; phone: string | null } | null>(null)
   const [copied, setCopied] = useState(false)
   const { msg, show } = useToast()
   const bookIdRef = useRef<string | null>(null)
@@ -188,8 +189,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const contactPhone = contactListing ? /^(\+?66|0)[0-9\s\-]{7,12}$/.test(contactListing.contact?.trim() || '') : false
   // ตรวจว่า contact field เป็น LINE ID มั้ย → ถ้าใช่ มีปุ่ม Add LINE
   const contactLineInfo = contactListing && !contactPhone ? parseLineId(contactListing.contact || '') : null
-  // LINE ID จาก profile (ถ้ามี และต่างจาก contact field)
-  const contactProfileLine = contactListing?.users?.line_id?.trim() || ''
+  // LINE ID จาก profile (ดึงจาก contactPII ที่ fetch แยก — ต้อง login)
+  const contactProfileLine = contactPII?.line_id?.trim() || ''
   const profileLineInfo = contactProfileLine ? parseLineId(contactProfileLine) : null
   // แสดง LINE ID จาก profile เสมอถ้ามี (แม้จะซ้ำกับ contact field — เพื่อให้มีปุ่ม Add LINE)
   const showProfileLine = !!profileLineInfo
@@ -268,11 +269,11 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       )}
 
       {contactListing && (
-        <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+        <div onClick={() => { setContactListing(null); setContactPII(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18 }}>ข้อมูลผู้ขาย</div>
-              <button onClick={() => setContactListing(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
+              <button onClick={() => { setContactListing(null); setContactPII(null) }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
             </div>
 
             <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
@@ -461,13 +462,20 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
-                <button onClick={() => {
-                  setContactListing(l); setCopied(false)
-                  fetch('/api/listings/contact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
-                  }).catch(() => {})
+                <button onClick={async () => {
+                  if (!user) { loginWithLine(window.location.pathname); return }
+                  setCopied(false)
+                  // fetch contact info (line_id, phone) แยก — ต้อง login
+                  const [ciRes] = await Promise.all([
+                    fetch(`/api/listings/contact-info?seller_id=${l.seller_id}`).then(r => r.json()).catch(() => ({})),
+                    fetch('/api/listings/contact', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
+                    }).catch(() => {}),
+                  ])
+                  setContactPII(ciRes)
+                  setContactListing(l)
                 }} style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                   ติดต่อ
                 </button>
