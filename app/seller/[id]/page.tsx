@@ -35,7 +35,8 @@ export default function SellerPage({ params }: PageProps) {
 
   // contact ของแต่ละ listing — ถ้าเป็นเบอร์โทรเปิด tel: ได้, ถ้าไม่ใช่ใช้คัดลอก
   const isPhone = (s?: string) => !!s && /^(\+?66|0)[0-9\s\-]{7,12}$/.test(s.trim())
-  const sellerLineId = seller?.line_id?.trim() || ''
+  const [sellerPII, setSellerPII] = useState<{ line_id: string | null; phone: string | null } | null>(null)
+  const sellerLineId = sellerPII?.line_id?.trim() || ''
   const contactValue = contactListing?.contact?.trim() || ''
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
 
@@ -91,7 +92,7 @@ export default function SellerPage({ params }: PageProps) {
   useEffect(() => {
     const load = async () => {
       const [{ data: u }, { data: ls }] = await Promise.all([
-        supabase.from('users').select('*').eq('id', id).single(),
+        supabase.from('users').select('id, display_name, seller_type, store_name, avatar_url, is_verified, sold_count, confirmed_count, phone_verified_at, id_verified_at, line_oa_friend_at, created_at').eq('id', id).single(),
         supabase
           .from('listings')
           .select('*, books(isbn, title, author, cover_url)')
@@ -213,11 +214,11 @@ export default function SellerPage({ params }: PageProps) {
       )}
 
       {contactListing && (
-        <div onClick={() => setContactListing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+        <div onClick={() => { setContactListing(null); setSellerPII(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', letterSpacing: '-0.02em' }}>ข้อมูลผู้ขาย</div>
-              <button onClick={() => setContactListing(null)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1, minWidth: 44, minHeight: 44 }}>✕</button>
+              <button onClick={() => { setContactListing(null); setSellerPII(null) }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1, minWidth: 44, minHeight: 44 }}>✕</button>
             </div>
 
             {/* หนังสือที่กำลังติดต่อ */}
@@ -378,7 +379,12 @@ export default function SellerPage({ params }: PageProps) {
                       <CondBadge cond={l.condition} />
                     </div>
                     <button
-                      onClick={() => { setContactListing(l); setCopied(false) }}
+                      onClick={async () => {
+                        setCopied(false)
+                        const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
+                        setSellerPII(ci)
+                        setContactListing(l)
+                      }}
                       style={{
                         marginTop: 12,
                         background: 'var(--primary)',
