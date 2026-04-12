@@ -20,6 +20,7 @@ export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
       canvas.width = width; canvas.height = height
       canvas.getContext('2d')!.drawImage(source as any, 0, 0, width, height)
       canvas.toBlob(blob => {
+        canvas.width = 0; canvas.height = 0 // free GPU memory
         resolve(blob ? new File([blob], 'scan.jpg', { type: 'image/jpeg' }) : file)
       }, 'image/jpeg', 0.95)
     }

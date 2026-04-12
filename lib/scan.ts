@@ -108,6 +108,12 @@ function finalize(raw: string, debug: string[], variantHit: string): ScanResult 
   }
 }
 
+// Release canvas memory — set dimensions to 0 to free GPU/bitmap backing store
+function freeCanvas(c: HTMLCanvasElement) {
+  c.width = 0
+  c.height = 0
+}
+
 export async function scanBarcode(rawFile: File): Promise<ScanResult> {
   const debug: string[] = []
 
@@ -146,12 +152,18 @@ export async function scanBarcode(rawFile: File): Promise<ScanResult> {
     debug.push(`variants build FAIL: ${e?.message}`)
   }
 
+  // Helper: free all variant canvases to release memory
+  const cleanup = () => {
+    for (const v of variants) freeCanvas(v.canvas)
+  }
+
   // 4. BarcodeDetector across variants (Chrome/Android — fast native)
   if ('BarcodeDetector' in window) {
     for (const v of variants) {
       const r = await tryBarcodeDetector(v.canvas)
       if (r) {
         debug.push(`BarcodeDetector HIT on ${v.name}: ${r}`)
+        cleanup()
         return finalize(r, debug, `BD:${v.name}`)
       }
     }
@@ -167,6 +179,7 @@ export async function scanBarcode(rawFile: File): Promise<ScanResult> {
       const r = tryZXing(v.canvas, zxing)
       if (r) {
         debug.push(`ZXing HIT on ${v.name}: ${r}`)
+        cleanup()
         return finalize(r, debug, `ZX:${v.name}`)
       }
     }
@@ -175,17 +188,26 @@ export async function scanBarcode(rawFile: File): Promise<ScanResult> {
     debug.push(`ZXing import FAIL: ${e?.message}`)
   }
 
+  // Free variant canvases before html5-qrcode (it works on the file, not canvas)
+  cleanup()
+
   // 6. html5-qrcode on the file (last resort — slower, different engine)
   try {
     const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
     let el = document.getElementById('scan-tmp')
     if (!el) { el = document.createElement('div'); el.id = 'scan-tmp'; el.style.display = 'none'; document.body.appendChild(el) }
     const scanner = new Html5Qrcode('scan-tmp', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13], verbose: false })
-    const r = await scanner.scanFile(file, false)
-    debug.push(`html5-qrcode HIT: ${r}`)
-    return finalize(r, debug, 'h5q')
+    try {
+      const r = await scanner.scanFile(file, false)
+      debug.push(`html5-qrcode HIT: ${r}`)
+      scanner.clear()
+      return finalize(r, debug, 'h5q')
+    } catch (e: any) {
+      debug.push(`html5-qrcode FAIL: ${e?.message}`)
+      scanner.clear()
+    }
   } catch (e: any) {
-    debug.push(`html5-qrcode FAIL: ${e?.message}`)
+    debug.push(`html5-qrcode import FAIL: ${e?.message}`)
   }
 
   return { raw: null, isbn: null, debug, variantHit: null }

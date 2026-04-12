@@ -31,8 +31,9 @@ function compressImage(file: File, maxKB = 300): Promise<File> {
       canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
       const tryQ = (q: number) => {
         canvas.toBlob(blob => {
-          if (!blob) { resolve(file); return }
+          if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
           if (blob.size <= maxKB * 1024 || q <= 0.1) {
+            canvas.width = 0; canvas.height = 0 // free GPU memory
             resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
           } else {
             tryQ(Math.round((q - 0.1) * 10) / 10)
@@ -191,12 +192,7 @@ function SellPage() {
       // ISBN สแกนได้ แต่ไม่อยู่ในระบบ — ให้ผู้ขายกรอกข้อมูลเพิ่ม
       setNotFoundMode('has_isbn')
       setSellSearch('')
-      // log missing ISBN — รู้ว่าผู้ขายอยากลงเล่มไหนแต่ระบบไม่มีข้อมูล
-      fetch('/api/missing-isbn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isbn: q, source: 'sell-scan', userId: user?.id }),
-      }).catch(() => {})
+      // missing ISBN logging removed — admin tracks manually via dashboard
     }
     setFetching(false)
   }

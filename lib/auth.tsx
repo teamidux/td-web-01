@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { User } from './supabase'
 
@@ -63,8 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.refresh() // force re-fetch server component data
   }, [router])
 
+  const userRef = useRef(user)
+  userRef.current = user
+
   const updateUser = useCallback(async (data: Partial<User>) => {
-    const currentUser = user
+    const currentUser = userRef.current
     if (!currentUser) return
     const res = await fetch('/api/user/update', {
       method: 'POST',
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(u => u ? { ...u, ...data } : null)
     router.refresh()
-  }, [user, router])
+  }, [router])
 
   return (
     <AuthContext.Provider value={{ user, loading, loginWithLine, logout, reloadUser, updateUser, syncUser }}>

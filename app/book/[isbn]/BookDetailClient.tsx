@@ -21,7 +21,12 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const { msg, show } = useToast()
   const bookIdRef = useRef<string | null>(null)
 
-  useEffect(() => { loadData() }, [isbn])
+  useEffect(() => {
+    let cancelled = false
+    loadData(cancelled)
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isbn])
 
   // หลัง login กลับมาพร้อม ?action=wanted → เปิดฟอร์มตามหาอัตโนมัติ
   useEffect(() => {
@@ -66,22 +71,26 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     }
   }
 
-  const loadData = async () => {
+  const loadData = async (cancelled = false) => {
     setLoading(true)
     const { data: dbBook } = await supabase.from('books').select('*').eq('isbn', isbn).maybeSingle()
+    if (cancelled) return
 
     if (!dbBook) {
       // ถ้าไม่อยู่ใน DB แต่มี initialBook จาก server (Google Books) → ใช้ได้เลย ไม่ต้อง fetch ซ้ำ
       if (!book) {
         const fetched = await fetchBookByISBN(isbn)
+        if (cancelled) return
         if (fetched) setBook(fetched as Book)
       }
     } else {
       setBook(dbBook)
       bookIdRef.current = dbBook.id
       await loadListings(dbBook.id)
+      if (cancelled) return
       if (user) {
         const { data: w } = await supabase.from('wanted').select('id').eq('user_id', user.id).eq('book_id', dbBook.id).maybeSingle()
+        if (cancelled) return
         setIsWanted(!!w)
       }
     }

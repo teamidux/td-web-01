@@ -16,18 +16,15 @@ export default function WantedPage() {
   const { msg, show } = useToast()
 
   useEffect(() => {
-    if (user) load()
-    else setLoading(false)
-  }, [user])
-
-  useEffect(() => {
-    if (!user) return
+    if (!user) { setLoading(false); return }
+    load()
     registerSW().then(reg => {
       if (!reg) { setPushState('unsupported'); return }
       swReg.current = reg
       getPushState(reg).then(setPushState)
     })
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   const togglePush = async () => {
     if (!swReg.current || !user) return

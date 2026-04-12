@@ -26,7 +26,8 @@ export default function OnboardingPage() {
     if (user.line_id) {
       router.replace(next)
     }
-  }, [user, loading, next, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, next])
 
   const handleSave = async () => {
     setError('')

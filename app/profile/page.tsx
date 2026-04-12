@@ -45,7 +45,8 @@ export default function ProfilePage() {
       // ลบ param ออกจาก URL (history clean)
       router.replace('/profile')
     }
-  }, [searchParams, user, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // เข้าร่วมเมื่อ — แสดงเป็นข้อความสั้นๆ
   const memberSince = (createdAt?: string): string => {
@@ -81,6 +82,7 @@ export default function ProfilePage() {
         canvas.height = MAX
         canvas.getContext('2d')!.drawImage(img, sx, sy, minSide, minSide, 0, 0, MAX, MAX)
         canvas.toBlob(blob => {
+          canvas.width = 0; canvas.height = 0 // free GPU memory
           if (!blob) { resolve(file); return }
           resolve(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }))
         }, 'image/jpeg', 0.8)
@@ -188,7 +190,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) loadListings()
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   const loadListings = async () => {
     if (!user) return
