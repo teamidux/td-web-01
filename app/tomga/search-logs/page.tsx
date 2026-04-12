@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 
 type SearchData = {
   days: number
@@ -29,8 +28,6 @@ export default function SearchLogsPage() {
 
   return (
     <div style={{ padding: '24px 16px 80px', maxWidth: 800, margin: '0 auto' }}>
-      <Link href="/tomga" style={{ fontSize: 14, color: '#2563EB', textDecoration: 'none', fontWeight: 600 }}>← Dashboard</Link>
-
       <h1 style={{ fontFamily: "'Kanit', sans-serif", fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 12, marginBottom: 6 }}>
         Search Logs
       </h1>
