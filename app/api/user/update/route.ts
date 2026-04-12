@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
   const { userId, data } = await req.json()
   if (!userId || !data) return NextResponse.json({ error: 'missing fields' }, { status: 400 })
 
+  // ต้องเป็นเจ้าของ session เท่านั้น — กัน user แก้ข้อมูลคนอื่น
+  const { getSessionUser } = await import('@/lib/session')
+  const sessionUser = await getSessionUser()
+  if (!sessionUser || sessionUser.id !== userId) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
   // อนุญาตแค่ field ที่ user แก้ได้เองเท่านั้น
   const allowed: Record<string, unknown> = {}
   if (typeof data.display_name === 'string') allowed.display_name = data.display_name.trim()

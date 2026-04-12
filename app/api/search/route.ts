@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   if (!q || q.length < 1) return NextResponse.json({ results: [] })
 
   const mode = req.nextUrl.searchParams.get('mode') === 'db' ? 'db' : 'all'
-  const wantDebug = req.nextUrl.searchParams.get('debug') === '1'
+  const wantDebug = false // debug mode ปิดถาวร — กัน expose internal data
   // pages: จำนวน page Google ที่จะดึง (1=light/live, 5=deep/button) max 10
   const pagesParam = parseInt(req.nextUrl.searchParams.get('pages') || '1', 10)
   const pages = Math.max(1, Math.min(isNaN(pagesParam) ? 1 : pagesParam, 10))

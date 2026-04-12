@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET(req: NextRequest) {
-  const limit = Number(req.nextUrl.searchParams.get('limit') || 10)
+  const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') || 10), 20)
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
