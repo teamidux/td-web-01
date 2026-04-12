@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -22,6 +22,7 @@ export default function HomePage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const scanInputRef = useRef<HTMLInputElement>(null)
+  const capture = useCapture()
   const { msg, show } = useToast()
 
   useEffect(() => { loadData() }, [])
@@ -261,7 +262,7 @@ export default function HomePage() {
 
           {/* Scan button — secondary action บน home (search เป็น primary) */}
           <label style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}>
-            <input ref={scanInputRef} type="file" accept="image/*" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+            <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
             {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
           </label>
 

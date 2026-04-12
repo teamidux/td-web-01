@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, ScanErrorSheet, LoginButton } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, ScanErrorSheet, LoginButton, useCapture } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
@@ -62,6 +62,7 @@ function SellPage() {
   const searchParams = useSearchParams()
   const { user, loading: authLoading, loginWithLine, reloadUser } = useAuth()
   const { msg, show } = useToast()
+  const capture = useCapture()
 
   // showLogin removed — login goes directly to LINE OAuth
   const goLogin = () => loginWithLine(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/sell')
@@ -557,7 +558,7 @@ function SellPage() {
 
                   {/* Scan button */}
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '13px 16px', cursor: scanning ? 'default' : 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: 'var(--primary)', marginBottom: 14 }}>
-                    <input ref={scanInputRef} type="file" accept="image/*" onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                    <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
                     {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 ค้นหาด้วย Barcode</>}
                   </label>
 

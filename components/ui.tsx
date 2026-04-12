@@ -5,6 +5,16 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { computeTrustScore, TRUST_TIERS, type TrustItemKey, type TrustItem } from '@/lib/trust'
 
+// LINE in-app browser บน Android ไม่รองรับ capture="environment"
+// ใช้ hook นี้เพื่อ return "environment" ปกติ หรือ undefined ถ้าเป็น LINE
+export function useCapture(): 'environment' | undefined {
+  const [cap, setCap] = useState<'environment' | undefined>('environment')
+  useEffect(() => {
+    if (/Line\//.test(navigator.userAgent)) setCap(undefined)
+  }, [])
+  return cap
+}
+
 // resize รูปก่อนส่ง barcode scan — แก้ปัญหา iPhone (EXIF rotation + ภาพใหญ่เกิน / HEIC)
 export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
   return new Promise(resolve => {
