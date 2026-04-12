@@ -62,6 +62,12 @@ export default function AdminPage() {
       ],
     },
     {
+      title: 'วิเคราะห์',
+      items: [
+        { href: '/tomga/search-logs', icon: '🔍', title: 'Search Logs', desc: 'Keyword ยอดนิยม + demand ที่ไม่มี supply', badge: 0 },
+      ],
+    },
+    {
       title: 'ระบบ',
       items: [
         { href: '/tomga/audit', icon: '📋', title: 'Audit Log', desc: 'ประวัติการทำงาน admin', badge: 0 },

@@ -38,7 +38,9 @@ export async function POST(req: NextRequest) {
     const batch = books.slice(i, i + BATCH).map((b: any) => ({
       isbn: String(b.isbn).trim(),
       title: String(b.title || '').normalize('NFC').trim(),
-      author: String(b.author || '').normalize('NFC').trim(),
+      author: b.author ? String(b.author).normalize('NFC').trim() : '',
+      publisher: b.publisher ? String(b.publisher).normalize('NFC').trim() : null,
+      category: b.category ? String(b.category).normalize('NFC').trim() : null,
       language: 'th',
       source,
     })).filter((b: any) => b.isbn.length >= 10 && b.title)
