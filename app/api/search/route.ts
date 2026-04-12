@@ -206,11 +206,11 @@ export async function GET(req: NextRequest) {
   // 8. SEARCH LOG — fire-and-forget, ไม่ block response
   // ─────────────────────────────────────────────────────────────────
   if (hasServiceRole) {
-    supabase.from('search_logs').insert({
+    Promise.resolve(supabase.from('search_logs').insert({
       keyword: q,
       result_count: results.length,
       mode,
-    }).then(() => {}).catch(() => {})
+    })).catch(() => {})
   }
 
   return NextResponse.json({
