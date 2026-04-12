@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture, LiveScanModal } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -18,11 +18,13 @@ export default function HomePage() {
   const [googleLiveResults, setGoogleLiveResults] = useState<GoogleBook[]>([])
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
+  const [showLiveScan, setShowLiveScan] = useState(false)
   const [loading, setLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const scanInputRef = useRef<HTMLInputElement>(null)
   const capture = useCapture()
+  const isLineIAB = capture === undefined // LINE in-app browser
   const { msg, show } = useToast()
 
   useEffect(() => { loadData() }, [])
@@ -261,10 +263,36 @@ export default function HomePage() {
           </div>
 
           {/* Scan button — secondary action บน home (search เป็น primary) */}
-          <label style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}>
-            <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-            {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
-          </label>
+          {isLineIAB ? (
+            <button
+              onClick={() => setShowLiveScan(true)}
+              disabled={scanning}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}
+            >
+              📷 สแกน barcode แทนการพิมพ์
+            </button>
+          ) : (
+            <label style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}>
+              <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+              {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
+            </label>
+          )}
+
+          {showLiveScan && (
+            <LiveScanModal
+              onCode={(code) => {
+                setShowLiveScan(false)
+                const corrected = code.trim()
+                if (/^(978|979)\d{10}$/.test(corrected)) {
+                  router.push(`/book/${corrected}`)
+                } else {
+                  setQuery(corrected)
+                  show('อ่านบาร์โค้ดไม่ชัด ลองใหม่')
+                }
+              }}
+              onClose={() => setShowLiveScan(false)}
+            />
+          )}
 
           {scanError && (
             <ScanErrorSheet
