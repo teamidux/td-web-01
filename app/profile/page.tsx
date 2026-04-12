@@ -4,9 +4,8 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, Listing } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, MultiLoginButton } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustBadge, IdentityVerifyWizard, MultiLoginButton } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
-import type { TrustItemKey } from '@/lib/trust'
 
 export default function ProfilePage() {
   const { user, loading: authLoading, logout, updateUser, syncUser, loginWithLine } = useAuth()
@@ -575,60 +574,65 @@ export default function ProfilePage() {
           </div>
         </Link>
 
-        {/* Trust Mission card — gamified verification (5 items × 20%) */}
-        <div style={{ padding: '14px 16px 0' }}>
-          <TrustMission user={user} onAction={(key: TrustItemKey) => {
-            switch (key) {
-              case 'line_id':
-                if (user.line_id) setShowLineConfirm(true)  // เปลี่ยน → re-auth
-                else { setNewLineId(''); setEditingLineId(true) }  // ตั้งครั้งแรก → form ตรง
-                break
-              case 'phone_verified':
-                setShowPhoneVerify(true)
-                break
-              case 'id_verified':
-                setShowIdentityWizard(true)
-                break
-            }
-          }} />
-        </div>
+        {/* ยืนยันตัวตน — compact: แสดงเฉพาะสิ่งที่ยังไม่ทำ */}
+        {(!user.phone_verified_at || !user.line_id || !user.id_verified_at) && (
+          <div style={{ padding: '14px 16px 0' }}>
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 10 }}>เพิ่มความน่าเชื่อถือ</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {!user.phone_verified_at && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, color: '#78350F' }}>ยืนยันเบอร์โทร</span>
+                    <button onClick={() => setShowPhoneVerify(true)} style={{ fontSize: 12, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>ทำเลย →</button>
+                  </div>
+                )}
+                {!user.line_id && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, color: '#78350F' }}>ใส่ LINE ID</span>
+                    <button onClick={() => { setNewLineId(''); setEditingLineId(true) }} style={{ fontSize: 12, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>ทำเลย →</button>
+                  </div>
+                )}
+                {!user.id_verified_at && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, color: '#78350F' }}>ยืนยันตัวตน (บัตร+bookbank)</span>
+                    <button onClick={() => setShowIdentityWizard(true)} style={{ fontSize: 12, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>ทำเลย →</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Connected accounts — เชื่อมบัญชีเพื่อ login ได้หลายวิธี */}
+        {/* เชื่อมบัญชี — compact แถวเดียว */}
         <div style={{ padding: '14px 16px 0' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#121212', marginBottom: 10 }}>บัญชีที่เชื่อมแล้ว</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* Phone */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 18 }}>&#128241;</span>
-              <span style={{ flex: 1, fontSize: 14, color: user.phone_verified_at ? '#121212' : '#94A3B8' }}>
-                {user.phone_verified_at ? user.phone : 'เบอร์มือถือ — ยังไม่เชื่อม'}
-              </span>
-              {user.phone_verified_at
-                ? <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>เชื่อมแล้ว</span>
-                : <button className="btn" onClick={() => setShowPhoneVerify(true)} style={{ fontSize: 12, padding: '6px 12px', minHeight: 0 }}>เชื่อม</button>
-              }
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>เชื่อมบัญชี</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, textAlign: 'center', padding: '10px 6px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              {user.phone_verified_at ? (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#16A34A' }}>เบอร์</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{user.phone}</div>
+                </>
+              ) : (
+                <button onClick={() => setShowPhoneVerify(true)} style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ เบอร์</button>
+              )}
             </div>
-            {/* LINE */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#06C755' }}>LINE</span>
-              <span style={{ flex: 1, fontSize: 14, color: user.line_user_id ? '#121212' : '#94A3B8' }}>
-                {user.line_user_id ? (user.line_id || 'เชื่อมแล้ว') : 'ยังไม่เชื่อม'}
-              </span>
-              {user.line_user_id
-                ? <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>เชื่อมแล้ว</span>
-                : <button className="btn" onClick={() => loginWithLine('/profile')} style={{ fontSize: 12, padding: '6px 12px', minHeight: 0, background: '#06C755' }}>เชื่อม LINE</button>
-              }
+            <div style={{ flex: 1, textAlign: 'center', padding: '10px 6px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              {user.line_user_id ? (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#06C755' }}>LINE</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{user.line_id || '✓'}</div>
+                </>
+              ) : (
+                <button onClick={() => loginWithLine('/profile')} style={{ fontSize: 12, fontWeight: 600, color: '#06C755', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ LINE</button>
+              )}
             </div>
-            {/* Facebook */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#1877F2' }}>FB</span>
-              <span style={{ flex: 1, fontSize: 14, color: user.facebook_id ? '#121212' : '#94A3B8' }}>
-                {user.facebook_id ? 'เชื่อมแล้ว' : 'Facebook — ยังไม่เชื่อม'}
-              </span>
-              {user.facebook_id
-                ? <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>เชื่อมแล้ว</span>
-                : <button className="btn" onClick={() => { window.location.href = '/api/auth/facebook/start?next=/profile&link=1' }} style={{ fontSize: 12, padding: '6px 12px', minHeight: 0, background: '#1877F2' }}>เชื่อม Facebook</button>
-              }
+            <div style={{ flex: 1, textAlign: 'center', padding: '10px 6px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              {user.facebook_id ? (
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2' }}>Facebook ✓</div>
+              ) : (
+                <button onClick={() => { window.location.href = '/api/auth/facebook/start?next=/profile&link=1' }} style={{ fontSize: 12, fontWeight: 600, color: '#1877F2', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ Facebook</button>
+              )}
             </div>
           </div>
         </div>

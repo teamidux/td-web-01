@@ -61,10 +61,13 @@ export async function GET() {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-  // ===== SMS — count from phone_otps =====
-  const [{ count: smsToday }, { count: smsMonth }] = await Promise.all([
+  // ===== SMS OTP — นับจาก phone_otps (thaibulksms เก่า) + users ที่ verify ผ่าน Firebase =====
+  const [{ count: smsToday }, { count: smsMonth }, { count: firebaseToday }, { count: firebaseMonth }] = await Promise.all([
     db.from('phone_otps').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
     db.from('phone_otps').select('*', { count: 'exact', head: true }).gte('created_at', monthStart),
+    // Firebase OTP: นับ users ที่มี phone_verified_at วันนี้ (= OTP สำเร็จผ่าน Firebase)
+    db.from('users').select('*', { count: 'exact', head: true }).gte('phone_verified_at', todayStart),
+    db.from('users').select('*', { count: 'exact', head: true }).gte('phone_verified_at', monthStart),
   ])
 
   // ===== LINE — query LINE API =====
@@ -87,9 +90,13 @@ export async function GET() {
 
   return NextResponse.json({
     sms: {
-      today: smsToday || 0,
-      month: smsMonth || 0,
-      cost_baht: ((smsMonth || 0) * 0.40).toFixed(2),
+      today: (smsToday || 0) + (firebaseToday || 0),
+      month: (smsMonth || 0) + (firebaseMonth || 0),
+      firebase_today: firebaseToday || 0,
+      firebase_month: firebaseMonth || 0,
+      legacy_month: smsMonth || 0,
+      cost_baht: '0.00',
+      cost_note: 'Firebase free tier 10,000/เดือน',
     },
     line: {
       push_today: linePushToday,

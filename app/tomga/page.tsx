@@ -240,12 +240,12 @@ export default function AdminPage() {
               <div style={{ marginBottom: 36 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>การใช้งาน Notification</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-                  {/* SMS */}
+                  {/* SMS OTP (Firebase) */}
                   <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 16, padding: '22px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                       <span style={{ fontSize: 22 }}>📱</span>
                       <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>SMS OTP</span>
-                      <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94A3B8', background: '#F1F5F9', borderRadius: 6, padding: '2px 8px' }}>thaibulksms</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: '#F59E0B', background: '#FFFBEB', borderRadius: 6, padding: '2px 8px' }}>Firebase</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
@@ -254,11 +254,11 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>เดือนนี้</div>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{notif.sms.month}</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{notif.sms.month} <span style={{ fontSize: 14, color: '#94A3B8', fontWeight: 600 }}>/ 10,000</span></div>
                       </div>
                     </div>
                     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1F5F9', fontSize: 13, color: '#64748B' }}>
-                      ต้นทุนเดือนนี้ ~<b style={{ color: '#DC2626' }}>฿{notif.sms.cost_baht}</b> <span style={{ fontSize: 11, color: '#CBD5E1' }}>(ประมาณ ฿0.40/ข้อความ)</span>
+                      {(notif.sms as any).cost_note || 'Firebase free tier 10,000/เดือน'} <span style={{ fontSize: 11, color: '#16A34A' }}>ฟรี</span>
                     </div>
                   </div>
 
