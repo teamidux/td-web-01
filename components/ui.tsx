@@ -845,6 +845,97 @@ export function LiveScanModal({ onCode, onClose }: { onCode: (code: string) => v
   )
 }
 
+// Camera capture modal สำหรับ LINE in-app browser
+// เปิดกล้อง → เห็น preview → กดถ่าย 1 รูป → return File
+export function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: File) => void; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const start = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        })
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play()
+          setReady(true)
+        }
+      } catch {
+        if (!cancelled) setError('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตกล้อง')
+      }
+    }
+    start()
+    return () => {
+      cancelled = true
+      streamRef.current?.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
+  const takePhoto = () => {
+    const video = videoRef.current
+    if (!video) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')!.drawImage(video, 0, 0)
+    canvas.toBlob(blob => {
+      canvas.width = 0; canvas.height = 0
+      if (!blob) return
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      onCapture(new File([blob], 'scan.jpg', { type: 'image/jpeg' }))
+    }, 'image/jpeg', 0.9)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.95)', zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ color: 'white', fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700 }}>ถ่ายรูป Barcode</div>
+          <button onClick={() => { streamRef.current?.getTracks().forEach(t => t.stop()); onClose() }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 44, height: 44, color: 'white', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </div>
+
+        {error ? (
+          <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 14, padding: '32px 20px', textAlign: 'center', color: 'white' }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>📵</div>
+            <div style={{ fontSize: 16, lineHeight: 1.6, marginBottom: 22 }}>{error}</div>
+            <button className="btn" onClick={() => { streamRef.current?.getTracks().forEach(t => t.stop()); onClose() }}>ปิด</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ borderRadius: 14, overflow: 'hidden', border: '2px solid rgba(255,255,255,.3)', background: '#000' }}>
+              <video ref={videoRef} playsInline muted style={{ width: '100%', display: 'block' }} />
+            </div>
+            {!ready && (
+              <div style={{ textAlign: 'center', marginTop: 18, color: 'rgba(255,255,255,.7)', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span className="spin" style={{ width: 18, height: 18, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} />
+                กำลังเปิดกล้อง...
+              </div>
+            )}
+            {ready && (
+              <>
+                <div style={{ textAlign: 'center', marginTop: 14, color: 'rgba(255,255,255,.75)', fontSize: 14, lineHeight: 1.6 }}>
+                  จ่อบาร์โค้ดหลังปกหนังสือ แล้วกดถ่าย
+                </div>
+                <button onClick={takePhoto} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px auto 0', width: 70, height: 70, borderRadius: '50%', background: 'white', border: '4px solid rgba(255,255,255,.4)', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,.4)' }}>
+                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'white', border: '3px solid #E5E7EB' }} />
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Skeleton card — ใช้แทน spinner ตอนโหลดรายการหนังสือ
 export function SkeletonCard() {
   return (

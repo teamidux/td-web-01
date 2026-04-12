@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture, CameraCaptureModal } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -18,11 +18,13 @@ export default function HomePage() {
   const [googleLiveResults, setGoogleLiveResults] = useState<GoogleBook[]>([])
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
   const [loading, setLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
   const scanInputRef = useRef<HTMLInputElement>(null)
   const capture = useCapture()
+  const isLineIAB = capture === undefined
   const { msg, show } = useToast()
 
   useEffect(() => { loadData() }, [])
@@ -117,10 +119,7 @@ export default function HomePage() {
     }
   }
 
-  const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.files?.[0]
-    if (!raw) return
-    e.target.value = ''
+  const processPhoto = async (raw: File) => {
     setScanning(true)
     try {
       const result = await scanBarcode(raw)
@@ -135,6 +134,13 @@ export default function HomePage() {
     } finally {
       setScanning(false)
     }
+  }
+
+  const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.files?.[0]
+    if (!raw) return
+    e.target.value = ''
+    processPhoto(raw)
   }
 
   return (
@@ -261,14 +267,31 @@ export default function HomePage() {
           </div>
 
           {/* Scan button — secondary action บน home (search เป็น primary) */}
-          <label style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}>
-            <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-            {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
-          </label>
+          {isLineIAB ? (
+            <button
+              onClick={() => setShowCamera(true)}
+              disabled={scanning}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}
+            >
+              {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
+            </button>
+          ) : (
+            <label style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.85)', fontFamily: 'Kanit', fontWeight: 500, fontSize: 13, cursor: scanning ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: '0 auto', minHeight: 36, textDecoration: 'underline', textUnderlineOffset: 4 }}>
+              <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+              {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
+            </label>
+          )}
+
+          {showCamera && (
+            <CameraCaptureModal
+              onCapture={(file) => { setShowCamera(false); processPhoto(file) }}
+              onClose={() => setShowCamera(false)}
+            />
+          )}
 
           {scanError && (
             <ScanErrorSheet
-              onRetry={() => { setScanError(false); scanInputRef.current?.click() }}
+              onRetry={() => { setScanError(false); isLineIAB ? setShowCamera(true) : scanInputRef.current?.click() }}
               onClose={() => setScanError(false)}
             />
           )}
