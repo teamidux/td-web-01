@@ -127,8 +127,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     const { data: existing } = await supabase.from('books').select('id').eq('isbn', isbn).maybeSingle()
     if (!existing?.id) return null
     setBook(b => b ? { ...b, id: existing.id } : b)
-    bookIdRef.current = newBook.id
-    return newBook.id
+    bookIdRef.current = existing.id
+    return existing.id
   }
 
   // ปุ่ม "ขายเล่มนี้" → ถ้ายังไม่ login ให้ trigger LINE login เลย ไม่ใช่พาไป /sell แล้วโผล่ login box
