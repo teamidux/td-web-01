@@ -182,7 +182,7 @@ export default function SellerPage({ params }: PageProps) {
                   color: 'var(--ink)',
                 }}
               />
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4, textAlign: 'right' }}>{reportDetails.length}/500</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, textAlign: 'right' }}>{reportDetails.length}/500</div>
             </div>
 
             {/* Honeypot */}
@@ -190,7 +190,7 @@ export default function SellerPage({ params }: PageProps) {
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
               <input type="checkbox" id="report_confirm" style={{ marginTop: 3, width: 16, height: 16, accentColor: '#DC2626', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: '#374151', lineHeight: 1.6 }}>
+              <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
                 ข้าพเจ้ายืนยันว่าข้อมูลที่ให้ไว้เป็นความจริง การรายงานอันเป็นเท็จหรือกลั่นแกล้งอาจถูกระงับบัญชีและอาจเข้าข่ายความผิดตาม พ.ร.บ.คอมพิวเตอร์
               </span>
             </label>

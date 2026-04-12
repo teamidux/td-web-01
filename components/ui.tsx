@@ -109,7 +109,7 @@ export function BottomNav() {
 // Footer terms link — แสดงเฉพาะหน้า home (ที่อื่นรกสายตา)
 export function TermsFooter() {
   return (
-    <div style={{ textAlign: 'center', padding: '20px 0 12px', fontSize: 11, color: '#94A3B8' }}>
+    <div style={{ textAlign: 'center', padding: '20px 0 12px', fontSize: 13, color: '#94A3B8' }}>
       <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}>ข้อตกลงการใช้บริการ</Link>
     </div>
   )
@@ -127,7 +127,7 @@ export function LoginButton({ onClick }: { onClick: () => void }) {
       >
         💚 เข้าสู่ระบบด้วย LINE
       </button>
-      <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
         การ login ถือว่ายอมรับ <Link href="/terms" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>ข้อตกลงการใช้บริการ</Link>
       </div>
     </div>
@@ -214,12 +214,14 @@ export function InAppBanner() {
   useEffect(() => {
     const ua = navigator.userAgent
     const isLine = /Line\//.test(ua)
-    const isInApp = isLine || /FBAN|FBAV|Instagram/.test(ua)
+    const isInApp = isLine || /FBAN|FBAV|Instagram|Twitter|BytedanceWebview|musical_ly|TikTok/.test(ua)
     // iPhone: detect non-Safari browsers (Chrome, Firefox, etc.) — they all contain "CriOS", "FxiOS", etc.
     const isIPhone = /iPhone/.test(ua)
     const isNotSafari = isIPhone && (/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua))
 
-    if (!isInApp && !isNotSafari) return // Safari บน iPhone หรือ desktop — ไม่ต้องทำอะไร
+    if (!isIPhone) return // Android & desktop → LINE Login ใช้ได้ทุก browser ปกติ
+
+    if (!isInApp && !isNotSafari) return // Safari บน iPhone → ไม่ต้องทำอะไร
 
     // LINE in-app → auto-redirect ด้วย openExternalBrowser=1
     if (isLine) {
@@ -229,15 +231,7 @@ export function InAppBanner() {
       return
     }
 
-    // FB/IG in-app → ลอง intent scheme เปิด Safari
-    if (isInApp && isIPhone) {
-      window.location.href = `x-safari-${window.location.href}`
-      // fallback ถ้า intent ไม่ทำงาน
-      setTimeout(() => setFallback(true), 1500)
-      return
-    }
-
-    // Chrome/Firefox บน iPhone → แสดง fallback banner ให้ copy link ไปเปิด Safari
+    // in-app browser หรือ Chrome/Firefox บน iPhone → แสดง banner ให้ copy link ไปเปิด Safari
     setFallback(true)
   }, [])
 
@@ -250,17 +244,17 @@ export function InAppBanner() {
   if (!fallback) return null
 
   return (
-    <div className="inapp-banner">
-      <span style={{ fontSize: 20 }}>⚠️</span>
-      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
-        <strong>เปิดใน Safari</strong>
+    <div className="inapp-banner" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontSize: 20 }}>🧭</span>
+      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: '#166534' }}>
+        <strong>Login ง่ายขึ้นบน Safari</strong>
         <br />
-        เพื่อใช้งานกล้องและ Login ได้สมบูรณ์
+        คัดลอกลิงก์แล้ววางใน Safari ได้เลย
       </div>
       <button
         onClick={copyLink}
         style={{
-          background: '#D97706',
+          background: copied ? '#16A34A' : '#15803D',
           color: 'white',
           border: 'none',
           borderRadius: 8,
@@ -271,9 +265,10 @@ export function InAppBanner() {
           fontSize: 13,
           cursor: 'pointer',
           whiteSpace: 'nowrap',
+          transition: 'background .2s',
         }}
       >
-        {copied ? '✓ คัดลอกแล้ว' : 'Copy Link'}
+        {copied ? '✓ คัดลอกแล้ว' : 'คัดลอกลิงก์'}
       </button>
     </div>
   )
@@ -348,6 +343,8 @@ export function LoginModal({
           ใช้บัญชี LINE ของคุณ — ปลอดภัย ฟรี ไม่ต้องสร้างรหัสใหม่
         </div>
 
+        <InAppBanner />
+
         <button
           onClick={handleLineLogin}
           style={{
@@ -373,7 +370,7 @@ export function LoginModal({
           เข้าสู่ระบบด้วย LINE
         </button>
 
-        <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, textAlign: 'center', marginTop: 16 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, textAlign: 'center', marginTop: 16 }}>
           การเข้าสู่ระบบหมายความว่าคุณยอมรับเงื่อนไขการใช้งาน
         </div>
 
@@ -558,7 +555,7 @@ export function PhoneVerifyModal({
               ) : 'รับรหัส OTP'}
             </button>
             {loading && (
-              <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 10, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginTop: 10, lineHeight: 1.6 }}>
                 กำลังตรวจสอบ reCAPTCHA และส่ง SMS<br />
                 อาจใช้เวลา 5-15 วินาที
               </div>
@@ -994,7 +991,7 @@ export function TrustMission({
           <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 16, fontWeight: 700, color: '#121212', letterSpacing: '-0.01em' }}>
             🎯 ภารกิจสร้างความน่าเชื่อถือ
           </div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
             ทำครบเพื่อขายไวขึ้น
           </div>
         </div>
@@ -1004,7 +1001,7 @@ export function TrustMission({
             color: tier.color,
             borderRadius: 8,
             padding: '6px 12px',
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 700,
             whiteSpace: 'nowrap',
           }}>
@@ -1051,7 +1048,7 @@ export function TrustMission({
           background: '#FFFBEB',
           border: '1px solid #FDE68A',
           borderRadius: 10,
-          fontSize: 12,
+          fontSize: 13,
           color: '#78350F',
           lineHeight: 1.6,
           display: 'flex',
@@ -1070,7 +1067,7 @@ export function TrustMission({
               color: TRUST_TIERS.verified.color,
               borderRadius: 999,
               padding: '3px 10px',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               whiteSpace: 'nowrap',
               verticalAlign: 'middle',
@@ -1155,7 +1152,7 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
           {item.title}
         </div>
         <div style={{
-          fontSize: 12,
+          fontSize: 13,
           color: isDone ? '#166534' : isPending ? '#B45309' : 'var(--ink3)',
           lineHeight: 1.7,
         }}>
@@ -1172,7 +1169,7 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
                 color: TRUST_TIERS.phone.color,
                 borderRadius: 999,
                 padding: '2px 8px',
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 700,
                 lineHeight: 1,
                 verticalAlign: 'middle',
@@ -1187,7 +1184,7 @@ function TrustItemRow({ item, onClick }: { item: TrustItem; onClick: () => void 
                 color: TRUST_TIERS.id.color,
                 borderRadius: 999,
                 padding: '2px 8px',
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 700,
                 lineHeight: 1,
                 verticalAlign: 'middle',
@@ -1284,7 +1281,7 @@ export function IdentityVerifyWizard({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: '#121212' }}>ยืนยันตัวตน</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>ขั้นตอน {step}/2</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>ขั้นตอน {step}/2</div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
         </div>
@@ -1301,7 +1298,7 @@ export function IdentityVerifyWizard({
             <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 8 }}>
               วางบัตรในกรอบ — ถ่ายให้เห็นชัดทั้ง 4 มุม
             </div>
-            <div style={{ fontSize: 11, color: '#0369A1', background: '#E0F2FE', borderRadius: 8, padding: '6px 10px', marginBottom: 14, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, color: '#0369A1', background: '#E0F2FE', borderRadius: 8, padding: '6px 10px', marginBottom: 14, lineHeight: 1.5 }}>
               🔒 ใช้เพื่อลงทะเบียนผู้ขายกับ BookMatch เท่านั้น — ไม่เผยแพร่หรือใช้เพื่อวัตถุประสงค์อื่น
             </div>
 
@@ -1349,7 +1346,7 @@ export function IdentityVerifyWizard({
               </button>
             </div>
 
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#78350F', lineHeight: 1.6 }}>
               💡 <b>เคล็ดลับ:</b> ถ่ายในที่สว่าง · ไม่สะท้อนแสง · เห็นตัวอักษรชัด
             </div>
 
@@ -1412,7 +1409,7 @@ export function IdentityVerifyWizard({
               </button>
             </div>
 
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#78350F', lineHeight: 1.6 }}>
               💡 ปิดเลขบัญชีได้ ขอแค่ <b>ชื่อ</b>เห็นชัด — ตรงกับบัตรประชาชน
             </div>
 
@@ -1431,7 +1428,7 @@ export function IdentityVerifyWizard({
           </>
         )}
 
-        <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
           🔒 ข้อมูลของคุณปลอดภัย เก็บในระบบเข้ารหัส<br />
           ใช้เพื่อลงทะเบียนผู้ขายกับ BookMatch เท่านั้น<br />
           ไม่เผยแพร่หรือส่งต่อบุคคลที่สาม<br />

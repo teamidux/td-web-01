@@ -101,7 +101,7 @@ export default function WantedPage() {
                   <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: '#065F46', lineHeight: 1.35, marginBottom: 4 }}>
                     รับแจ้งเตือนผ่าน LINE
                   </div>
-                  <div style={{ fontSize: 12.5, color: '#047857', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 13, color: '#047857', lineHeight: 1.6 }}>
                     Add <b>@Bookmatch</b> เป็นเพื่อน → เราจะส่งข้อความหาคุณทุกครั้งที่หนังสือที่คุณตามหามีคนลงขาย
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export default function WantedPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.books?.title}</div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {w.max_price && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>สูงสุด <strong style={{ color: 'var(--primary)' }}>฿{w.max_price}</strong></span>}
+                        {w.max_price && <span style={{ fontSize: 13, color: 'var(--ink3)' }}>สูงสุด <strong style={{ color: 'var(--primary)' }}>฿{w.max_price}</strong></span>}
                         {hasStock
                           ? <span className="badge badge-green">✓ มีคนขาย {w.books?.active_listings_count} ราย</span>
                           : <span className="badge" style={{ background: '#FFF8E1', color: '#E65100' }}>รอคอยอยู่</span>

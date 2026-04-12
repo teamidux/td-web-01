@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, InAppBanner, useToast, Toast, ScanErrorSheet, LoginButton } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, ScanErrorSheet, LoginButton } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 const CONDITIONS = [
@@ -397,7 +397,6 @@ function SellPage() {
   return (
     <>
       <Nav />
-      <InAppBanner />
       <Toast msg={msg} />
 
       {/* Inline LINE ID guard — กัน user ลงขายโดยไม่มี channel ให้ลูกค้าติดต่อ */}
@@ -430,7 +429,7 @@ function SellPage() {
                 marginBottom: 6,
               }}
             />
-            <div style={{ fontSize: 12, color: lineGuardError ? '#DC2626' : '#94A3B8', marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, color: lineGuardError ? '#DC2626' : '#94A3B8', marginBottom: 16, lineHeight: 1.5 }}>
               {lineGuardError || 'กรอก LINE ID ของคุณ (4-20 ตัวอักษร: a-z, 0-9, จุด ขีด)'}
             </div>
 
@@ -593,9 +592,9 @@ function SellPage() {
                     <span style={{ fontSize: 22, flexShrink: 0 }}>🔖</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>สแกนได้ ISBN แต่ยังไม่มีในระบบ</div>
-                      {isbn && <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>}
+                      {isbn && <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>}
                     </div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ เพื่อเพิ่มเข้าระบบและลงขาย</div>
@@ -608,7 +607,7 @@ function SellPage() {
                       <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label">ผู้แต่ง <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <label className="label">ผู้แต่ง <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
                       <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling" />
                     </div>
                   </div>
@@ -622,9 +621,9 @@ function SellPage() {
                     <span style={{ fontSize: 22, flexShrink: 0 }}>📖</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>หนังสือไม่มี Barcode</div>
-                      <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>กรอกชื่อหนังสือเพื่อค้นหาก่อน หรือเพิ่มใหม่</div>
+                      <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>กรอกชื่อหนังสือเพื่อค้นหาก่อน หรือเพิ่มใหม่</div>
                     </div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 12, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
+                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ</div>
@@ -633,11 +632,11 @@ function SellPage() {
                       <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / Naruto เล่ม 1 / ชุด Harry Potter" autoFocus />
                     </div>
                     <div className="form-group">
-                      <label className="label">ผู้แต่ง <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <label className="label">ผู้แต่ง <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
                       <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="ผู้แต่ง หรือ ผู้แปล" />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label">ผู้แปล <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                      <label className="label">ผู้แปล <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
                       <input className="input" value={manualTranslator} onChange={e => setManualTranslator(e.target.value)} placeholder="ชื่อผู้แปล" />
                     </div>
                   </div>
@@ -661,7 +660,7 @@ function SellPage() {
                     <span style={{ color: 'var(--ink3)' }}>แปลโดย </span>{(fetchedBook as any).translator}
                   </div>
                 )}
-                <span style={{ fontSize: 12, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
+                <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
               </div>
               <button onClick={resetSearch} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>เปลี่ยน</button>
             </div>
@@ -704,12 +703,12 @@ function SellPage() {
                 <label className="label">สภาพหนังสือ</label>
                 <div style={{ display: 'flex', gap: 7 }}>
                   {CONDITIONS.map(c => (
-                    <button key={c.key} onClick={() => setCond(c.key)} style={{ flex: 1, padding: '10px 6px', border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 10, background: cond === c.key ? 'var(--primary-light)' : 'white', fontFamily: 'Kanit', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: cond === c.key ? 'var(--primary-dark)' : 'var(--ink2)' }}>
+                    <button key={c.key} onClick={() => setCond(c.key)} style={{ flex: 1, padding: '10px 6px', border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 10, background: cond === c.key ? 'var(--primary-light)' : 'white', fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: cond === c.key ? 'var(--primary-dark)' : 'var(--ink2)' }}>
                       {c.label}
                     </button>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
                   {CONDITIONS.find(c => c.key === cond)?.desc}
                 </div>
               </div>
@@ -729,10 +728,10 @@ function SellPage() {
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
                 {marketPrice && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>ราคากลางในระบบ</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>ราคากลางในระบบ</div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>฿{marketPrice.min}–฿{marketPrice.max}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)' }}>แนะนำ ฿{marketPrice.avg}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink3)' }}>แนะนำ ฿{marketPrice.avg}</div>
                     </div>
                   </div>
                 )}

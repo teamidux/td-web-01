@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, InAppBanner, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -139,7 +139,6 @@ export default function HomePage() {
   return (
     <>
       <Nav />
-      <InAppBanner />
       <Toast msg={msg} />
       <div className="page">
         <div className="hero">
@@ -165,7 +164,7 @@ export default function HomePage() {
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 6px' }}
                 >
                   <span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'Kanit' }}>ยกเลิก</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink3)', fontFamily: 'Kanit' }}>ยกเลิก</span>
                 </button>
               ) : query ? (
                 <button
@@ -216,7 +215,7 @@ export default function HomePage() {
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                         {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
                         {hasListing && b.min_price && (
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', marginTop: 2 }}>฿{b.min_price} · {b.active_listings_count} คนขาย</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', marginTop: 2 }}>฿{b.min_price} · {b.active_listings_count} คนขาย</div>
                         )}
                       </div>
                       <span style={{ color: hasListing ? 'var(--green)' : 'var(--ink3)', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>›</span>
@@ -318,7 +317,7 @@ export default function HomePage() {
                     {l.books?.author && <div className="book-author">{l.books.author}</div>}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                       <span className="price">฿{l.price}</span>
-                      {l.price_includes_shipping && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)' }}>ส่งฟรี</span>}
+                      {l.price_includes_shipping && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>ส่งฟรี</span>}
                     </div>
                   </div>
                 </div>

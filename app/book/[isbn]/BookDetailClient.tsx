@@ -49,6 +49,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         cover_url: book.cover_url,
         publisher: book.publisher,
         language: book.language,
+        category: (book as any).category || null,
+        list_price: (book as any).list_price || null,
       }),
     }).catch(() => {})
   }, [isbn, book?.title])
@@ -214,7 +216,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             <span style={{ fontSize: 22, flexShrink: 0 }}>🔍</span>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีข้อมูลหนังสือเล่มนี้ในระบบ</div>
-              <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>
+              <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>
             </div>
           </div>
           <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px' }}>
@@ -261,7 +263,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             </div>
 
             <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{contactListing.users?.display_name || '—'}</div>
               {contactListing.users?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
             </div>
@@ -269,7 +271,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             {/* Main contact: phone, LINE, หรือ generic text */}
             {contactLineInfo ? (
               <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: showProfileLine ? 10 : 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ID</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ID</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', color: '#15803D' }}>{contactLineInfo.display}</div>
                   <button onClick={() => navigator.clipboard.writeText(contactLineInfo.raw).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: 'white', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 14px', color: '#15803D', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
@@ -282,7 +284,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               </div>
             ) : (
               <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: showProfileLine ? 10 : 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>{contactPhone ? '📞 เบอร์โทร' : '💬 ช่องทางติดต่อ'}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>{contactPhone ? '📞 เบอร์โทร' : '💬 ช่องทางติดต่อ'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactListing.contact}</div>
                   {contactPhone ? (
@@ -301,7 +303,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             {/* Profile LINE ID (รองจาก contact field) — แสดงถ้าต่างจาก contact ที่กรอก */}
             {showProfileLine && profileLineInfo && (
               <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ผู้ขาย</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ผู้ขาย</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', color: '#15803D' }}>{profileLineInfo.display}</div>
                   <button onClick={() => navigator.clipboard.writeText(profileLineInfo.raw).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: 'white', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 14px', color: '#15803D', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
@@ -315,7 +317,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             )}
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
               <button
                 onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
                 style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 10, padding: '11px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
@@ -351,7 +353,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <span style={{ opacity: 0.7 }}>แปลโดย </span>{book.translator}
               </div>
             )}
-            <div style={{ fontSize: 12, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 12 }}>ISBN: {isbn}</div>
+            <div style={{ fontSize: 13, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 12 }}>ISBN: {isbn}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
                 {isWanted ? '✕ เลิกตามหา' : '🔔 ตามหาเล่มนี้'}
@@ -365,10 +367,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
         {prices.length > 0 && (
           <div style={{ background: 'var(--surface)', padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{minP}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>ต่ำสุด</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{avgP}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>กลาง</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{maxP}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>สูงสุด</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">{book.wanted_count || 0}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>คนตามหา</div></div>
+            <div style={{ textAlign: 'center' }}><div className="price">฿{minP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>ต่ำสุด</div></div>
+            <div style={{ textAlign: 'center' }}><div className="price">฿{avgP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>กลาง</div></div>
+            <div style={{ textAlign: 'center' }}><div className="price">฿{maxP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>สูงสุด</div></div>
+            <div style={{ textAlign: 'center' }}><div className="price">{book.wanted_count || 0}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>คนตามหา</div></div>
           </div>
         )}
 
@@ -384,7 +386,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <span style={{ fontSize: 22, flexShrink: 0 }}>📭</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีผู้ลงขายตอนนี้</div>
-                  <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>กด "ตามหาเล่มนี้" เพื่อรับแจ้งเตือนเมื่อมีคนนำมาขาย</div>
+                  <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>กด "ตามหาเล่มนี้" เพื่อรับแจ้งเตือนเมื่อมีคนนำมาขาย</div>
                 </div>
               </div>
 
@@ -418,7 +420,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                     </Link>
                     <TrustBadge user={l.users} size="sm" />
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
                     {`ขายแล้ว ${l.users?.sold_count || 0} · ยืนยัน ${l.users?.confirmed_count || 0} ครั้ง`}
                   </div>
                 </div>
@@ -439,13 +441,13 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               )}
 
               {l.notes && (
-                <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--surface)', borderRadius: 8, padding: '7px 10px', marginBottom: 10, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink2)', background: 'var(--surface)', borderRadius: 8, padding: '7px 10px', marginBottom: 10, lineHeight: 1.5 }}>
                   📝 {l.notes}
                 </div>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
                 <button onClick={() => {
                   setContactListing(l); setCopied(false)
                   fetch('/api/listings/contact', {

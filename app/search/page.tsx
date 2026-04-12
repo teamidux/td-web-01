@@ -225,10 +225,10 @@ function SearchPage() {
                         {hasListing && b.min_price ? (
                           <>
                             <span className="price">฿{b.min_price}</span>
-                            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>
+                            <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>
                           </>
                         ) : (
-                          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>
+                          <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>
                         )}
                         {b.wanted_count > 0 && <span className="badge badge-blue">🔔 {b.wanted_count} คนตามหา</span>}
                       </div>

@@ -15,11 +15,11 @@ export default function ContactPage() {
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 20, marginBottom: 14, display: 'flex', gap: 14, alignItems: 'center' }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📧</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Email</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.6px' }}>Email</div>
               <a href="mailto:teamidux@gmail.com" style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>
                 teamidux@gmail.com
               </a>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>ตอบภายใน 1-2 วันทำการ</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>ตอบภายใน 1-2 วันทำการ</div>
             </div>
           </div>
 

@@ -310,7 +310,7 @@ export default function ProfilePage() {
                 />
                 {/* Honeypot — ซ่อนจากคน bot จะกรอก */}
                 <input name="website" autoComplete="off" tabIndex={-1} style={{ position: 'absolute', left: -9999, opacity: 0, height: 0 }} id="hp_contact" />
-                <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 14, textAlign: 'right' }}>{contactMsg.length}/2000</div>
+                <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 14, textAlign: 'right' }}>{contactMsg.length}/2000</div>
                 <button
                   className="btn"
                   disabled={contactSending || contactMsg.trim().length < 5}
@@ -350,7 +350,7 @@ export default function ProfilePage() {
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 8 }}>ยืนยันการขาย</div>
             <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.6 }}>
               หนังสือเล่มนี้ขายไปแล้วใช่ไหม?<br />
-              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>เปิดคืนได้ภายใน 24 ชั่วโมง</span>
+              <span style={{ fontSize: 13, color: 'var(--ink3)' }}>เปิดคืนได้ภายใน 24 ชั่วโมง</span>
             </div>
             <button className="btn" style={{ background: '#DC2626', marginBottom: 8 }} onClick={() => markSold(confirmSoldId)}>✓ ขายไปแล้ว</button>
             <button className="btn btn-ghost" onClick={() => setConfirmSoldId(null)}>ยกเลิก</button>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 8 }}>ลบประกาศ</div>
             <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.6 }}>
               ต้องการลบประกาศนี้ใช่ไหม?<br />
-              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>ลบแล้วไม่สามารถกู้คืนได้</span>
+              <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ลบแล้วไม่สามารถกู้คืนได้</span>
             </div>
             <button className="btn" style={{ background: 'var(--red)', marginBottom: 8 }} onClick={() => deleteListing(confirmDeleteId)}>🗑️ ลบประกาศ</button>
             <button className="btn btn-ghost" onClick={() => setConfirmDeleteId(null)}>ยกเลิก</button>
@@ -395,9 +395,9 @@ export default function ProfilePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 360 }}>
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 6 }}>เปลี่ยน LINE ID</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>✓ ยืนยัน LINE สำเร็จ</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>✓ ยืนยัน LINE สำเร็จ</div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID ใหม่</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID ใหม่</label>
               <input
                 className="search-input"
                 style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }}
@@ -406,10 +406,10 @@ export default function ProfilePage() {
                 placeholder="เช่น somchai_books"
                 autoFocus
               />
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
                 💡 4-20 ตัวอักษร (a-z, 0-9, จุด ขีด ขีดเส้นใต้)
               </div>
-              {lineError && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>⚠️ {lineError}</div>}
+              {lineError && <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 6 }}>⚠️ {lineError}</div>}
             </div>
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveLineId} disabled={savingLine}>
               {savingLine ? 'กำลังบันทึก...' : '✓ บันทึก'}
@@ -425,12 +425,12 @@ export default function ProfilePage() {
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 20 }}>แก้ไขข้อมูล</div>
             {editSellerType !== 'store' && (
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อที่แสดง</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อที่แสดง</label>
                 <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editName} onChange={e => setEditName(e.target.value)} placeholder="ชื่อของคุณ" />
               </div>
             )}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>ประเภทผู้ขาย</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>ประเภทผู้ขาย</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {(['individual', 'store'] as const).map(t => (
                   <button key={t} onClick={() => setEditSellerType(t)}
@@ -442,14 +442,14 @@ export default function ProfilePage() {
             </div>
             {editSellerType === 'store' && (
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อร้าน / สำนักพิมพ์ <span style={{ color: 'var(--red)' }}>*</span></label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อร้าน / สำนักพิมพ์ <span style={{ color: 'var(--red)' }}>*</span></label>
                 <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editStoreName} onChange={e => setEditStoreName(e.target.value)} placeholder="เช่น ร้านหนังสือบ้านหนังสือ" />
               </div>
             )}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID</label>
               <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editLineId} onChange={e => { setEditLineId(e.target.value); setEditLineError('') }} placeholder="เช่น mylineid" />
-              {editLineError && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 4 }}>{editLineError}</div>}
+              {editLineError && <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 4 }}>{editLineError}</div>}
             </div>
             <div style={{ marginBottom: 24 }} />
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveProfile} disabled={saving}>
@@ -521,17 +521,17 @@ export default function ProfilePage() {
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, color: 'white', marginBottom: 3 }}>
               {user.seller_type === 'store' && user.store_name ? user.store_name : user.display_name}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.65)', marginBottom: 2 }}>{user.phone}</div>
-            {user.line_id && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', marginBottom: 2 }}>{user.phone}</div>
+            {user.line_id && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <TrustBadge user={user} size="md" />
               {user.seller_type === 'store' && (
-                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏪 ร้านค้า / สำนักพิมพ์</span>
+                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12 }}>🏪 ร้านค้า / สำนักพิมพ์</span>
               )}
-              {user.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 11 }}>🏆 ผู้บุกเบิก</span>}
+              {user.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12 }}>🏆 ผู้บุกเบิก</span>}
             </div>
           </div>
-          <button onClick={startEdit} style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '7px 12px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+          <button onClick={startEdit} style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '7px 12px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             แก้ไข
           </button>
         </div>
@@ -624,17 +624,17 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
                   <span className="badge badge-green">กำลังขาย</span>
                   {(l.books as any)?.view_count > 0 && (
-                    <span style={{ fontSize: 12, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: 13, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                       👁 {(l.books as any).view_count}
                     </span>
                   )}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button onClick={() => setConfirmSoldId(l.id)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink2)' }}>
+                <button onClick={() => setConfirmSoldId(l.id)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink2)' }}>
                   ขายแล้ว?
                 </button>
-                <button onClick={() => setConfirmDeleteId(l.id)} style={{ background: 'white', border: '1px solid #FECACA', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 11, cursor: 'pointer', color: 'var(--red)' }}>
+                <button onClick={() => setConfirmDeleteId(l.id)} style={{ background: 'white', border: '1px solid #FECACA', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, cursor: 'pointer', color: 'var(--red)' }}>
                   🗑️ ลบ
                 </button>
               </div>
@@ -660,7 +660,7 @@ export default function ProfilePage() {
                     <span className="badge" style={{ background: '#FCE4EC', color: '#AD1457', marginTop: 3, display: 'inline-block' }}>ขายแล้ว ✓</span>
                   </div>
                   {canReactivate && (
-                    <button onClick={() => reactivate(l.id)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink2)' }}>
+                    <button onClick={() => reactivate(l.id)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink2)' }}>
                       เปิดคืน
                     </button>
                   )}

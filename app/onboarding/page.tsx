@@ -133,7 +133,7 @@ export default function OnboardingPage() {
           >
             ไว้ทีหลัง
           </button>
-          <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
             ต้องตั้งก่อนจะลงขายได้
           </div>
 
