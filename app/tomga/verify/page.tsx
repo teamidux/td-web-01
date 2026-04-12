@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
-import { Nav } from '@/components/ui'
 
 type PendingUser = {
   id: string
@@ -87,13 +86,11 @@ export default function AdminVerifyPage() {
     return `${Math.floor(hrs / 24)} วันที่แล้ว`
   }
 
-  if (authLoading) return <><Nav /><div className="page" style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
-  if (!user) return <><Nav /><div className="page" style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
+  if (authLoading) return <><div className="page" style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
+  if (!user) return <><div className="page" style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
 
   return (
     <>
-      <Nav />
-
       {/* Lightbox */}
       {viewDoc && (
         <div onClick={() => setViewDoc('')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>

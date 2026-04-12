@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
-import { Nav } from '@/components/ui'
 
 const REASON_LABELS: Record<string, string> = {
   scam: 'หลอกลวง/โกง',
@@ -34,12 +33,11 @@ export default function AdminMessagesPage() {
     return `${Math.floor(hrs / 24)} วันที่แล้ว`
   }
 
-  if (authLoading) return <><Nav /><div style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
-  if (!user) return <><Nav /><div style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
+  if (authLoading) return <><div style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
+  if (!user) return <><div style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
 
   return (
     <>
-      <Nav />
       <div className="page" style={{ padding: '16px 16px 80px' }}>
         <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 16 }}>
           ข้อความ & รายงาน

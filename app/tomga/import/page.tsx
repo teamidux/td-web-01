@@ -1,7 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth'
-import { Nav } from '@/components/ui'
 import { cleanTitle, cleanAuthor, cleanPublisher } from '@/lib/clean-book'
 
 // Parse CSV line ที่รองรับ quoted fields (comma ข้างใน quotes)
@@ -200,12 +199,11 @@ export default function AdminImportPage() {
   const nullAuthorCount = rows.filter(r => !r.author).length
   const nullPublisherCount = rows.filter(r => !r.publisher).length
 
-  if (loading) return <><Nav /><div className="page" style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
-  if (!user) return <><Nav /><div className="page" style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
+  if (loading) return <><div className="page" style={{ padding: 40, textAlign: 'center' }}>Loading...</div></>
+  if (!user) return <><div className="page" style={{ padding: 40, textAlign: 'center' }}>กรุณาเข้าสู่ระบบ</div></>
 
   return (
     <>
-      <Nav />
       <div className="page" style={{ padding: '16px 16px 80px' }}>
         <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 16 }}>
           Import หนังสือ
