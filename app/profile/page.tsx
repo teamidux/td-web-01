@@ -575,7 +575,8 @@ export default function ProfilePage() {
         </Link>
 
         {/* ยืนยันตัวตน — compact: แสดงเฉพาะสิ่งที่ยังไม่ทำ */}
-        {(!user.phone_verified_at || !user.line_id || !user.id_verified_at) && (
+        {/* เพิ่มความน่าเชื่อถือ — เฉพาะเบอร์ + เอกสาร (LINE ID เป็น optional ใน edit profile) */}
+        {(!user.phone_verified_at || !user.id_verified_at) && (
           <div style={{ padding: '14px 16px 0' }}>
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '14px 16px' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 10 }}>เพิ่มความน่าเชื่อถือ</div>
@@ -584,12 +585,6 @@ export default function ProfilePage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 13, color: '#78350F' }}>ยืนยันเบอร์โทร</span>
                     <button onClick={() => setShowPhoneVerify(true)} style={{ fontSize: 12, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>ทำเลย →</button>
-                  </div>
-                )}
-                {!user.line_id && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, color: '#78350F' }}>ใส่ LINE ID</span>
-                    <button onClick={() => { setNewLineId(''); setEditingLineId(true) }} style={{ fontSize: 12, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>ทำเลย →</button>
                   </div>
                 )}
                 {!user.id_verified_at && (

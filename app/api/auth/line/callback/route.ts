@@ -83,7 +83,6 @@ export async function GET(req: NextRequest) {
   }
 
   let userId: string
-  let needsOnboarding = false
   if (existing) {
     userId = existing.id
     // Only fill in missing fields — never overwrite data the user already has
@@ -93,15 +92,12 @@ export async function GET(req: NextRequest) {
     if (Object.keys(patch).length > 0) {
       await sb.from('users').update(patch).eq('id', userId)
     }
-    // ถ้า user เก่ายังไม่ได้ตั้ง line_id (user ที่ signup มาก่อนมี onboarding) → ก็ส่งไป onboarding
-    if (!existing.line_id) needsOnboarding = true
   } else {
     // ถ้า user login อยู่แล้ว (เช่น login ด้วยเบอร์/FB มาก่อน) → link LINE เข้า account เดิม
     const currentUser = await getSessionUser()
     if (currentUser) {
       await sb.from('users').update({ line_user_id: lineUserId }).eq('id', currentUser.id)
       userId = currentUser.id
-      if (!currentUser.line_id) needsOnboarding = true
     } else {
       const { data: newUser, error } = await sb
         .from('users')
@@ -121,7 +117,6 @@ export async function GET(req: NextRequest) {
         return redirectError(`user_create_failed:${errMsg}`)
       }
       userId = newUser.id
-      needsOnboarding = true
     }
   }
 
@@ -147,12 +142,6 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // First-time login (หรือ user เก่าที่ยังไม่มี line_id) → /onboarding ก่อน next
-  // Skip onboarding ถ้าเป็น reauth flow (user แค่กำลังเปลี่ยน LINE ID)
-  if (needsOnboarding && !isReauth) {
-    const next = encodeURIComponent(savedState.next || '/')
-    return NextResponse.redirect(`${siteUrl}/onboarding?next=${next}`)
-  }
-
+  // ไม่ต้อง onboarding แล้ว — LINE ID เป็น optional ใน edit profile
   return NextResponse.redirect(`${siteUrl}${savedState.next || '/'}`)
 }
