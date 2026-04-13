@@ -238,6 +238,9 @@ export function MultiLoginButton({
       const e164 = '+66' + cleaned.slice(1)
       const result = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
       confirmationRef.current = result
+      // Reset reCAPTCHA หลังใช้สำเร็จ → ลดโอกาส challenge ครั้งถัดไป
+      try { recaptchaRef.current?.clear() } catch {}
+      recaptchaRef.current = null
       setStep('code')
       setCooldown(60)
       show('ส่งรหัส OTP แล้ว ตรวจ SMS')
@@ -277,10 +280,39 @@ export function MultiLoginButton({
     }
   }
 
+  // OTP input ref สำหรับ auto-fill
+  const otpInputRef = useRef<HTMLInputElement>(null)
+
+  // ดัก auto-fill ทุกวิธี (onChange, onInput, MutationObserver, polling)
+  useEffect(() => {
+    if (step !== 'code' || !otpInputRef.current) return
+    const el = otpInputRef.current
+    // Polling ทุก 300ms เพื่อจับค่าที่ browser autofill ใส่ให้
+    const interval = setInterval(() => {
+      const v = el.value.replace(/\D/g, '').slice(0, 6)
+      if (v.length === 6) { setCode(v); clearInterval(interval) }
+    }, 300)
+    return () => clearInterval(interval)
+  }, [step])
+
   if (mode === 'phone') {
     return (
       <div style={{ maxWidth: 320, margin: '0 auto' }}>
         <Toast msg={msg} />
+
+        {/* Loading overlay — กลางจอ เห็นชัดทุก platform */}
+        {loading && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', zIndex: 300,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+          }}>
+            <span className="spin" style={{ width: 40, height: 40, borderWidth: 4 }} />
+            <div style={{ color: 'white', fontSize: 16, fontWeight: 700, textAlign: 'center', lineHeight: 1.6 }}>
+              {step === 'phone' ? 'กำลังส่ง OTP...\nรอสักครู่' : 'กำลังตรวจสอบ...'}
+            </div>
+          </div>
+        )}
+
         {step === 'phone' ? (
           <>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#121212', marginBottom: 12, textAlign: 'center' }}>
@@ -301,15 +333,10 @@ export function MultiLoginButton({
               className="btn"
               onClick={sendOtp}
               disabled={loading || phone.replace(/\D/g, '').length < 10}
-              style={{ width: '100%', marginTop: 12, fontSize: 16, padding: '14px', fontWeight: 700, opacity: loading ? 0.7 : 1 }}
+              style={{ width: '100%', marginTop: 12, fontSize: 16, padding: '14px', fontWeight: 700 }}
             >
-              {loading ? <><span className="spin" style={{ width: 18, height: 18, marginRight: 8 }} />กำลังส่ง OTP...</> : 'ส่งรหัส OTP'}
+              ส่งรหัส OTP
             </button>
-            {loading && (
-              <div style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 1.6 }}>
-                กำลังตรวจสอบและส่ง SMS<br />รอสักครู่...
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -320,6 +347,7 @@ export function MultiLoginButton({
               ส่งไปที่ {formatPhone(phone)}
             </div>
             <input
+              ref={otpInputRef}
               className="input"
               type="tel"
               inputMode="numeric"
