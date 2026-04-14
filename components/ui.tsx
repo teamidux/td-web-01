@@ -1773,8 +1773,8 @@ export function IdentityVerifyWizard({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.72)', zIndex: 200, display: 'flex', alignItems: 'flex-end', overflowY: 'auto' }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '24px 20px 36px', width: '100%', maxWidth: 480, margin: '20px auto 0' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.72)', zIndex: 200, overflowY: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 0 0' }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '24px 20px 36px', width: '100%', maxWidth: 480, marginBottom: 0 }}>
         {/* Header + step indicator */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
