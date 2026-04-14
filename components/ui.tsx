@@ -1747,6 +1747,33 @@ export function IdentityVerifyWizard({
     }
   }
 
+  // Resize รูปให้ไม่เกิน 2000px + บีบอัด → กันเกิน 5MB จาก iPhone
+  const resizeImage = async (file: File, maxPx = 2000): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxPx || height > maxPx) {
+          if (width > height) { height = Math.round(height * maxPx / width); width = maxPx }
+          else { width = Math.round(width * maxPx / height); height = maxPx }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { resolve(file); return }
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+          },
+          'image/jpeg',
+          0.85
+        )
+      }
+      img.onerror = () => resolve(file)
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
   const submit = async () => {
     if (!idCardFile || !bankFile) {
       setError('กรุณาถ่ายรูปครบทั้ง 2 อย่าง')
@@ -1755,13 +1782,22 @@ export function IdentityVerifyWizard({
     setSubmitting(true)
     setError('')
     try {
+      // Resize ทั้ง 2 รูปก่อนส่ง — กันรูป iPhone ใหญ่เกิน 5MB
+      const [idResized, bankResized] = await Promise.all([
+        resizeImage(idCardFile),
+        resizeImage(bankFile),
+      ])
       const fd = new FormData()
-      fd.append('id_card', idCardFile)
-      fd.append('bank_book', bankFile)
+      fd.append('id_card', idResized)
+      fd.append('bank_book', bankResized)
       const r = await fetch('/api/user/identity-verify', { method: 'POST', body: fd })
+      const body = await r.json().catch(() => ({}))
       if (!r.ok) {
-        const body = await r.json().catch(() => ({}))
         throw new Error(body.message || body.error || 'ส่งไม่สำเร็จ')
+      }
+      // ถ้า server บอก uploadError → แจ้ง user
+      if (body.uploadError) {
+        throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + body.uploadError)
       }
       await reloadUser()
       onDone?.()
@@ -1773,7 +1809,25 @@ export function IdentityVerifyWizard({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.72)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.72)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} onClick={submitting ? undefined : onClose}>
+      {/* Loading overlay ตอน submit */}
+      {submitting && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 9999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+        }}>
+          <div style={{
+            width: 48, height: 48,
+            border: '4px solid rgba(255,255,255,.3)',
+            borderTopColor: 'white',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
+          }} />
+          <div style={{ color: 'white', fontSize: 16, fontWeight: 700, textAlign: 'center', lineHeight: 1.7 }}>
+            กำลังส่งเอกสาร...<br />รอสักครู่
+          </div>
+        </div>
+      )}
       <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: '24px 20px 36px', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, margin: '0 12px' }}>
         {/* Header + step indicator */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
