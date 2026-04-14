@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   // Base query
   let query = db
     .from('users')
-    .select('id, display_name, phone, line_id, line_user_id, avatar_url, created_at, id_verified_at, phone_verified_at, banned_at, banned_reason, deleted_at, deleted_reason')
+    .select('id, display_name, phone, line_id, line_user_id, avatar_url, created_at, id_verified_at, id_verify_submitted_at, phone_verified_at, banned_at, banned_reason, deleted_at, deleted_reason')
     .order('created_at', { ascending: false })
     .limit(200)
 

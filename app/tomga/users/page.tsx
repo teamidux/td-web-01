@@ -10,6 +10,7 @@ type U = {
   avatar_url: string | null
   created_at: string
   id_verified_at: string | null
+  id_verify_submitted_at: string | null
   phone_verified_at: string | null
   banned_at: string | null
   banned_reason: string | null
@@ -283,13 +284,13 @@ function AdminUsersPage() {
                     🔄 Reset เบอร์
                   </button>
                 )}
-                {!u.deleted_at && !u.banned_at && u.id_verified_at && (
+                {!u.deleted_at && !u.banned_at && (u.id_verified_at || u.id_verify_submitted_at) && (
                   <button
-                    onClick={() => { if (confirm(`Reset ยืนยันตัวตน "${u.display_name}"?\n\nจะลบสถานะ verify บัตร+บัญชี\n→ user ต้อง verify ใหม่`)) doAction(u.id, 'reset_id_verify') }}
+                    onClick={() => { if (confirm(`Reset ยืนยันตัวตน "${u.display_name}"?\n\nจะลบสถานะ ${u.id_verified_at ? 'verify' : 'submitted'} บัตร+บัญชี\n→ user ต้อง verify ใหม่`)) doAction(u.id, 'reset_id_verify') }}
                     disabled={acting === u.id}
                     style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Kanit' }}
                   >
-                    🔄 Reset บัตร
+                    🔄 Reset บัตร {u.id_verify_submitted_at && !u.id_verified_at && '(pending)'}
                   </button>
                 )}
                 {!u.deleted_at && !u.banned_at && u.avatar_url && (

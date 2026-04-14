@@ -61,6 +61,8 @@ export type User = {
   is_pioneer: boolean
   pioneer_count: number
   id_verified_at?: string | null
+  id_verify_submitted_at?: string | null
+  is_admin?: boolean
   created_at: string
 }
 

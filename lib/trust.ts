@@ -42,6 +42,7 @@ export const TRUST_TIERS: Record<string, TrustTier> = {
   phone:      { level: 1, label: 'ลงทะเบียนมือถือแล้ว',   shortLabel: '📱 ลงทะเบียนแล้ว',    emoji: '📱', color: '#0891B2', bgColor: '#ECFEFF' },
   id:         { level: 1, label: 'ยืนยันตัวตนแล้ว',       shortLabel: '🪪 ยืนยันตัวตนแล้ว',  emoji: '🪪', color: '#D97706', bgColor: '#FEF3C7' },
   verified:   { level: 2, label: 'Verified Seller',     shortLabel: '🛡️ Verified Seller',  emoji: '🛡️', color: '#1D4ED8', bgColor: '#DBEAFE' },
+  admin:      { level: 99, label: 'Admin',              shortLabel: '🛡️ Admin',            emoji: '⚡', color: '#7C3AED', bgColor: '#F3E8FF' },
 }
 
 export function computeTrustScore(user: Partial<User> | null | undefined): TrustScore {
@@ -50,6 +51,12 @@ export function computeTrustScore(user: Partial<User> | null | undefined): Trust
   }
 
   const u = user as any
+
+  // Admin → ข้าม verify ทั้งหมด แสดงป้าย Admin
+  if (u.is_admin) {
+    return { count: 2, total: 2, percent: 100, items: [], tier: TRUST_TIERS.admin }
+  }
+
   const hasPhone = !!u.phone_verified_at
   const hasId = !!u.id_verified_at
   const idPending = !hasId && !!u.id_verify_submitted_at
