@@ -293,7 +293,7 @@ export function MultiLoginButton({
               borderRadius: '50%',
               animation: 'spin 0.7s linear infinite',
             }} />
-            <div style={{ color: 'white', fontSize: 17, fontWeight: 700, textAlign: 'center', lineHeight: 1.7 }}>
+            <div style={{ color: 'white', fontSize: 16, fontWeight: 700, textAlign: 'center', lineHeight: 1.7 }}>
               {step === 'phone' ? <>กำลังส่ง OTP...<br />รอสักครู่</> : <>กำลังตรวจสอบ...</>}
             </div>
           </div>
