@@ -1267,7 +1267,7 @@ export function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: F
                     cursor: 'pointer', marginBottom: 10,
                   }}
                 >
-                  🖼️ เลือกรูปจากแกลเลอรี่
+                  🖼️ เลือกรูป barcode จากแกลเลอรี่
                 </button>
                 <input
                   ref={galleryInputRef}
