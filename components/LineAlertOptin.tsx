@@ -22,19 +22,27 @@ export default function LineAlertOptin({ user, nextPath = '/notifications' }: { 
     if (/CriOS/.test(ua)) { setBlocked(true); return }
   }, [])
 
-  // Reload user ทุกครั้งที่กลับมาที่หน้า (จาก LINE deeplink)
-  // → webhook "follow" อัปเดต DB แล้ว → client sync ให้ banner หาย
+  // เช็คสถานะเพื่อนผ่าน LINE API แล้ว reload (ใช้กรณี webhook ไม่ fire เช่น user เคย add อยู่แล้ว)
+  const checkAndReload = async () => {
+    try {
+      await fetch('/api/line/check-friendship', { method: 'POST' })
+    } catch {}
+    await reloadUser()
+  }
+
+  // กลับมาจาก LINE deeplink → เช็คสถานะเพื่อน + reload
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === 'visible') reloadUser()
+      if (document.visibilityState === 'visible') checkAndReload()
     }
     document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', reloadUser)
+    window.addEventListener('focus', checkAndReload)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', reloadUser)
+      window.removeEventListener('focus', checkAndReload)
     }
-  }, [reloadUser])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!user || blocked) return null
 
@@ -49,26 +57,42 @@ export default function LineAlertOptin({ user, nextPath = '/notifications' }: { 
   // State 2: เชื่อมแล้ว แต่ยังไม่ add OA
   if (hasLineLinked && !hasLineFriend) {
     return (
-      <a
-        href={`https://line.me/R/ti/p/${oaId}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12,
-          padding: '14px 16px', marginTop: 20, textDecoration: 'none', color: 'inherit',
-        }}
-      >
-        <span style={{ fontSize: 24 }}>💚</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>Add @BookMatch เป็นเพื่อน</div>
-          <div style={{ fontSize: 13, color: '#15803D', marginTop: 2 }}>อีกขั้นเดียวจะได้รับแจ้งเตือนทาง LINE</div>
-        </div>
-        <span style={{
-          background: '#06C755', color: 'white', borderRadius: 8,
-          padding: '8px 14px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-        }}>Add →</span>
-      </a>
+      <div style={{
+        background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12,
+        padding: '14px 16px', marginTop: 20,
+      }}>
+        <a
+          href={`https://line.me/R/ti/p/${oaId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            textDecoration: 'none', color: 'inherit', marginBottom: 10,
+          }}
+        >
+          <span style={{ fontSize: 24 }}>💚</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>Add @BookMatch เป็นเพื่อน</div>
+            <div style={{ fontSize: 13, color: '#15803D', marginTop: 2 }}>อีกขั้นเดียวจะได้รับแจ้งเตือนทาง LINE</div>
+          </div>
+          <span style={{
+            background: '#06C755', color: 'white', borderRadius: 8,
+            padding: '8px 14px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+          }}>Add →</span>
+        </a>
+        <button
+          onClick={checkAndReload}
+          style={{
+            width: '100%', padding: '8px',
+            background: 'white', border: '1px solid #BBF7D0',
+            borderRadius: 8, color: '#15803D',
+            fontSize: 13, fontWeight: 600, fontFamily: 'Kanit',
+            cursor: 'pointer',
+          }}
+        >
+          ✓ Add แล้ว — ตรวจสอบสถานะ
+        </button>
+      </div>
     )
   }
 
