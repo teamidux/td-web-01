@@ -1735,6 +1735,12 @@ export function IdentityVerifyWizard({
     }
   }, [])
 
+  // ref ของ modal scroll container — scroll ขึ้นบนสุดทุกครั้งที่เปลี่ยน step
+  const modalScrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0
+  }, [step])
+
   const handlePhoto = (file: File | null, type: 'id' | 'bank') => {
     if (!file) return
     const url = URL.createObjectURL(file)
@@ -1828,7 +1834,7 @@ export function IdentityVerifyWizard({
           </div>
         </div>
       )}
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: '24px 20px 36px', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, margin: '0 12px' }}>
+      <div ref={modalScrollRef} onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: '24px 20px 36px', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, margin: '0 12px' }}>
         {/* Header + step indicator */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
