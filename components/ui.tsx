@@ -1722,11 +1722,18 @@ export function IdentityVerifyWizard({
   const [bankPreview, setBankPreview] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isLineBrowser, setIsLineBrowser] = useState(false)
   const idCameraRef = useRef<HTMLInputElement>(null)
   const idGalleryRef = useRef<HTMLInputElement>(null)
   const bankCameraRef = useRef<HTMLInputElement>(null)
   const bankGalleryRef = useRef<HTMLInputElement>(null)
   const { reloadUser } = useAuth()
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && /Line\//.test(navigator.userAgent)) {
+      setIsLineBrowser(true)
+    }
+  }, [])
 
   const handlePhoto = (file: File | null, type: 'id' | 'bank') => {
     if (!file) return
@@ -1821,21 +1828,28 @@ export function IdentityVerifyWizard({
               style={{ display: 'none' }}
             />
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <button
-                className="btn"
-                onClick={() => idCameraRef.current?.click()}
-                style={{ flex: 1, background: idCardFile ? 'var(--surface)' : 'var(--primary)', color: idCardFile ? 'var(--ink2)' : 'white', border: idCardFile ? '1px solid var(--border)' : 'none' }}
-              >
-                📷 {idCardFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
-              </button>
+              {!isLineBrowser && (
+                <button
+                  className="btn"
+                  onClick={() => idCameraRef.current?.click()}
+                  style={{ flex: 1, background: idCardFile ? 'var(--surface)' : 'var(--primary)', color: idCardFile ? 'var(--ink2)' : 'white', border: idCardFile ? '1px solid var(--border)' : 'none' }}
+                >
+                  📷 {idCardFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
+                </button>
+              )}
               <button
                 className="btn"
                 onClick={() => idGalleryRef.current?.click()}
-                style={{ flex: 1, background: 'var(--surface)', color: 'var(--ink2)', border: '1px solid var(--border)' }}
+                style={{ flex: 1, background: isLineBrowser && !idCardFile ? 'var(--primary)' : 'var(--surface)', color: isLineBrowser && !idCardFile ? 'white' : 'var(--ink2)', border: isLineBrowser && !idCardFile ? 'none' : '1px solid var(--border)' }}
               >
-                🖼️ เลือกจากอัลบั้ม
+                🖼️ {idCardFile ? 'เลือกใหม่' : 'เลือกรูปจากอัลบั้ม'}
               </button>
             </div>
+            {isLineBrowser && !idCardFile && (
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 8, lineHeight: 1.5 }}>
+                💡 ถ่ายรูปบัตรด้วย Camera ของมือถือก่อน แล้วค่อยเลือกจากอัลบั้ม
+              </div>
+            )}
 
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#78350F', lineHeight: 1.6 }}>
               💡 <b>เคล็ดลับ:</b> ถ่ายในที่สว่าง · ไม่สะท้อนแสง · เห็นตัวอักษรชัด
@@ -1884,21 +1898,28 @@ export function IdentityVerifyWizard({
               style={{ display: 'none' }}
             />
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <button
-                className="btn"
-                onClick={() => bankCameraRef.current?.click()}
-                style={{ flex: 1, background: bankFile ? 'var(--surface)' : 'var(--primary)', color: bankFile ? 'var(--ink2)' : 'white', border: bankFile ? '1px solid var(--border)' : 'none' }}
-              >
-                📷 {bankFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
-              </button>
+              {!isLineBrowser && (
+                <button
+                  className="btn"
+                  onClick={() => bankCameraRef.current?.click()}
+                  style={{ flex: 1, background: bankFile ? 'var(--surface)' : 'var(--primary)', color: bankFile ? 'var(--ink2)' : 'white', border: bankFile ? '1px solid var(--border)' : 'none' }}
+                >
+                  📷 {bankFile ? 'ถ่ายใหม่' : 'ถ่ายสด'}
+                </button>
+              )}
               <button
                 className="btn"
                 onClick={() => bankGalleryRef.current?.click()}
-                style={{ flex: 1, background: 'var(--surface)', color: 'var(--ink2)', border: '1px solid var(--border)' }}
+                style={{ flex: 1, background: isLineBrowser && !bankFile ? 'var(--primary)' : 'var(--surface)', color: isLineBrowser && !bankFile ? 'white' : 'var(--ink2)', border: isLineBrowser && !bankFile ? 'none' : '1px solid var(--border)' }}
               >
-                🖼️ เลือกจากอัลบั้ม
+                🖼️ {bankFile ? 'เลือกใหม่' : 'เลือกรูปจากอัลบั้ม'}
               </button>
             </div>
+            {isLineBrowser && !bankFile && (
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 8, lineHeight: 1.5 }}>
+                💡 ถ่ายรูปสมุดบัญชีด้วย Camera ของมือถือก่อน แล้วค่อยเลือกจากอัลบั้ม
+              </div>
+            )}
 
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#78350F', lineHeight: 1.6 }}>
               💡 ปิดเลขบัญชีได้ ขอแค่ <b>ชื่อ</b>เห็นชัด — ตรงกับบัตรประชาชน
