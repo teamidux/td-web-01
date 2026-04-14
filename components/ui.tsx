@@ -207,22 +207,6 @@ export function MultiLoginButton({
   // OTP input ref
   const otpInputRef = useRef<HTMLInputElement>(null)
 
-  // ปุ่ม "วาง OTP" — อ่าน clipboard หา 6 หลัก → วาง + submit
-  const pasteOtp = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      const digits = text.match(/\d{6}/)?.[0]
-      if (!digits) { show('ไม่พบรหัส 6 หลักใน clipboard'); return }
-      if (otpInputRef.current) {
-        otpInputRef.current.value = digits
-        setCode(digits)
-        setTimeout(() => confirmOtp(), 100)
-      }
-    } catch {
-      show('อ่าน clipboard ไม่ได้ — กรอกเอง')
-    }
-  }
-
   const formatPhone = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 10)
     if (digits.length <= 3) return digits
@@ -362,26 +346,11 @@ export function MultiLoginButton({
               maxLength={6}
               style={{ width: '100%', boxSizing: 'border-box', fontSize: 28, padding: '14px 16px', textAlign: 'center', fontWeight: 700, letterSpacing: 8 }}
             />
-            {/* ปุ่มวาง OTP — copy จาก SMS แล้วกดปุ่มนี้ได้เลย */}
-            <button
-              type="button"
-              onClick={pasteOtp}
-              disabled={loading}
-              style={{
-                width: '100%', marginTop: 8, fontSize: 14, padding: '10px',
-                background: '#EFF6FF', border: '1px solid #BFDBFE',
-                color: '#1E40AF', borderRadius: 10, fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                cursor: 'pointer',
-              }}
-            >
-              📋 วาง OTP จาก SMS
-            </button>
             <button
               type="submit"
               className="btn"
               disabled={loading}
-              style={{ width: '100%', marginTop: 10, fontSize: 16, padding: '14px', fontWeight: 700 }}
+              style={{ width: '100%', marginTop: 12, fontSize: 16, padding: '14px', fontWeight: 700 }}
             >
               {loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
             </button>
