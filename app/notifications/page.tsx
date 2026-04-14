@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { supabase, Wanted } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, useToast, Toast, MultiLoginButton } from '@/components/ui'
+import LineAlertOptin from '@/components/LineAlertOptin'
 
 type Notification = {
   id: string
@@ -33,14 +34,7 @@ export default function NotificationsPage() {
   const [notifs, setNotifs] = useState<Notification[]>([])
   const [wanted, setWanted] = useState<Wanted[]>([])
   const [loading, setLoading] = useState(true)
-  const [isLineBrowser, setIsLineBrowser] = useState(false)
   const { msg, show } = useToast()
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && /Line\//.test(navigator.userAgent)) {
-      setIsLineBrowser(true)
-    }
-  }, [])
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -261,32 +255,8 @@ export default function NotificationsPage() {
             </>
           )}
 
-          {/* LINE OA bonus — ซ่อนใน LINE browser (ไม่จำเป็น) */}
-          {!isLineBrowser && !(user as any)?.line_oa_friend_at && (
-            <div style={{
-              background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 12,
-              padding: '14px 16px', marginTop: 20,
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{ fontSize: 24 }}>💚</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>รับแจ้งเตือนผ่าน LINE ด้วย</div>
-                <div style={{ fontSize: 12, color: '#15803D', marginTop: 2 }}>Add @BookMatch เป็นเพื่อน</div>
-              </div>
-              <a
-                href={`https://line.me/R/ti/p/${process.env.NEXT_PUBLIC_LINE_OA_BASIC_ID || '@521qvzrv'}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: '#06C755', color: 'white', borderRadius: 8,
-                  padding: '8px 14px', fontSize: 13, fontWeight: 700,
-                  textDecoration: 'none', whiteSpace: 'nowrap',
-                }}
-              >
-                เชื่อม
-              </a>
-            </div>
-          )}
+          {/* LINE alert opt-in — smart single button ตาม state + browser */}
+          <LineAlertOptin user={user} nextPath="/notifications" />
 
         </div>
         <div style={{ height: 12 }} />
