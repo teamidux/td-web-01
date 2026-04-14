@@ -1800,17 +1800,19 @@ export function IdentityVerifyWizard({
               🔒 ใช้เพื่อลงทะเบียนผู้ขายกับ BookMatch เท่านั้น — ไม่เผยแพร่หรือใช้เพื่อวัตถุประสงค์อื่น
             </div>
 
-            {/* ID card preview / capture area — landscape ratio */}
-            <div style={{ position: 'relative', aspectRatio: '8.6 / 5.4', background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden' }}>
-              {idCardPreview ? (
-                <img src={idCardPreview} alt="ID card" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
+            {/* ID card preview — แสดงเต็มรูป ไม่บังคับ ratio */}
+            {idCardPreview ? (
+              <div style={{ background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden', maxHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={idCardPreview} alt="ID card" style={{ maxWidth: '100%', maxHeight: 320, objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <div style={{ position: 'relative', aspectRatio: '8.6 / 5.4', background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 12, border: '2px dashed rgba(255,255,255,.5)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
                   <span style={{ fontSize: 32 }}>📇</span>
-                  <span style={{ color: 'rgba(255,255,255,.8)', fontSize: 13, fontWeight: 600 }}>วางบัตรในกรอบนี้</span>
+                  <span style={{ color: 'rgba(255,255,255,.8)', fontSize: 13, fontWeight: 600 }}>ถ่ายรูปบัตรประชาชน</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <input
               ref={idCameraRef}
@@ -1871,16 +1873,18 @@ export function IdentityVerifyWizard({
               ถ่ายหน้าที่มี <b>ชื่อบัญชี</b> ตรงกับบัตรประชาชน
             </div>
 
-            <div style={{ position: 'relative', aspectRatio: '3 / 4', background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden', maxWidth: 280, margin: '0 auto 14px' }}>
-              {bankPreview ? (
-                <img src={bankPreview} alt="Bank book" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
+            {bankPreview ? (
+              <div style={{ background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden', maxHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={bankPreview} alt="Bank book" style={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <div style={{ position: 'relative', aspectRatio: '3 / 4', background: '#0F172A', borderRadius: 12, marginBottom: 14, overflow: 'hidden', maxWidth: 240, margin: '0 auto 14px' }}>
                 <div style={{ position: 'absolute', inset: 12, border: '2px dashed rgba(255,255,255,.5)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
                   <span style={{ fontSize: 32 }}>💰</span>
                   <span style={{ color: 'rgba(255,255,255,.8)', fontSize: 13, fontWeight: 600, textAlign: 'center', padding: '0 12px' }}>ถ่ายหน้าที่มีชื่อบัญชี</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <input
               ref={bankCameraRef}
