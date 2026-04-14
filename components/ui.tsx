@@ -204,6 +204,30 @@ export function MultiLoginButton({
     if (/CriOS/.test(ua)) { setShowLine(false); return }
   }, [])
 
+  // OTP input ref — declare ก่อน useEffect ที่อ้างถึง
+  const otpInputRef = useRef<HTMLInputElement>(null)
+
+  // WebOTP API — Android auto-read SMS
+  // เขียนค่าลง DOM ตรง เพราะ input เป็น uncontrolled (React state ไม่ควบคุม DOM)
+  useEffect(() => {
+    if (step !== 'code') return
+    if (typeof window === 'undefined' || !('OTPCredential' in window)) return
+    const ac = new AbortController()
+    ;(navigator.credentials as any).get({ otp: { transport: ['sms'] }, signal: ac.signal })
+      .then((cred: any) => {
+        if (cred?.code && otpInputRef.current) {
+          // เขียนค่าลง DOM ตรงๆ (input เป็น uncontrolled)
+          otpInputRef.current.value = cred.code
+          setCode(cred.code)
+          // auto-submit หลังเติม
+          setTimeout(() => confirmOtp(), 100)
+        }
+      })
+      .catch(() => {}) // abort/timeout — ปล่อยให้ user กรอกเอง
+    return () => ac.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
+
   const formatPhone = (raw: string): string => {
     const digits = raw.replace(/\D/g, '').slice(0, 10)
     if (digits.length <= 3) return digits
@@ -270,9 +294,6 @@ export function MultiLoginButton({
       setLoading(false)
     }
   }
-
-  // OTP input ref — ปล่อย native ทำงานเอง ไม่มี React state คั่น
-  const otpInputRef = useRef<HTMLInputElement>(null)
 
   if (mode === 'phone') {
     return (
