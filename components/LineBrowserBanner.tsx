@@ -50,8 +50,8 @@ export default function LineBrowserBanner() {
     }}>
       <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700 }}>เปิดใน {isIos ? 'Safari' : 'Chrome'} ใช้ได้เต็ม</div>
-        <div style={{ fontSize: 11, opacity: .85, marginTop: 1 }}>สแกน barcode + ถ่ายรูปบัตรได้</div>
+        <div style={{ fontWeight: 700 }}>เปิดใน {isIos ? 'Safari' : 'Chrome'}</div>
+        <div style={{ fontSize: 11, opacity: .9, marginTop: 1, lineHeight: 1.4 }}>เพื่อสแกนและถ่ายรูปได้สะดวกขึ้น</div>
       </div>
       <button
         onClick={openExternal}
