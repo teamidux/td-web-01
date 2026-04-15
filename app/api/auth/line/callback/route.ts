@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
 
   // Find or create user
   const sb = admin()
-  const { data: existing, error: selectErr } = await sb.from('users').select('*').eq('line_user_id', lineUserId).maybeSingle()
+  const { data: existing, error: selectErr } = await sb.from('users').select('id, display_name, avatar_url, line_id, line_user_id').eq('line_user_id', lineUserId).maybeSingle()
   if (selectErr) {
     console.error('[line/callback] select error:', selectErr)
     return redirectError(`select_failed:${selectErr.code || ''}:${(selectErr.message || '').slice(0, 80)}`)

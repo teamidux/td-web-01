@@ -28,14 +28,16 @@ export async function GET(req: NextRequest) {
   if (!(await currentAdmin())) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const url = new URL(req.url)
-  const q = (url.searchParams.get('q') || '').trim()
+  const q = (url.searchParams.get('q') || '').trim().slice(0, 100)
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0)
+  const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit') || '50', 10) || 50))
 
   const db = sb()
   let query = db
     .from('books')
     .select('id, isbn, title, author, translator, publisher, description, cover_url, language, active_listings_count, wanted_count, created_at')
     .order('created_at', { ascending: false })
-    .limit(100)
+    .range(offset, offset + limit - 1)
 
   if (q) {
     query = query.or(`title.ilike.%${q}%,author.ilike.%${q}%,isbn.ilike.%${q}%`)

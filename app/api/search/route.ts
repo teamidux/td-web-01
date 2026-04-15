@@ -22,8 +22,30 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q || q.length < 1) return NextResponse.json({ results: [] })
+  if (q.length > 100) return NextResponse.json({ results: [], error: 'query_too_long' })
 
   const mode = req.nextUrl.searchParams.get('mode') === 'db' ? 'db' : 'all'
+
+  // Rate limit เฉพาะ mode=all (กิน Google quota)
+  // mode=db = ค้น DB อย่างเดียว ไม่เสียเงิน → ไม่ limit
+  if (mode === 'all') {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    // Simple edge-safe rate limit — 30 request / 1 นาที / IP
+    const key = `search:${ip}`
+    // @ts-ignore — Edge runtime: ใช้ globalThis เก็บ state ชั่วคราว
+    const g: any = globalThis
+    g.__rlBuckets = g.__rlBuckets || new Map()
+    const now = Date.now()
+    const b = g.__rlBuckets.get(key)
+    if (!b || b.resetAt < now) {
+      g.__rlBuckets.set(key, { count: 1, resetAt: now + 60_000 })
+    } else if (b.count >= 30) {
+      return NextResponse.json({ results: [], error: 'rate_limited' }, { status: 429 })
+    } else {
+      b.count++
+    }
+  }
+
   // pages: จำนวน page Google ที่จะดึง (1=light/live, 5=deep/button) max 10
   const pagesParam = parseInt(req.nextUrl.searchParams.get('pages') || '1', 10)
   const pages = Math.max(1, Math.min(isNaN(pagesParam) ? 1 : pagesParam, 10))

@@ -76,15 +76,20 @@ export function BottomNav() {
   const { user } = useAuth()
   const [unread, setUnread] = useState(0)
 
-  // Poll unread count ทุก 30 วิ (เบา — แค่ count)
+  // Poll unread count ทุก 60 วิ + เมื่อ tab กลับมา visible
   useEffect(() => {
     if (!user) return
     const fetchUnread = () => {
       fetch('/api/notifications/unread').then(r => r.json()).then(d => setUnread(d.unread || 0)).catch(() => {})
     }
     fetchUnread()
-    const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchUnread, 60000)
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchUnread() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [user])
 
   const tabs = [
@@ -238,10 +243,11 @@ export function MultiLoginButton({
       show('ส่งรหัส OTP แล้ว ตรวจ SMS')
     } catch (e: any) {
       const errCode = e?.code || 'unknown'
+      console.warn('[phone-login]', errCode, e?.message?.slice(0, 100))
       if (errCode === 'auth/invalid-phone-number') show('เบอร์ไม่ถูกต้อง')
       else if (errCode === 'auth/too-many-requests') show('ถูก block ชั่วคราว (~30 นาที) เพราะขอ OTP บ่อยเกินไป ลองใหม่หรือใช้เบอร์อื่น')
       else if (errCode === 'auth/quota-exceeded') show('ระบบใช้งานเต็ม ลองใหม่พรุ่งนี้')
-      else show(`เกิดข้อผิดพลาด: ${errCode}`)
+      else show('ส่ง OTP ไม่สำเร็จ ลองใหม่อีกครั้ง')
       try { recaptchaRef.current?.clear() } catch {}
       recaptchaRef.current = null
     } finally {
@@ -787,18 +793,14 @@ export function PhoneVerifyModal({
       setCooldown(60)
       show('ส่งรหัส OTP แล้ว ตรวจ SMS')
     } catch (e: any) {
+      // Log full detail server-side, user-facing message ภาษาคน
       console.warn('[firebase phone]', e?.code, e?.message)
-      // Show exact error code บนจอ เพื่อ debug ง่ายขึ้น
       const code = e?.code || 'unknown'
       if (code === 'auth/invalid-phone-number') show('เบอร์ไม่ถูกต้อง')
       else if (code === 'auth/too-many-requests') show('ถูก block ชั่วคราว (~30 นาที) เพราะขอ OTP บ่อยเกินไป ลองใหม่หรือใช้เบอร์อื่น')
       else if (code === 'auth/quota-exceeded') show('ระบบใช้งานเต็ม ลองใหม่พรุ่งนี้')
-      else if (code === 'auth/unauthorized-domain') show('❌ Domain ไม่ได้ authorize ใน Firebase Console')
-      else if (code === 'auth/billing-not-enabled') show('❌ Firebase ต้อง upgrade เป็น Blaze plan')
-      else if (code === 'auth/captcha-check-failed') show('❌ reCAPTCHA fail — refresh หน้าแล้วลองใหม่')
-      else if (code === 'auth/operation-not-allowed') show('❌ Phone provider ไม่ได้เปิด ใน Firebase Authentication')
-      else show(`❌ ${code}: ${(e?.message || '').slice(0, 80)}`)
-      // Reset reCAPTCHA หลัง error
+      else if (code === 'auth/captcha-check-failed') show('ตรวจสอบความปลอดภัยไม่ผ่าน รีเฟรชหน้าแล้วลองใหม่')
+      else show('ส่ง OTP ไม่สำเร็จ ลองใหม่อีกครั้ง')
       try { recaptchaRef.current?.clear() } catch {}
       recaptchaRef.current = null
     } finally {
@@ -823,8 +825,9 @@ export function PhoneVerifyModal({
       })
       const data = await r.json()
       if (!r.ok) {
-        if (data.error === 'phone_in_use') show('เบอร์นี้ถูกใช้แล้วโดยบัญชีอื่น')
-        else if (data.error === 'already_verified') show('เบอร์นี้ยืนยันแล้ว')
+        // ใช้ generic message กัน phone enumeration attack
+        if (data.error === 'phone_in_use') show('ใช้เบอร์นี้ไม่ได้ หากเป็นเบอร์คุณจริง ติดต่อทีมงาน')
+        else if (data.error === 'already_verified') show('บัญชีนี้ยืนยันเบอร์แล้ว')
         else show('บันทึกไม่สำเร็จ: ' + (data.error || 'unknown'))
         return
       }
@@ -1067,7 +1070,7 @@ export function ScanErrorSheet({ onRetry, onClose }: { onRetry: () => void; onCl
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em' }}>อ่านบาร์โค้ดไม่ได้</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1, minWidth: 44, minHeight: 44 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1, minWidth: 44, minHeight: 44 }} aria-label="ปิด">✕</button>
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 18 }}>ลองตรวจสอบสิ่งเหล่านี้แล้วถ่ายใหม่</div>
 
@@ -1133,7 +1136,7 @@ export function LiveScanModal({ onCode, onClose }: { onCode: (code: string) => v
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ color: 'white', fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>สแกนบาร์โค้ด</div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 44, height: 44, color: 'white', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 44, height: 44, color: 'white', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="ปิด">✕</button>
         </div>
 
         {error ? (
@@ -1248,7 +1251,7 @@ export function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: F
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ color: 'white', fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700 }}>ถ่ายรูป Barcode</div>
-          <button onClick={() => { streamRef.current?.getTracks().forEach(t => t.stop()); onClose() }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 44, height: 44, color: 'white', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <button onClick={() => { streamRef.current?.getTracks().forEach(t => t.stop()); onClose() }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 44, height: 44, color: 'white', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="ปิด">✕</button>
         </div>
 
         {error ? (
@@ -1800,7 +1803,7 @@ export function IdentityVerifyWizard({
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: '#121212' }}>ยืนยันตัวตน</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>ขั้นตอน {step}/2</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }} aria-label="ปิด">✕</button>
         </div>
 
         {/* Progress dots */}

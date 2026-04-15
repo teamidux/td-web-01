@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
     status: 'waiting',
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[wanted] db error:', error.message)
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }
 

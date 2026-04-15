@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase
     .from('push_subscriptions')
     .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[push/subscribe] db error:', error.message)
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }
 

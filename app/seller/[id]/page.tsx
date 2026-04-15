@@ -91,8 +91,8 @@ export default function SellerPage({ params }: PageProps) {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: u }, { data: ls }] = await Promise.all([
-        supabase.from('users').select('id, display_name, seller_type, store_name, avatar_url, is_verified, sold_count, confirmed_count, phone_verified_at, id_verified_at, line_oa_friend_at, created_at, plan, listings_limit, is_pioneer, pioneer_count').eq('id', id).single(),
+      const [userRes, { data: ls }] = await Promise.all([
+        fetch(`/api/users/${encodeURIComponent(id)}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
         supabase
           .from('listings')
           .select('*, books(isbn, title, author, cover_url)')
@@ -100,7 +100,7 @@ export default function SellerPage({ params }: PageProps) {
           .eq('status', 'active')
           .order('created_at', { ascending: false }),
       ])
-      setSeller(u)
+      setSeller(userRes?.user || null)
       setListings(ls || [])
       setLoading(false)
     }

@@ -84,7 +84,7 @@ export default function ProfilePage() {
           resolve(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }))
         }, 'image/jpeg', 0.8)
       }
-      img.onerror = () => resolve(file)
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
       img.src = url
     })
   }

@@ -74,8 +74,11 @@ export async function POST(req: NextRequest) {
   const { data: updated, error } = await getSupabase()
     .from('users').update(allowed).eq('id', userId).select()
 
-  if (error) return NextResponse.json({ error: error.message, userId, allowed }, { status: 500 })
-  if (!updated?.length) return NextResponse.json({ error: 'user not found', userId }, { status: 404 })
+  if (error) {
+    console.error('[user/update] db error:', error.message, { userId, fields: Object.keys(allowed) })
+    return NextResponse.json({ error: 'update_failed' }, { status: 500 })
+  }
+  if (!updated?.length) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   return NextResponse.json({ ok: true, updated })
 }

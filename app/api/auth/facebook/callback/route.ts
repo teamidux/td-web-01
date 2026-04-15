@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
   // Normal login flow — find or create user
   const { data: existing, error: selectErr } = await sb
     .from('users')
-    .select('*')
+    .select('id, display_name, avatar_url, facebook_id')
     .eq('facebook_id', fbUserId)
     .maybeSingle()
 

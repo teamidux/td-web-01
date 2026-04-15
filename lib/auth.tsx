@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useMemo, ReactNode, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { User } from './supabase'
 
@@ -109,8 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.refresh()
   }, [router])
 
+  // Memoize context value — กัน re-render storm ของ consumer ทั้งแอพ
+  const value = useMemo(
+    () => ({ user, loading, loginWithLine, loginWithFacebook, loginWithPhone, logout, reloadUser, updateUser, syncUser }),
+    [user, loading, reloadUser, syncUser, updateUser]
+  )
+
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithLine, loginWithFacebook, loginWithPhone, logout, reloadUser, updateUser, syncUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

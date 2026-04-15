@@ -77,7 +77,8 @@ export async function POST(req: NextRequest) {
     .eq('id', user.id)
 
   if (error) {
-    return NextResponse.json({ error: 'db_error', detail: error.message }, { status: 500 })
+    console.error('[firebase-confirm] db error:', error.message)
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
   }
 
   // Return updated fields ให้ client sync context ได้ทันที (กัน race condition)

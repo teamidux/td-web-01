@@ -92,9 +92,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       await loadListings(dbBook.id as string)
       if (cancelled) return
       if (user) {
-        const { data: w } = await supabase.from('wanted').select('id').eq('user_id', user.id).eq('book_id', dbBook.id).maybeSingle()
+        const r = await fetch(`/api/wanted/check?book_id=${encodeURIComponent(dbBook.id)}`, { cache: 'no-store' })
+        const w = r.ok ? await r.json() : null
         if (cancelled) return
-        setIsWanted(!!w)
+        setIsWanted(!!w?.wanted)
       }
     }
     // ถ้าไม่มีใน DB → book state ยังเป็น initialBook (จาก Google) หรือ null

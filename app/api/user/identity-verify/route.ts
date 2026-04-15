@@ -40,10 +40,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'missing_files', message: 'กรุณาส่งรูปครบทั้ง 2 อย่าง' }, { status: 400 })
     }
 
-    // Validate file types + size
+    // Validate file size
     const maxSize = 5 * 1024 * 1024 // 5MB
     if (idCard.size > maxSize || bankBook.size > maxSize) {
       return NextResponse.json({ error: 'file_too_large', message: 'รูปขนาดเกิน 5MB' }, { status: 400 })
+    }
+
+    // Validate MIME + magic bytes (ห้าม user ส่งไฟล์ปลอม e.g. EXE ที่เปลี่ยน extension)
+    const isValidImage = async (f: File): Promise<boolean> => {
+      // Check stated MIME type
+      if (!/^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(f.type)) return false
+      // Read first 12 bytes เพื่อเช็ค magic bytes
+      const buf = new Uint8Array(await f.slice(0, 12).arrayBuffer())
+      // JPEG: FF D8 FF
+      if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true
+      // PNG: 89 50 4E 47 0D 0A 1A 0A
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true
+      // WebP: "RIFF" ... "WEBP"
+      if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+          buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true
+      // HEIC/HEIF: ftyp + heic/heix/mif1 marker
+      if (buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) return true
+      return false
+    }
+    const [idOk, bankOk] = await Promise.all([isValidImage(idCard), isValidImage(bankBook)])
+    if (!idOk || !bankOk) {
+      return NextResponse.json({ error: 'invalid_file_type', message: 'รองรับเฉพาะไฟล์รูป (JPG/PNG/WebP/HEIC)' }, { status: 400 })
     }
 
     const sb = admin()

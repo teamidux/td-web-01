@@ -37,14 +37,16 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url)
   const tab = url.searchParams.get('tab') || 'active' // active | removed | flagged
-  const q = (url.searchParams.get('q') || '').trim()
+  const q = (url.searchParams.get('q') || '').trim().slice(0, 100)
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0)
+  const limit = Math.max(1, Math.min(150, parseInt(url.searchParams.get('limit') || '100', 10) || 100))
 
   const db = sb()
   let query = db
     .from('listings')
     .select('id, book_id, seller_id, condition, price, contact, notes, photos, status, created_at, books(title, author, isbn, cover_url), users(display_name, line_id, phone)')
     .order('created_at', { ascending: false })
-    .limit(150)
+    .range(offset, offset + limit - 1)
 
   if (tab === 'removed') {
     query = query.eq('status', 'removed')
@@ -53,7 +55,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[tomga/listings] db error:', error.message)
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  }
 
   let listings = (data || []) as any[]
 
