@@ -63,23 +63,22 @@ CREATE POLICY "wanted_anon_deny_all" ON wanted
   WITH CHECK (false);
 
 -- ═══════════════════════════════════════════════════════════
--- Other sensitive tables — deny anon
+-- Other sensitive tables — deny anon (skip ถ้า table ไม่มี)
 -- ═══════════════════════════════════════════════════════════
-ALTER TABLE search_logs ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "search_logs_anon_deny_all" ON search_logs;
-CREATE POLICY "search_logs_anon_deny_all" ON search_logs FOR ALL USING (false) WITH CHECK (false);
-
-ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "push_subscriptions_anon_deny_all" ON push_subscriptions;
-CREATE POLICY "push_subscriptions_anon_deny_all" ON push_subscriptions FOR ALL USING (false) WITH CHECK (false);
-
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "notifications_anon_deny_all" ON notifications;
-CREATE POLICY "notifications_anon_deny_all" ON notifications FOR ALL USING (false) WITH CHECK (false);
-
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "sessions_anon_deny_all" ON sessions;
-CREATE POLICY "sessions_anon_deny_all" ON sessions FOR ALL USING (false) WITH CHECK (false);
+DO $$
+DECLARE
+  tbl text;
+  tables text[] := ARRAY['search_logs', 'push_subscriptions', 'notifications', 'sessions', 'phone_otps', 'phone_changes_log', 'id_verifications', 'contact_events', 'contact_messages', 'wanted_notifications', 'reports', 'admin_actions'];
+BEGIN
+  FOREACH tbl IN ARRAY tables
+  LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=tbl) THEN
+      EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "%I_anon_deny_all" ON %I', tbl, tbl);
+      EXECUTE format('CREATE POLICY "%I_anon_deny_all" ON %I FOR ALL USING (false) WITH CHECK (false)', tbl, tbl);
+    END IF;
+  END LOOP;
+END $$;
 
 -- NOTE:
 -- - service_role key (ที่ใช้ใน API routes) bypass RLS เสมอ — ทำงานปกติ
