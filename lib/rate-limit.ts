@@ -36,7 +36,7 @@ export function getClientIp(req: Request): string {
 /** Cleanup old buckets (เรียกเป็น setInterval ถ้าต้องการ) */
 export function cleanupRateLimit() {
   const now = Date.now()
-  for (const [key, bucket] of buckets.entries()) {
+  buckets.forEach((bucket, key) => {
     if (bucket.resetAt < now) buckets.delete(key)
-  }
+  })
 }
