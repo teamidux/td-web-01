@@ -103,5 +103,11 @@ export async function verifyLineSignature(rawBody: string, signature: string): P
   let bin = ''
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
   const expected = btoa(bin)
-  return expected === signature
+  // Constant-time comparison — กัน timing attack (manual เพราะ Edge runtime ไม่มี timingSafeEqual)
+  if (expected.length !== signature.length) return false
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i)
+  }
+  return diff === 0
 }

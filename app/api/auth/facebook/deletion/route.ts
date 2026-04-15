@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 export const runtime = 'nodejs'
 
@@ -21,10 +21,11 @@ function parseSignedRequest(signedRequest: string, secret: string): any | null {
   const [encodedSig, payload] = signedRequest.split('.', 2)
   if (!encodedSig || !payload) return null
 
-  // Verify signature
+  // Verify signature ด้วย timingSafeEqual (กัน timing attack)
   const sig = Buffer.from(encodedSig.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
   const expectedSig = createHmac('sha256', secret).update(payload).digest()
-  if (!sig.equals(expectedSig)) return null
+  if (sig.length !== expectedSig.length) return null
+  if (!timingSafeEqual(sig, expectedSig)) return null
 
   // Decode payload
   const json = Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
   // Facebook ต้องการ response format นี้
   const confirmationCode = `bm_del_${fbUserId}_${Date.now()}`
   return NextResponse.json({
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.co'}/facebook-deletion?code=${confirmationCode}`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'}/facebook-deletion?code=${confirmationCode}`,
     confirmation_code: confirmationCode,
   })
 }

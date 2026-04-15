@@ -129,7 +129,7 @@ export default async function BookPage({ params }: PageProps) {
         <Script
           id="book-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
         />
       )}
       <BookDetailClient isbn={isbn} initialBook={book} />
