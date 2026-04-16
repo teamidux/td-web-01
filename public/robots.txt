@@ -4,6 +4,9 @@ Disallow: /api/
 Disallow: /profile
 Disallow: /sell
 Disallow: /wanted
+Disallow: /tomga
+Disallow: /admin
+Disallow: /notifications
 
 User-agent: GPTBot
 Disallow: /
