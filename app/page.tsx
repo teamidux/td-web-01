@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Book } from '@/lib/supabase'
 import { GoogleBook } from '@/lib/search'
 // Book type still used for wantedBooks
-import { Nav, BottomNav, BookCover, useToast, Toast, SkeletonList, TermsFooter, useCapture, CameraCaptureModal } from '@/components/ui'
+import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, SkeletonList, TermsFooter, useCapture, CameraCaptureModal } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
 
 export default function HomePage() {
@@ -18,6 +18,7 @@ export default function HomePage() {
   const [googleLiveResults, setGoogleLiveResults] = useState<GoogleBook[]>([])
   const [scanning, setScanning] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
+  const [scanError, setScanError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [matchQuality, setMatchQuality] = useState<'exact' | 'partial' | 'none'>('none')
@@ -124,8 +125,11 @@ export default function HomePage() {
       const result = await scanBarcode(raw)
       if (result.isbn) {
         router.push(`/book/${result.isbn}`)
+      } else if (result.raw) {
+        setQuery(result.raw)
+        show('อ่านบาร์โค้ดไม่ชัด ลองถ่ายใหม่')
       } else {
-        show('อ่านบาร์โค้ดไม่ชัด ลองถ่ายใหม่ให้เห็นบาร์โค้ดชัดขึ้น')
+        setScanError(true)
       }
     } finally {
       setScanning(false)
@@ -301,6 +305,13 @@ export default function HomePage() {
               <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
               {scanning ? <><span className="spin" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังอ่าน...</> : 'หรือ 📷 สแกน barcode แทนการพิมพ์'}
             </label>
+          )}
+
+          {scanError && (
+            <ScanErrorSheet
+              onRetry={() => { setScanError(false); isLineIAB ? setShowCamera(true) : scanInputRef.current?.click() }}
+              onClose={() => setScanError(false)}
+            />
           )}
 
           {showCamera && (
