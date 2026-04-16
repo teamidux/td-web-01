@@ -262,15 +262,18 @@ export default function SellerPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* LINE ID */}
-            {(showSellerLine || (!isPhone(contactValue) && contactValue && !showSellerPhone)) && (
+            {/* LINE ID — แสดงถ้ามี */}
+            {sellerLineId && (
               <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{sellerLineId || contactValue}</div>
-                  <button onClick={() => navigator.clipboard.writeText(sellerLineId || contactValue).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: '#22C55E', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', marginBottom: 10 }}>{sellerLineId}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => navigator.clipboard.writeText(sellerLineId).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flex: 1, background: 'white', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: '#15803D', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
                     คัดลอก
                   </button>
+                  <a href={`https://line.me/R/ti/p/~${sellerLineId}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#06C755', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+                    💚 เพิ่มเพื่อน
+                  </a>
                 </div>
               </div>
             )}
