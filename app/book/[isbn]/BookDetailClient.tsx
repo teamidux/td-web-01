@@ -318,7 +318,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               <div key={ph} style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>📞 เบอร์โทร {allPhones.length > 1 ? `(${i + 1})` : ''}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{ph}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{ph.length === 10 ? `${ph.slice(0,3)}-${ph.slice(3,6)}-${ph.slice(6)}` : ph}</div>
                   <a href={`tel:${ph}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                     โทรเลย
                   </a>

@@ -37,8 +37,11 @@ export default function SellerPage({ params }: PageProps) {
   const isPhone = (s?: string) => !!s && /^(\+?66|0)[0-9\s\-]{7,12}$/.test(s.trim())
   const [sellerPII, setSellerPII] = useState<{ line_id: string | null; phone: string | null } | null>(null)
   const sellerLineId = sellerPII?.line_id?.trim() || ''
+  const sellerPhone = sellerPII?.phone?.trim() || ''
   const contactValue = contactListing?.contact?.trim() || ''
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
+  const showSellerPhone = sellerPhone && !(isPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
+  const formatPhone = (p: string) => { const d = p.replace(/\D/g, ''); return d.length === 10 ? `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}` : p }
 
   const submitReport = async () => {
     if (!user) {
@@ -236,28 +239,26 @@ export default function SellerPage({ params }: PageProps) {
               {seller?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
             </div>
 
-            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: showSellerLine ? 10 : 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>{isPhone(contactValue) ? '📞 เบอร์โทร' : '💬 ช่องทางติดต่อ'}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactValue}</div>
-                {isPhone(contactValue) ? (
-                  <a href={`tel:${contactValue.replace(/\s/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+            {/* เบอร์โทร — จาก contact field หรือ profile */}
+            {(isPhone(contactValue) || showSellerPhone) && (
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>📞 เบอร์โทร</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{formatPhone(isPhone(contactValue) ? contactValue : sellerPhone)}</div>
+                  <a href={`tel:${(isPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
                     โทรเลย
                   </a>
-                ) : (
-                  <button onClick={() => navigator.clipboard.writeText(contactValue).then(() => show('คัดลอกแล้ว'))} style={{ flexShrink: 0, background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'var(--primary)', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-                    คัดลอก
-                  </button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {showSellerLine && (
-              <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 Line ID</div>
+            {/* LINE ID */}
+            {(showSellerLine || (!isPhone(contactValue) && contactValue && !showSellerPhone)) && (
+              <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{sellerLineId}</div>
-                  <button onClick={() => navigator.clipboard.writeText(sellerLineId).then(() => show('คัดลอก Line ID แล้ว'))} style={{ flexShrink: 0, background: '#22C55E', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{sellerLineId || contactValue}</div>
+                  <button onClick={() => navigator.clipboard.writeText(sellerLineId || contactValue).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: '#22C55E', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
                     คัดลอก
                   </button>
                 </div>
