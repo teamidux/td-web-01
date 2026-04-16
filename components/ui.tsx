@@ -180,6 +180,7 @@ export function MultiLoginButton({
   onLoginSuccess?: () => void
 }) {
   const { loginWithLine, loginWithFacebook, loginWithPhone } = useAuth()
+  const [redirecting, setRedirecting] = useState<'line' | 'facebook' | null>(null)
   const [mode, setMode] = useState<'menu' | 'phone'>('menu')
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
@@ -423,7 +424,8 @@ export function MultiLoginButton({
       {showLine && (
         <button
           className="btn"
-          onClick={() => loginWithLine()}
+          onClick={() => { setRedirecting('line'); loginWithLine() }}
+          disabled={!!redirecting}
           style={{
             width: '100%',
             background: '#06C755',
@@ -436,16 +438,18 @@ export function MultiLoginButton({
             padding: '14px 16px',
             fontWeight: 700,
             marginBottom: 10,
+            opacity: redirecting ? 0.6 : 1,
           }}
         >
-          LINE
+          {redirecting === 'line' ? <><span className="spin" style={{ width: 18, height: 18, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังเชื่อมต่อ LINE...</> : 'LINE'}
         </button>
       )}
 
       {/* Facebook */}
       <button
         className="btn"
-        onClick={() => loginWithFacebook(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')}
+        onClick={() => { setRedirecting('facebook'); loginWithFacebook(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/') }}
+        disabled={!!redirecting}
         style={{
           width: '100%',
           background: '#1877F2',
@@ -458,9 +462,10 @@ export function MultiLoginButton({
           padding: '14px 16px',
           fontWeight: 700,
           marginBottom: 10,
+          opacity: redirecting ? 0.6 : 1,
         }}
       >
-        Facebook
+        {redirecting === 'facebook' ? <><span className="spin" style={{ width: 18, height: 18, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} /> กำลังเชื่อมต่อ Facebook...</> : 'Facebook'}
       </button>
 
       <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 6, lineHeight: 1.5 }}>

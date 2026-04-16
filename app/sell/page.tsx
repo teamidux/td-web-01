@@ -437,7 +437,18 @@ function SellPage() {
         </div>
       )}
 
-      {/* Success overlay — แสดงทันทีหลังลงขายสำเร็จ กัน user งงว่าผ่านรึยัง */}
+      {/* Submitting overlay — ระหว่างกำลังอัปโหลด + บันทึก */}
+      {submitting && !submitSuccess && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 190, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '36px 24px', textAlign: 'center', maxWidth: 320, width: '100%' }}>
+            <span className="spin" style={{ width: 32, height: 32, marginBottom: 16 }} />
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>กำลังลงขาย...</div>
+            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6 }}>อัปโหลดรูปและบันทึกข้อมูล<br />กรุณารอสักครู่</div>
+          </div>
+        </div>
+      )}
+
+      {/* Success overlay — แสดงทันทีหลังลงขายสำเร็จ */}
       {submitSuccess && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 190, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 18, padding: '36px 24px', textAlign: 'center', maxWidth: 320, width: '100%' }}>
