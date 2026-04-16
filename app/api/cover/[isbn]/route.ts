@@ -126,9 +126,13 @@ export async function GET(req: NextRequest, { params }: { params: { isbn: string
   }
 
   // Try sources in order. Each returns either an image or null.
-  // 1. DB-cached URL → bump quality if it's a Google URL → fetch
+  // 1. DB-cached URL
   const dbUrl = await fromDB(isbn)
   if (dbUrl) {
+    // Supabase storage URL (user อัป) → redirect ตรง ไม่ต้อง proxy + check size
+    if (dbUrl.includes('supabase.co')) {
+      return NextResponse.redirect(dbUrl, { status: 302, headers: { 'Cache-Control': 'public, max-age=86400' } })
+    }
     const target = dbUrl.includes('books.google.com') ? bumpGoogleQuality(dbUrl) : dbUrl
     const hit = await tryFetchImage(target)
     if (hit) return imageResponse(hit)

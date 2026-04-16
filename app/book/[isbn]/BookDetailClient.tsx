@@ -363,7 +363,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         <Link href="/" className="back-btn">← กลับ</Link>
 
         <div style={{ background: 'var(--primary)', padding: '18px 16px', display: 'flex', gap: 14 }}>
-          <BookCover isbn={isbn} title={book.title} size={84} />
+          <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={84} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.01em', marginBottom: 6 }}>{book.title}</div>
             {book.author && (

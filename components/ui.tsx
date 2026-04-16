@@ -501,9 +501,10 @@ export function BookCover({
   title?: string
   size?: number
 }) {
-  // ถ้ามี ISBN → ใช้ proxy ของเรา (ซ่อน source + bump quality)
-  // ถ้าไม่มี (เช่น รูปจากผู้ขายเอง) → ใช้ coverUrl ตรงๆ
-  const src = isbn && /^\d{10,13}$/.test(isbn) ? `/api/cover/${isbn}` : coverUrl
+  // Priority: coverUrl จาก DB (user อัปโหลด) → ISBN proxy (Google/OpenLibrary)
+  const src = coverUrl
+    ? coverUrl
+    : isbn && /^\d{10,13}$/.test(isbn) ? `/api/cover/${isbn}` : undefined
   return (
     <div
       className="book-cover"
