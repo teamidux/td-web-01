@@ -54,6 +54,21 @@ export async function getSessionUser(): Promise<any | null> {
   return u
 }
 
+// เช็คว่า session มี user ที่โดน ban ไหม (สำหรับแสดง popup)
+export async function getBannedStatus(): Promise<{ banned: boolean; reason?: string } | null> {
+  const token = cookies().get(COOKIE_NAME)?.value
+  if (!token) return null
+  const { data: session } = await admin()
+    .from('sessions')
+    .select('users(banned_at, banned_reason)')
+    .eq('token', token)
+    .maybeSingle()
+  if (!session) return null
+  const u = (session as any).users
+  if (u?.banned_at) return { banned: true, reason: u.banned_reason || undefined }
+  return null
+}
+
 export async function destroySession(): Promise<void> {
   const token = cookies().get(COOKIE_NAME)?.value
   if (token) {

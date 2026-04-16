@@ -30,13 +30,15 @@ const AuthContext = createContext<AuthCtx>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [banned, setBanned] = useState(false)
   const router = useRouter()
 
   const reloadUser = useCallback(async () => {
     try {
       const r = await fetch('/api/auth/me', { cache: 'no-store' })
-      const { user } = await r.json()
-      setUser(user || null)
+      const data = await r.json()
+      setUser(data.user || null)
+      setBanned(!!data.banned)
     } catch {
       setUser(null)
     } finally {
@@ -117,6 +119,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
+      {banned && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,.85)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '32px 24px', maxWidth: 380, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🚫</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#DC2626', marginBottom: 8 }}>
+              บัญชีถูกระงับ
+            </div>
+            <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.8, marginBottom: 20 }}>
+              บัญชีของคุณถูกระงับชั่วคราว เนื่องจากตรวจพบการใช้งานที่ผิดเงื่อนไข
+            </div>
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '14px 16px', marginBottom: 20, textAlign: 'left' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>หากคิดว่าเกิดข้อผิดพลาด</div>
+              <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.7 }}>
+                กรุณาติดต่อทีมงานเพื่อชี้แจง<br />
+                LINE: <b>@bookmatch</b><br />
+                หรืออีเมล: <b>support@bookmatch.app</b>
+              </div>
+            </div>
+            <button
+              onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).then(() => { window.location.href = '/' }) }}
+              style={{ width: '100%', padding: '12px 16px', background: '#F1F5F9', border: 'none', borderRadius: 10, fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, color: '#64748B', cursor: 'pointer' }}
+            >
+              ออกจากระบบ
+            </button>
+          </div>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   )

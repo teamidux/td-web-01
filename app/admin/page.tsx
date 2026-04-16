@@ -51,6 +51,8 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [banning, setBanning] = useState(false)
+  const [banReason, setBanReason] = useState('')
 
   // เช็ค admin access
   useEffect(() => {
@@ -107,6 +109,29 @@ export default function AdminPage() {
       setError('เชื่อมต่อไม่ได้')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const banUser = async (action: 'ban' | 'unban') => {
+    if (!result?.user?.id) return
+    if (action === 'ban' && !banReason.trim()) { setError('กรุณาใส่เหตุผลก่อน ban'); return }
+    setBanning(true)
+    try {
+      const r = await fetch('/api/admin/user/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: result.user.id, action, reason: banReason.trim() }),
+      })
+      const d = await r.json()
+      if (!r.ok) { setError(d.message || d.error || `${action} ไม่สำเร็จ`); return }
+      // reload user data
+      search()
+      setBanReason('')
+      alert(action === 'ban' ? 'Ban สำเร็จ — user ถูกเตะออกแล้ว' : 'Unban สำเร็จ — user กลับมาใช้งานได้')
+    } catch {
+      setError('เชื่อมต่อไม่ได้')
+    } finally {
+      setBanning(false)
     }
   }
 
@@ -171,13 +196,33 @@ export default function AdminPage() {
             </div>
 
             {/* Action buttons */}
-            <div style={{ marginBottom: 14 }}>
-              {!confirmDelete ? (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setConfirmDelete(true)} style={{ padding: '8px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
-                    ลบ User
+            <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Ban / Unban */}
+              {u.banned_at ? (
+                <button onClick={() => banUser('unban')} disabled={banning}
+                  style={{ padding: '10px 16px', background: '#15803D', border: 'none', borderRadius: 8, fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, color: 'white', cursor: 'pointer', opacity: banning ? 0.5 : 1 }}>
+                  {banning ? 'กำลังปลด...' : 'Unban User'}
+                </button>
+              ) : (
+                <div style={{ background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 10, padding: 12 }}>
+                  <input
+                    value={banReason}
+                    onChange={e => setBanReason(e.target.value)}
+                    placeholder="เหตุผลที่ ban (เช่น หลอกโอนเงิน)"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #FDE68A', borderRadius: 8, fontFamily: 'Kanit', fontSize: 13, marginBottom: 8, outline: 'none' }}
+                  />
+                  <button onClick={() => banUser('ban')} disabled={banning || !banReason.trim()}
+                    style={{ width: '100%', padding: '10px', background: '#DC2626', border: 'none', borderRadius: 8, fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, color: 'white', cursor: 'pointer', opacity: (banning || !banReason.trim()) ? 0.5 : 1 }}>
+                    {banning ? 'กำลัง Ban...' : 'Ban User'}
                   </button>
                 </div>
+              )}
+
+              {/* Delete */}
+              {!confirmDelete ? (
+                <button onClick={() => setConfirmDelete(true)} style={{ padding: '8px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
+                  ลบ User
+                </button>
               ) : (
                 <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>เลือกวิธีลบ:</div>
@@ -190,7 +235,7 @@ export default function AdminPage() {
                     </button>
                   </div>
                   <div style={{ fontSize: 11, color: '#7F1D1D', lineHeight: 1.5, marginBottom: 8 }}>
-                    Hard: ลบทุกอย่าง (test) / Soft: ซ่อนข้อมูลส่วนตัว เก็บหลักฐาน (production)
+                    Hard: ลบทุกอย่าง (test) / Soft: ซ่อนข้อมูล เก็บหลักฐาน
                   </div>
                   <button onClick={() => setConfirmDelete(false)} style={{ width: '100%', padding: '8px', background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'Kanit', fontSize: 12, color: '#64748B', cursor: 'pointer' }}>
                     ยกเลิก
