@@ -21,7 +21,19 @@ export async function POST(req: NextRequest) {
 
   // อนุญาตแค่ field ที่ user แก้ได้เองเท่านั้น
   const allowed: Record<string, unknown> = {}
-  if (typeof data.display_name === 'string') allowed.display_name = data.display_name.trim()
+  if (typeof data.display_name === 'string') {
+    const newName = data.display_name.trim()
+    // Audit log ชื่อเก่า→ใหม่ (ตามตัวคนโกงเปลี่ยนชื่อหนี)
+    if (newName && newName !== sessionUser.display_name) {
+      const sb = getSupabase()
+      await sb.from('phone_changes_log').insert({
+        user_id: userId,
+        old_phone: `[name] ${sessionUser.display_name || ''}`,
+        new_phone: `[name] ${newName}`,
+      }).catch(() => {})
+    }
+    allowed.display_name = newName
+  }
   if (data.seller_type === 'individual' || data.seller_type === 'store') allowed.seller_type = data.seller_type
   if (data.store_name !== undefined) allowed.store_name = typeof data.store_name === 'string' ? data.store_name.trim() || null : null
   // phone: validate เบอร์ไทย 10 หลัก ขึ้นต้น 0 + บันทึก audit log
