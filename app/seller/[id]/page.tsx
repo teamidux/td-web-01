@@ -392,60 +392,33 @@ export default function SellerPage({ params }: PageProps) {
             />
           )}
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {listings.filter(l => {
             if (!query.trim()) return true
             const q = query.toLowerCase()
             return l.books?.title?.toLowerCase().includes(q) || l.books?.author?.toLowerCase().includes(q)
           }).map(l => {
-            // ใช้รูปจริงที่ผู้ขายอัปโหลด (photos[0]) ถ้ามี — fallback ใช้ proxy ผ่าน isbn
             return (
-              <div key={l.id} className="card">
-                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <Link href={`/book/${l.books?.isbn}`} style={{ flexShrink: 0, textDecoration: 'none' }}>
-                    <BookCover coverUrl={l.photos?.[0]} isbn={!l.photos?.[0] ? l.books?.isbn : undefined} title={l.books?.title} size={64} />
-                  </Link>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                      <div className="book-title" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.books?.title}</div>
-                      {l.books?.author && <div className="book-author">{l.books.author}</div>}
-                    </Link>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-                      <span className="price">฿{l.price}</span>
-                      <CondBadge cond={l.condition} />
+              <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden' }}>
+                    {l.photos?.[0] ? (
+                      <img src={l.photos[0]} alt={l.books?.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <BookCover isbn={l.books?.isbn} title={l.books?.title} size={120} />
+                    )}
+                  </div>
+                  <div style={{ padding: '10px 12px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 38 }}>{l.books?.title}</div>
+                      <span className="price" style={{ fontSize: 16 }}>฿{l.price}</span>
+                      {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>ส่งฟรี</span>}
                     </div>
-                    <button
-                      onClick={async () => {
-                        setCopied(false)
-                        const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
-                        setSellerPII(ci)
-                        setContactListing(l)
-                      }}
-                      style={{
-                        marginTop: 12,
-                        background: 'var(--primary)',
-                        border: 'none',
-                        borderRadius: 10,
-                        padding: '10px 16px',
-                        minHeight: 44,
-                        fontFamily: 'Kanit',
-                        fontWeight: 600,
-                        fontSize: 14,
-                        color: 'white',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-                      }}
-                    >
-                      💬 ติดต่อผู้ขาย
-                    </button>
                   </div>
                 </div>
-              </div>
+              </Link>
             )
           })}
-        </div>
+          </div>
         <div style={{ height: 12 }} />
       </div>
       <BottomNav />
