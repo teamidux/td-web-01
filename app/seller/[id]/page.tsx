@@ -420,6 +420,7 @@ export default function SellerPage({ params }: PageProps) {
             )
           })}
           </div>
+        </div>
         <div style={{ height: 12 }} />
       </div>
       <BottomNav />
