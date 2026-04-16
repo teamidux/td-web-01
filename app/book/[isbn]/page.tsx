@@ -105,33 +105,52 @@ export default async function BookPage({ params }: PageProps) {
   const book = await getBook(isbn)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
-  const jsonLd = book ? {
-    '@context': 'https://schema.org',
-    '@type': 'Book',
-    name: book.title,
-    author: book.author ? { '@type': 'Person', name: book.author } : undefined,
-    translator: book.translator ? { '@type': 'Person', name: book.translator } : undefined,
-    isbn,
-    image: book.cover_url || undefined,
-    offers: book.active_listings_count > 0 ? {
-      '@type': 'AggregateOffer',
-      lowPrice: book.min_price || undefined,
-      priceCurrency: 'THB',
-      offerCount: book.active_listings_count,
-      availability: 'https://schema.org/InStock',
-      url: `${siteUrl}/book/${isbn}`,
-    } : undefined,
-  } : null
+  // Schema.org: ใส่ทั้ง Product (Google Shopping) + Book (Google Books)
+  const jsonLd = book ? [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: book.title,
+      description: `${book.title}${book.author ? ` โดย ${book.author}` : ''} — หนังสือมือสอง`,
+      image: book.cover_url ? (book.cover_url.includes('supabase.co') ? book.cover_url : `${siteUrl}/api/cover/${isbn}`) : `${siteUrl}/api/cover/${isbn}`,
+      brand: { '@type': 'Brand', name: book.author || 'BookMatch' },
+      isbn,
+      category: 'หนังสือ',
+      offers: book.active_listings_count > 0 ? {
+        '@type': 'AggregateOffer',
+        lowPrice: book.min_price || undefined,
+        highPrice: undefined,
+        priceCurrency: 'THB',
+        offerCount: book.active_listings_count,
+        availability: 'https://schema.org/InStock',
+        url: `${siteUrl}/book/${isbn}`,
+      } : {
+        '@type': 'Offer',
+        availability: 'https://schema.org/OutOfStock',
+        priceCurrency: 'THB',
+        url: `${siteUrl}/book/${isbn}`,
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Book',
+      name: book.title,
+      author: book.author ? { '@type': 'Person', name: book.author } : undefined,
+      isbn,
+      image: book.cover_url || undefined,
+    },
+  ] : null
 
   return (
     <>
-      {jsonLd && (
+      {jsonLd && jsonLd.map((ld, i) => (
         <Script
-          id="book-jsonld"
+          key={i}
+          id={`book-jsonld-${i}`}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }}
         />
-      )}
+      ))}
       <BookDetailClient isbn={isbn} initialBook={book} />
     </>
   )
