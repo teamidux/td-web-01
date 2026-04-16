@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   if (!profileRes.ok) return redirectError('profile_fetch_failed')
   const profile = await profileRes.json()
   const fbUserId: string = profile.id
-  const displayName: string = profile.name || 'นักอ่าน'
+  const displayName: string = profile.name || `นักอ่าน${Math.floor(Math.random() * 9000) + 1000}`
   const pictureUrl: string | null = profile.picture?.data?.url || null
 
   if (!fbUserId) return redirectError('no_fb_user_id')

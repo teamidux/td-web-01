@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   if (!profileRes.ok) return redirectError('profile_fetch_failed')
   const profile = await profileRes.json()
   const lineUserId: string = profile.userId
-  const displayName: string = profile.displayName || 'นักอ่าน'
+  const displayName: string = profile.displayName || `นักอ่าน${Math.floor(Math.random() * 9000) + 1000}`
   const pictureUrl: string | null = profile.pictureUrl || null
 
   if (!lineUserId) return redirectError('no_line_user_id')

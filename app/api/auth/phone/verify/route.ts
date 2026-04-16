@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         .insert({
           phone: cleaned,
           phone_verified_at: now,
-          display_name: 'นักอ่าน',
+          display_name: `นักอ่าน${Math.floor(Math.random() * 9000) + 1000}`,
           plan: 'free',
           listings_limit: 20,
           seller_type: 'individual',
