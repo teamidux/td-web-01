@@ -409,7 +409,7 @@ export default function ProfilePage() {
             </div>
             {/* เบอร์โทร */}
             <div style={{ marginBottom: 14, background: '#F8FAFC', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: user?.phone ? 8 : 0 }}>
                 <div>
                   <label style={{ fontSize: 12, color: '#94A3B8', display: 'block' }}>เบอร์โทร</label>
                   <div style={{ fontSize: 15, fontWeight: 600, color: user?.phone ? 'var(--ink)' : '#94A3B8', marginTop: 2 }}>
@@ -428,11 +428,16 @@ export default function ProfilePage() {
                   {!user?.phone ? 'เพิ่มเบอร์' : user?.phone_verified_at ? 'เปลี่ยนเบอร์' : 'ยืนยันเบอร์'}
                 </button>
               </div>
+              {user?.phone && (
+                <a href={`tel:${user.phone}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 8, padding: '8px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  📞 โทร {user.phone}
+                </a>
+              )}
             </div>
 
             {/* LINE ID */}
             <div style={{ marginBottom: 14, background: '#F8FAFC', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: user?.line_id ? 8 : 0 }}>
                 <div>
                   <label style={{ fontSize: 12, color: '#94A3B8', display: 'block' }}>LINE ID <span style={{ fontSize: 11 }}>(ไม่บังคับ)</span></label>
                   <div style={{ fontSize: 15, fontWeight: 600, color: user?.line_id ? 'var(--ink)' : '#94A3B8', marginTop: 2 }}>
@@ -450,6 +455,18 @@ export default function ProfilePage() {
                   {user?.line_id ? 'เปลี่ยน' : 'เพิ่ม LINE ID'}
                 </button>
               </div>
+              {user?.line_id && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => { navigator.clipboard.writeText(user.line_id || ''); show('คัดลอก LINE ID แล้ว') }}
+                    style={{ flex: 1, background: 'white', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: '#15803D', cursor: 'pointer' }}>
+                    คัดลอก
+                  </button>
+                  <a href={`https://line.me/R/ti/p/~${user.line_id}`} target="_blank" rel="noopener noreferrer"
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#06C755', border: 'none', borderRadius: 8, padding: '8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', textDecoration: 'none' }}>
+                    💚 Add LINE
+                  </a>
+                </div>
+              )}
             </div>
 
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveProfile} disabled={saving}>
