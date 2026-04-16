@@ -692,21 +692,9 @@ function SellPage() {
               {/* ── ไม่มี Barcode / หนังสือชุด ── */}
               {notFoundMode === 'no_isbn' && !fetchedBook && (
                 <>
-                  <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>📖</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีข้อมูลในระบบ</div>
-                      <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>อาจเป็นหนังสือเก่า สำนักพิมพ์อิสระ หรือพิมพ์จำนวนจำกัด</div>
-                    </div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
-                  </div>
-                  <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                    <div style={{ fontSize: 14, color: '#1E40AF', lineHeight: 1.7 }}>
-                      กรอกข้อมูลด้านล่างเพื่อเพิ่มหนังสือเข้าระบบได้เลย 🙏
-                    </div>
-                  </div>
+                  <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 600, padding: 0, marginBottom: 12 }}>← กลับ</button>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ</div>
+                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>เพิ่มหนังสือด้วยตัวเอง</div>
                     <div className="form-group">
                       <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
                       <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น สี่แผ่นดิน / Naruto เล่ม 1 / ชุด Harry Potter" autoFocus />
