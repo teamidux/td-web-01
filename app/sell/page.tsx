@@ -779,15 +779,15 @@ function SellPage() {
                 )}
               </div>
 
-              {/* ช่องทางติดต่อ — ดึงจากระบบอัตโนมัติ แสดงให้เห็นเฉยๆ */}
-              {contact && (
+              {/* ช่องทางติดต่อ — ดึงจากระบบอัตโนมัติ read-only */}
+              {(contact || user?.phone) && (
                 <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 15 }}>📞</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, color: 'var(--ink3)' }}>ช่องทางติดต่อ</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{contact}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{contact || user?.phone}</div>
                   </div>
-                  <button onClick={() => router.push('/profile')} style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--primary)', fontFamily: 'Kanit', fontWeight: 600, cursor: 'pointer' }}>แก้ไข</button>
+                  {user?.phone_verified_at && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>ยืนยันแล้ว</span>}
                 </div>
               )}
 

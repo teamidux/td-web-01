@@ -543,7 +543,51 @@ export default function ProfilePage() {
           </div>
         </Link>
 
-        {/* Trust Mission — เบอร์โทร + ยืนยันตัวตน */}
+        {/* ข้อมูลติดต่อ */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>ข้อมูลติดต่อ</div>
+
+            {/* เบอร์โทร */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12, borderBottom: user.line_id ? '1px solid var(--border-light)' : 'none' }}>
+              <span style={{ fontSize: 18 }}>📞</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.phone || 'ยังไม่มีเบอร์โทร'}</div>
+                {user.phone_verified_at
+                  ? <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600, marginTop: 2 }}>ยืนยันแล้ว</div>
+                  : user.phone
+                    ? <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600, marginTop: 2 }}>ยังไม่ได้ยืนยัน</div>
+                    : null
+                }
+              </div>
+              <button
+                onClick={() => setShowPhoneVerify(true)}
+                style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '6px 12px', fontFamily: 'Kanit', fontWeight: 600, fontSize: 12, color: 'var(--primary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                {user.phone ? 'เปลี่ยนเบอร์' : 'เพิ่มเบอร์'}
+              </button>
+            </div>
+
+            {/* LINE ID */}
+            {user.line_id && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12 }}>
+                <span style={{ fontSize: 18 }}>💚</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.line_id}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>LINE ID</div>
+                </div>
+                <button
+                  onClick={() => user.line_id ? setShowLineConfirm(true) : startEdit()}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'Kanit', fontWeight: 600, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  เปลี่ยน
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Trust Mission — ยืนยันตัวตน */}
         <div style={{ padding: '14px 16px 0' }}>
           <TrustMission user={user} onAction={(key) => {
             if (key === 'phone_verified') setShowPhoneVerify(true)
