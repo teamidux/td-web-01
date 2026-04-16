@@ -365,9 +365,8 @@ export default function AdminPage() {
           {result.id_verifications.length > 0 && (
             <SectionCard title={`เอกสารยืนยันตัวตน (${result.id_verifications.length})`} icon="🪪">
               {result.id_verifications.map((v: any) => {
-                const supabaseUrl = 'https://khwgsorhvhtxbpteofta.supabase.co'
-                const idUrl = v.id_image_path ? `${supabaseUrl}/storage/v1/object/public/id-verifications/${v.id_image_path}` : ''
-                const selfieUrl = v.selfie_image_path ? `${supabaseUrl}/storage/v1/object/public/id-verifications/${v.selfie_image_path}` : ''
+                const idUrl = v.id_image_url || ''
+                const selfieUrl = v.selfie_image_url || ''
                 return (
                   <div key={v.id} style={{ padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

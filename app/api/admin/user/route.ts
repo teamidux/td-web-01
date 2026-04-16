@@ -88,6 +88,19 @@ export async function GET(req: NextRequest) {
     ? (sessionsRes.data || [])[(sessionsRes.data || []).length - 1]
     : null
 
+  // สร้าง signed URLs สำหรับเอกสารยืนยันตัวตน (private bucket)
+  const idVers = idVerRes.data || []
+  for (const v of idVers) {
+    if (v.id_image_path) {
+      const { data } = await sb.storage.from('id-verifications').createSignedUrl(v.id_image_path, 3600)
+      ;(v as any).id_image_url = data?.signedUrl || null
+    }
+    if (v.selfie_image_path) {
+      const { data } = await sb.storage.from('id-verifications').createSignedUrl(v.selfie_image_path, 3600)
+      ;(v as any).selfie_image_url = data?.signedUrl || null
+    }
+  }
+
   return NextResponse.json({
     user: userRes.data,
     phone_changes: (changesRes.data || []).filter((c: any) => !c.old_phone?.startsWith('[name]') && !c.new_phone?.startsWith('[name]')),

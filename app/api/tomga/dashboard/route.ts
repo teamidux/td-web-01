@@ -78,44 +78,11 @@ export async function GET() {
     sb.from('users').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(5),
   ])
 
-  // Suspicious count — รวม 3 heuristic: bot, duplicate phone/line, reported
-  const [{ data: activeUsers }, { data: allListings }, { data: allReports }] = await Promise.all([
-    sb.from('users').select('id, phone, line_id').is('deleted_at', null).is('banned_at', null),
-    sb.from('listings').select('seller_id, created_at'),
-    sb.from('reports').select('reported_user_id'),
-  ])
-
-  const pCount: Record<string, number> = {}
-  const lCount: Record<string, number> = {}
-  for (const u of activeUsers || []) {
-    if (u.phone) pCount[u.phone] = (pCount[u.phone] || 0) + 1
-    if (u.line_id) lCount[u.line_id] = (lCount[u.line_id] || 0) + 1
-  }
-
-  const listingsBySeller: Record<string, number[]> = {}
-  for (const l of allListings || []) {
-    const sid = (l as any).seller_id
-    if (!listingsBySeller[sid]) listingsBySeller[sid] = []
-    listingsBySeller[sid].push(new Date((l as any).created_at).getTime())
-  }
-
-  const reportedSet = new Set((allReports || []).map((r: any) => r.reported_user_id))
-
-  const HOUR = 60 * 60 * 1000
-  const BOT_THRESHOLD = 20
-  let suspiciousCount = 0
-  for (const u of activeUsers || []) {
-    let flagged = false
-    if ((u.phone && pCount[u.phone] > 1) || (u.line_id && lCount[u.line_id] > 1)) flagged = true
-    if (!flagged && reportedSet.has((u as any).id)) flagged = true
-    if (!flagged) {
-      const times = (listingsBySeller[(u as any).id] || []).sort((a, b) => a - b)
-      for (let i = 0; i + BOT_THRESHOLD - 1 < times.length; i++) {
-        if (times[i + BOT_THRESHOLD - 1] - times[i] <= HOUR) { flagged = true; break }
-      }
-    }
-    if (flagged) suspiciousCount++
-  }
+  // Suspicious count — ใช้ reports count แทน full scan (เร็วกว่ามาก)
+  const { count: suspiciousCount } = await sb
+    .from('reports')
+    .select('reported_user_id', { count: 'exact', head: true })
+    .eq('status', 'pending')
 
   return NextResponse.json({
     totals: {
