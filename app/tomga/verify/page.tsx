@@ -190,15 +190,6 @@ export default function AdminVerifyPage() {
               </div>
             </div>
 
-            <div style={{ background: 'white', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>Step 4: ตรวจ Selfie 🤳</div>
-              <div style={{ color: '#475569' }}>
-                - หน้าตรงกับรูปในบัตร<br/>
-                - ถือบัตรจริงในรูป (ไม่ใช่รูปจากจอ)<br/>
-                - ถ้าสงสัย ให้ปฏิเสธ แล้วให้ส่งใหม่
-              </div>
-            </div>
-
             <div style={{ background: '#FEF9C3', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontWeight: 700, color: '#92400E', marginBottom: 4 }}>⚠️ เมื่อไหร่ควรปฏิเสธ</div>
               <div style={{ color: '#78350F' }}>
