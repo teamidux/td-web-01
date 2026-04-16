@@ -659,7 +659,7 @@ function SellPage() {
                     </div>
                   </div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ เพื่อเพิ่มเข้าระบบและลงขาย</div>
+                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ</div>
                     <div className="form-group">
                       <label className="label">ISBN</label>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -825,15 +825,23 @@ function SellPage() {
                 </div>
               </div>
 
-              {/* ช่องทางติดต่อ — ดึงจากระบบอัตโนมัติ read-only */}
-              {(contact || user?.phone) && (
-                <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', marginBottom: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 15 }}>📞</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>ช่องทางติดต่อ</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{contact || user?.phone}</div>
-                  </div>
-                  {user?.phone_verified_at && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>ยืนยันแล้ว</span>}
+              {/* ช่องทางติดต่อ — แสดงทั้งเบอร์ + LINE ถ้ามี */}
+              {(user?.phone || user?.line_id) && (
+                <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '12px 14px', marginBottom: 13 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>ช่องทางติดต่อ</div>
+                  {user?.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_id ? 6 : 0 }}>
+                      <span style={{ fontSize: 14 }}>📞</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.phone}</span>
+                      {user?.phone_verified_at && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>ยืนยันแล้ว</span>}
+                    </div>
+                  )}
+                  {user?.line_id && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>💚</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.line_id}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
