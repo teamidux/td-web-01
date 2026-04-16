@@ -599,7 +599,7 @@ function SellPage() {
                           className="input"
                           value={sellSearch}
                           onChange={e => setSellSearch(e.target.value)}
-                          placeholder="ค้นหาชื่อหนังสือ..."
+                          placeholder="ค้นหาด้วยชื่อหนังสือ..."
                           style={{ paddingRight: (fetching || sellSearching) ? 44 : 14 }}
                         />
                         {(fetching || sellSearching) && (
