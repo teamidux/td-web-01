@@ -181,11 +181,14 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const contactPhone = contactListing ? /^(\+?66|0)[0-9\s\-]{7,12}$/.test(contactListing.contact?.trim() || '') : false
   // ตรวจว่า contact field เป็น LINE ID มั้ย → ถ้าใช่ มีปุ่ม Add LINE
   const contactLineInfo = contactListing && !contactPhone ? parseLineId(contactListing.contact || '') : null
-  // LINE ID จาก profile (ดึงจาก contactPII ที่ fetch แยก — ต้อง login)
+  // LINE ID จาก profile (ดึงจาก contactPII ที่ fetch แยก)
   const contactProfileLine = contactPII?.line_id?.trim() || ''
   const profileLineInfo = contactProfileLine ? parseLineId(contactProfileLine) : null
-  // แสดง LINE ID จาก profile เสมอถ้ามี (แม้จะซ้ำกับ contact field — เพื่อให้มีปุ่ม Add LINE)
-  const showProfileLine = !!profileLineInfo
+  // แสดง LINE profile เฉพาะเมื่อ ≠ contact field (กัน LINE ซ้ำ 2 อัน)
+  const showProfileLine = !!profileLineInfo && (!contactLineInfo || profileLineInfo.raw !== contactLineInfo.raw)
+  // แสดงเบอร์โทรจาก profile ถ้ามี + ไม่ซ้ำกับ contact field
+  const profilePhone = contactPII?.phone?.trim() || ''
+  const showProfilePhone = !!profilePhone && !(contactPhone && contactListing?.contact?.replace(/\D/g, '') === profilePhone.replace(/\D/g, ''))
 
   const prices = listings.map(l => l.price)
   const minP = prices.length ? Math.min(...prices) : null
@@ -306,9 +309,9 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               </div>
             )}
 
-            {/* Profile LINE ID (รองจาก contact field) — แสดงถ้าต่างจาก contact ที่กรอก */}
+            {/* Profile LINE ID — แสดงเฉพาะถ้าต่างจาก contact field (กัน LINE ซ้ำ) */}
             {showProfileLine && profileLineInfo && (
-              <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+              <div style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: (showProfilePhone ? 10 : 16) }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE ผู้ขาย</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', color: '#15803D' }}>{profileLineInfo.display}</div>
@@ -319,6 +322,19 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <a href={profileLineInfo.addUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: '#06C755', border: 'none', borderRadius: 10, padding: '12px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 2px 6px rgba(6,199,85,.25)' }}>
                   💚 เพิ่มเพื่อนใน LINE
                 </a>
+              </div>
+            )}
+
+            {/* เบอร์โทรจาก profile — แสดงเฉพาะถ้ามี + ไม่ซ้ำกับ contact field */}
+            {showProfilePhone && (
+              <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>📞 เบอร์โทรผู้ขาย</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{profilePhone}</div>
+                  <a href={`tel:${profilePhone.replace(/\D/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                    โทรเลย
+                  </a>
+                </div>
               </div>
             )}
 
