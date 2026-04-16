@@ -410,6 +410,7 @@ export default function SellerPage({ params }: PageProps) {
                   </div>
                   <div style={{ padding: '10px 12px' }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 38 }}>{l.books?.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                       <span className="price" style={{ fontSize: 16 }}>฿{l.price}</span>
                       {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>ส่งฟรี</span>}
                     </div>
