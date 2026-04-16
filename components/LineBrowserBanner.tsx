@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-// Banner สำหรับ LINE browser — แนะนำให้เปิดใน Chrome/Safari
-// แสดงครั้งเดียว ถ้า user กดปิดแล้วจำใน localStorage
+// Banner สำหรับ LINE browser — แสดงทุกครั้งที่เปิด (ไม่จำ dismiss)
+// Android: พยายาม auto-redirect ไป Chrome ก่อน ถ้าไม่ได้ค่อยแสดง banner
 export default function LineBrowserBanner() {
   const [show, setShow] = useState(false)
   const [isIos, setIsIos] = useState(false)
@@ -12,26 +12,32 @@ export default function LineBrowserBanner() {
     const ua = navigator.userAgent
     const isLine = /Line\//.test(ua)
     if (!isLine) return
-    // เช็คว่า user ปิด banner ไปแล้วหรือยัง
-    if (localStorage.getItem('bm_line_banner_dismissed') === '1') return
-    setIsIos(/iPhone|iPad|iPod/.test(ua))
-    setShow(true)
+    const ios = /iPhone|iPad|iPod/.test(ua)
+    setIsIos(ios)
+
+    if (!ios) {
+      // Android: พยายามเด้งไป Chrome อัตโนมัติ
+      const url = window.location.href
+      window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
+      // ถ้า intent ไม่ work (เช่นไม่มี Chrome) → แสดง banner หลัง 1.5s
+      setTimeout(() => setShow(true), 1500)
+    } else {
+      // iOS: แสดง banner ทันที (ไม่มี intent URL)
+      setShow(true)
+    }
   }, [])
 
   const dismiss = () => {
-    localStorage.setItem('bm_line_banner_dismissed', '1')
+    // ปิดชั่วคราวเฉพาะ session นี้ (ไม่จำใน localStorage)
     setShow(false)
   }
 
   const openExternal = () => {
     const url = window.location.href
     if (isIos) {
-      // iOS: ไม่มี intent URL มาตรฐาน แค่ copy + แนะนำ user
-      // LINE iOS มีปุ่ม ... มุมขวาบน → "Open in Safari"
       alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
       return
     }
-    // Android: ใช้ intent URL เปิด Chrome
     window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
   }
 

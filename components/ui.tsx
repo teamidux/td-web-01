@@ -1185,7 +1185,23 @@ export function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: F
     setIsLineBrowser(isLine)
     if (isLine) {
       // Trigger gallery picker ทันที หลัง mount
-      setTimeout(() => galleryInputRef.current?.click(), 50)
+      let pickerOpen = false
+      setTimeout(() => {
+        galleryInputRef.current?.click()
+        pickerOpen = true
+      }, 50)
+      // Android LINE browser: onChange ไม่ fire เมื่อ cancel picker
+      // ใช้ focus event detect ว่า user กลับมาแล้ว → ถ้าไม่มีไฟล์ = cancel
+      const onFocus = () => {
+        if (!pickerOpen) return
+        setTimeout(() => {
+          if (galleryInputRef.current && !galleryInputRef.current.files?.length) {
+            onClose()
+          }
+        }, 300)
+      }
+      window.addEventListener('focus', onFocus)
+      return () => window.removeEventListener('focus', onFocus)
     }
   }, [])
 
