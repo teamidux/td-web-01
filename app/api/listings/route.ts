@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
+  if (!checkRateLimit(`listings:${getClientIp(req)}`, 60, 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
   const bookId = req.nextUrl.searchParams.get('book_id')
   if (!bookId) return NextResponse.json({ listings: [] })
 

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
+  if (!checkRateLimit(`recent:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
   const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') || 10), 20)
 
   const supabase = createClient(

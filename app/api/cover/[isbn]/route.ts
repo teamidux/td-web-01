@@ -120,6 +120,12 @@ function openLibraryUrl(isbn: string): string {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { isbn: string } }) {
+  // Rate limit: 60/นาที/IP กัน scrape รูปปกทั้ง catalog
+  const { checkRateLimit, getClientIp } = await import('@/lib/rate-limit')
+  if (!checkRateLimit(`cover:${getClientIp(req)}`, 60, 60_000)) {
+    return new Response('rate limited', { status: 429 })
+  }
+
   const isbn = decodeURIComponent(params.isbn).replace(/[-\s]/g, '')
   if (!/^\d{10,13}$/.test(isbn)) {
     return placeholderResponse(req)
