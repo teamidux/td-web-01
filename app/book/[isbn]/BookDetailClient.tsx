@@ -438,8 +438,12 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             </>
           )}
 
-          {listings.map(l => {
+          {/* หา listing แรกสุดของ book นี้ = ผู้บุกเบิก */}
+          {(() => {
+            const earliest = listings.length > 0 ? listings.reduce((a, b) => new Date(a.created_at) < new Date(b.created_at) ? a : b) : null
+            return listings.map(l => {
             const sellerName = l.users?.display_name
+            const isPioneerListing = earliest && l.id === earliest.id
             const avatarUrl = (l.users as any)?.avatar_url
             return (
             <div key={l.id} className="card">
@@ -455,6 +459,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                       {sellerName}
                     </Link>
                     <TrustBadge user={l.users} size="sm" />
+                    {isPioneerListing && <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>🏆 ผู้บุกเบิก</span>}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
                     {`ขายแล้ว ${l.users?.sold_count || 0} · ยืนยัน ${l.users?.confirmed_count || 0} ครั้ง`}
@@ -501,7 +506,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 </button>
               </div>
             </div>
-          )})}
+          )})
+          })(/* IIFE end */)}
         </div>
         <div style={{ height: 12 }} />
       </div>
