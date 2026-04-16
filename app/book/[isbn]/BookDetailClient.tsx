@@ -512,7 +512,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               </button>
             </div>
           )})
-          })(/* IIFE end */)}
+          })()}
         </div>
         <div style={{ height: 12 }} />
       </div>

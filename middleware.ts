@@ -51,8 +51,8 @@ export function middleware(req: NextRequest) {
   if (isAllowed) return NextResponse.next()
 
   // Server-side fetch (Next.js SSR) ไม่มี Origin — เช็ค user-agent
-  const ua = req.headers.get('user-agent') || ''
-  if (ua.includes('node') || ua.includes('Next.js')) return NextResponse.next()
+  const ua = (req.headers.get('user-agent') || '').toLowerCase()
+  if (ua.includes('next.js') || ua.includes('node-fetch') || ua.includes('undici')) return NextResponse.next()
 
   // ไม่มี Origin + ไม่ใช่ SSR → น่าจะเป็น scraper/curl
   // ยังให้ผ่านแต่ใส่ header บอกว่าถูก flag (ไม่ hard block เพราะอาจ false positive)
