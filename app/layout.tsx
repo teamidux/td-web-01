@@ -39,6 +39,7 @@ export default function RootLayout({
     <html lang="th">
       <head>
         <meta name="theme-color" content="#2563eb" />
+        <meta name="google-site-verification" content="O7-5eaJw-ZEB1eBHpDRHGuEx1uYfN0NVQrRogTiHuJc" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/api/icon?size=180" />
         <link rel="icon" type="image/png" sizes="192x192" href="/api/icon?size=192" />
