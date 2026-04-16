@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     }).eq('id', userId)
     if (error) return NextResponse.json({ error: 'ban_failed', message: error.message }, { status: 500 })
 
-    // 2. ซ่อน listings (removed แทน paused เพราะ DB อาจไม่มี paused ใน check constraint)
-    await sb.from('listings').update({ status: 'removed' }).eq('seller_id', userId).eq('status', 'active')
+    // 2. ซ่อน listings ทั้ง active และ sold
+    await sb.from('listings').update({ status: 'removed' }).eq('seller_id', userId).neq('status', 'removed')
 
     // 3. เตะออกจากทุก session
     await sb.from('sessions').delete().eq('user_id', userId)
