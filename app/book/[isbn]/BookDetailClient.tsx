@@ -230,28 +230,28 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       <Nav />
       <div className="page">
         <Link href="/" className="back-btn">← กลับ</Link>
-        <div style={{ padding: '0 16px 80px' }}>
-          <div style={{ textAlign: 'center', padding: '32px 0 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 160px)', padding: '16px' }}>
+          <div style={{ background: 'white', borderRadius: 20, boxShadow: '0 8px 32px rgba(0,0,0,.1)', padding: '32px 24px', maxWidth: 380, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📖</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>ไม่พบข้อมูลหนังสือเล่มนี้ในระบบ</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>ISBN: {isbn}</div>
-          </div>
-
-          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
-              หนังสือบางเล่มอาจเป็น:
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              ไม่พบข้อมูลหนังสือเล่มนี้
             </div>
-            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 2, paddingLeft: 4 }}>
-              &bull; สำนักพิมพ์อิสระที่ไม่ได้ลงทะเบียนออนไลน์<br/>
-              &bull; หนังสือเก่าหรือหายากที่พิมพ์จำนวนน้อย<br/>
-              &bull; หนังสืองานศพหรือสิ่งพิมพ์พิเศษ
-            </div>
-          </div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>ISBN: {isbn}</div>
 
-          <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 6 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
-            <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
-              ลงขายและเพิ่มข้อมูลเข้าระบบ — เป็นคนแรกที่ขาย โอกาสขายได้เร็วมาก
+            <div style={{ background: '#F8FAFC', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
+              <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>
+                หนังสือบางเล่มอาจเป็น:
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.9, paddingLeft: 4 }}>
+                &bull; สำนักพิมพ์อิสระที่ไม่ได้ลงทะเบียนออนไลน์<br/>
+                &bull; หนังสือเก่าหรือหายากที่พิมพ์จำนวนน้อย<br/>
+                &bull; หนังสืองานศพหรือสิ่งพิมพ์พิเศษ
+              </div>
+            </div>
+
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.7 }}>
+              เป็นคนแรกที่ขาย โอกาสขายได้เร็วมาก
             </div>
             <button className="btn" onClick={goSell} style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
           </div>
