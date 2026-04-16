@@ -241,35 +241,6 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Empty state — query >= 3 chars แล้วยังไม่เจออะไร (auto-fetched DB+Google แล้ว) */}
-            {query.trim().length >= 3 && !liveSearching && !googleLoading && liveResults.length === 0 && googleLiveResults.length === 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,.18)', zIndex: 50, overflow: 'hidden', marginTop: 6, padding: '20px 16px' }}>
-                <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
-                    ไม่พบหนังสือ "{query}"
-                  </div>
-                </div>
-                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12, textAlign: 'left' }}>
-                  <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7, marginBottom: 6 }}>
-                    หนังสือบางเล่มยังไม่มีในฐานข้อมูลของเรา อาจเป็นเพราะเป็นหนังสือเก่า, พิมพ์จำนวนจำกัด, หรือไม่ได้ขึ้นทะเบียน ISBN
-                  </div>
-                  <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7 }}>
-                    คุณสามารถเพิ่มเข้าระบบเองได้เลย — ช่วยให้คนอื่นที่มีเล่มเดียวกันหาเจอง่ายขึ้นด้วยนะ 🙏
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Link href="/sell" style={{ flex: 1, textDecoration: 'none' }}>
-                    <button style={{ width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 10, padding: '11px 8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', cursor: 'pointer' }}>
-                      ลงขาย + เพิ่มหนังสือเข้าระบบ
-                    </button>
-                  </Link>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
-                  ลองพิมพ์ชื่อให้ครบ ใช้ ISBN หรือสแกน barcode
-                </div>
-              </div>
-            )}
 
             {/* Loading state — Google ยังหาอยู่ และยังไม่มีผลใดๆ */}
             {query.trim() && !liveSearching && googleLoading && liveResults.length === 0 && googleLiveResults.length === 0 && (
