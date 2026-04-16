@@ -151,8 +151,7 @@ export default function HomePage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 18, padding: '36px 24px', textAlign: 'center', maxWidth: 300, width: '100%' }}>
             <span className="spin" style={{ width: 32, height: 32, marginBottom: 16 }} />
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, fontWeight: 700, marginBottom: 6 }}>กำลังอ่าน Barcode...</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)' }}>วิเคราะห์ภาพ Barcode</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, fontWeight: 700 }}>กำลังค้นหาหนังสือ...</div>
           </div>
         </div>
       )}
