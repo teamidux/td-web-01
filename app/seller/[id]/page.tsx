@@ -340,6 +340,33 @@ export default function SellerPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* ปุ่มแชร์ร้าน */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <button
+            onClick={async () => {
+              const url = window.location.href
+              const shareData = {
+                title: `${seller?.display_name} — ร้านหนังสือบน BookMatch`,
+                text: `ดูหนังสือมือสองที่ ${seller?.display_name} กำลังขาย ${listings.length} เล่ม`,
+                url,
+              }
+              if (navigator.share) {
+                try { await navigator.share(shareData) } catch {}
+              } else {
+                navigator.clipboard.writeText(url).then(() => show('คัดลอกลิงก์ร้านแล้ว'))
+              }
+            }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12,
+              padding: '11px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14,
+              color: 'var(--primary)', cursor: 'pointer',
+            }}
+          >
+            แชร์ร้านนี้
+          </button>
+        </div>
+
         <div className="section">
           <div className="section-title" style={{ marginBottom: 12 }}>หนังสือที่กำลังขาย ({listings.length} เล่ม)</div>
 

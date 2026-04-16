@@ -533,6 +533,36 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* ปุ่มแชร์ร้าน */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <button
+            onClick={async () => {
+              const url = `${window.location.origin}/seller/${user.id}`
+              const shareData = {
+                title: `${user.display_name} — ร้านหนังสือบน BookMatch`,
+                text: `ดูหนังสือมือสองที่ ${user.display_name} กำลังขาย ${active.length} เล่ม`,
+                url,
+              }
+              if (navigator.share) {
+                try { await navigator.share(shareData) } catch {}
+              } else {
+                navigator.clipboard.writeText(url).then(() => show('คัดลอกลิงก์ร้านแล้ว'))
+              }
+            }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', border: 'none', borderRadius: 12,
+              padding: '13px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15,
+              color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,.25)',
+            }}
+          >
+            แชร์ร้านของฉัน
+          </button>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 6 }}>
+            แชร์ไปยัง Facebook, LINE, หรือช่องทางอื่น เพื่อให้ลูกค้าดูรายการหนังสือของคุณ
+          </div>
+        </div>
+
         <div style={{ background: 'var(--surface)', padding: '18px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
           <div style={{ textAlign: 'center' }}><div className="stat-n">{active.length}</div><div className="stat-l">กำลังขาย</div></div>
           <div style={{ textAlign: 'center' }}><div className="stat-n">{user.sold_count || 0}</div><div className="stat-l">ขายไปแล้ว</div></div>
