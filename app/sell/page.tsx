@@ -548,59 +548,27 @@ function SellPage() {
                 />
               )}
 
-              {/* ── Search & Scan ── */}
+              {/* ── แบ่ง 2 ส่วน: มี Barcode / ไม่มี Barcode ── */}
               {!fetchedBook && !notFoundMode && (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink2)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.8px' }}>ขายหนังสือที่มี Barcode</div>
-
-                  {/* Search input */}
-                  <div className="form-group">
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        className="input"
-                        value={sellSearch}
-                        onChange={e => setSellSearch(e.target.value)}
-                        placeholder="ค้นหาชื่อหนังสือ หรือพิมพ์ ISBN..."
-                        style={{ paddingRight: (fetching || sellSearching) ? 44 : 14 }}
-                      />
-                      {(fetching || sellSearching) && (
-                        <span className="spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }} />
-                      )}
-                    </div>
+                  {/* ส่วนบน: มี Barcode → สแกนเลย */}
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>มี Barcode</div>
+                    {isLineIAB ? (
+                      <button
+                        onClick={() => { if (!user) { goLogin(); return }; setShowCamera(true) }}
+                        disabled={scanning}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15, color: 'white' }}
+                      >
+                        📷 สแกน Barcode หลังปก
+                      </button>
+                    ) : (
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15, color: 'white' }}>
+                        <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                        📷 สแกน Barcode หลังปก
+                      </label>
+                    )}
                   </div>
-
-                  {/* Search results dropdown */}
-                  {sellResults.length > 0 && (
-                    <div style={{ marginBottom: 14, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                      {sellResults.map((b, i) => (
-                        <button key={b.id} onClick={() => selectBook(b)}
-                          style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%', minHeight: 64 }}>
-                          <BookCover isbn={b.isbn} title={b.title} size={48} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.35, color: '#121212', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                            {b.author && <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
-                          </div>
-                          <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>เลือก ›</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Scan button */}
-                  {isLineIAB ? (
-                    <button
-                      onClick={() => { if (!user) { goLogin(); return }; setShowCamera(true) }}
-                      disabled={scanning}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '13px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: 'var(--primary)', marginBottom: 14 }}
-                    >
-                      {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 ค้นหาด้วย Barcode</>}
-                    </button>
-                  ) : (
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: scanning ? 'var(--surface)' : 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '13px 16px', cursor: scanning ? 'default' : 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: 'var(--primary)', marginBottom: 14 }}>
-                      <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-                      {scanning ? <><span className="spin" style={{ width: 16, height: 16, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} /> กำลังอ่าน Barcode...</> : <>📷 ค้นหาด้วย Barcode</>}
-                    </label>
-                  )}
 
                   {showCamera && (
                     <CameraCaptureModal
@@ -609,42 +577,66 @@ function SellPage() {
                     />
                   )}
 
-                  {/* Not found — shown after search with no results */}
-                  {sellSearch.trim().length >= 2 && !sellSearching && !fetching && sellResults.length === 0 && (
-                    <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>ไม่พบ <strong>"{sellSearch}"</strong> ในระบบ</div>
+                  {/* เส้นแบ่ง */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 12px' }}>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                    <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                  </div>
 
-                      {/* ข้อความแนะนำ — แสดงครั้งแรกต่อ session */}
-                      {!seenNotFoundTip && (
-                        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                          <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7, marginBottom: 8 }}>
-                            หนังสือบางเล่มยังไม่มีในฐานข้อมูลของเรา อาจเป็นเพราะเป็นหนังสือเก่า, พิมพ์จำนวนจำกัด, หรือไม่ได้ขึ้นทะเบียน ISBN
-                          </div>
-                          <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7 }}>
-                            คุณสามารถเพิ่มเข้าระบบเองได้เลย — ช่วยให้คนอื่นที่มีเล่มเดียวกันหาเจอง่ายขึ้นด้วยนะ 🙏
-                          </div>
-                          <button
-                            onClick={() => { setSeenNotFoundTip(true); sessionStorage.setItem('bm_notfound_tip', '1') }}
-                            style={{ background: 'none', border: 'none', fontSize: 12, color: '#3B82F6', fontFamily: 'Kanit', cursor: 'pointer', padding: 0, marginTop: 8 }}
-                          >
-                            เข้าใจแล้ว ✓
-                          </button>
-                        </div>
-                      )}
+                  {/* ส่วนล่าง: ไม่มี Barcode → ค้นหา / กรอกเอง */}
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
+                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>ไม่มี Barcode</div>
 
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setNotFoundMode('has_isbn')}
-                          style={{ flex: 1, background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 10, padding: '11px 8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'var(--primary)', cursor: 'pointer' }}>
-                          🔖 มี Barcode
-                        </button>
-                        <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn) }}
-                          style={{ flex: 1, background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 10, padding: '11px 8px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: '#92400E', cursor: 'pointer' }}>
-                          📖 ไม่มี Barcode
-                        </button>
+                    <div className="form-group" style={{ marginBottom: 8 }}>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          className="input"
+                          value={sellSearch}
+                          onChange={e => setSellSearch(e.target.value)}
+                          placeholder="ค้นหาชื่อหนังสือ..."
+                          style={{ paddingRight: (fetching || sellSearching) ? 44 : 14 }}
+                        />
+                        {(fetching || sellSearching) && (
+                          <span className="spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }} />
+                        )}
                       </div>
                     </div>
-                  )}
 
+                    {/* Search results */}
+                    {sellResults.length > 0 && (
+                      <div style={{ marginBottom: 10, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                        {sellResults.map((b, i) => (
+                          <button key={b.id} onClick={() => selectBook(b)}
+                            style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 12px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
+                            <BookCover isbn={b.isbn} title={b.title} size={40} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+                              {b.author && <div style={{ fontSize: 12, color: '#555', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
+                            </div>
+                            <span style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>เลือก ›</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ค้นไม่เจอ → กรอกเอง */}
+                    {sellSearch.trim().length >= 2 && !sellSearching && !fetching && sellResults.length === 0 && (
+                      <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 8 }}>
+                        ไม่พบ "{sellSearch}" —{' '}
+                        <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn); setManualTitle(sellSearch) }}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                          กรอกข้อมูลเอง
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ปุ่มกรอกเองตรง (ไม่ต้องค้นก่อน) */}
+                    <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn) }}
+                      style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer', marginTop: 4 }}>
+                      ✏️ กรอกข้อมูลเอง
+                    </button>
+                  </div>
                 </>
               )}
 
