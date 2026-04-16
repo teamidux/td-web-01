@@ -64,15 +64,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
   }
 
-  const priceText = book.min_price ? `ราคาเริ่มต้น ฿${book.min_price}` : 'มีขายมือสอง'
+  const priceText = book.min_price ? `ราคาเริ่มต้น ฿${book.min_price}` : ''
   const authorText = book.author ? ` โดย ${book.author}` : ''
   const translatorText = book.translator ? ` แปลโดย ${book.translator}` : ''
   const listingText = book.active_listings_count > 0
-    ? ` · ${book.active_listings_count} คนกำลังขาย`
+    ? `${book.active_listings_count} คนกำลังขาย`
     : ''
 
-  const title = `${book.title}${authorText} — BookMatch`
-  const description = `ซื้อ "${book.title}"${authorText}${translatorText} มือสอง ${priceText}${listingText} | BookMatch ตลาดหนังสือมือสองออนไลน์`
+  const title = `${book.title} มือสอง${authorText} — ซื้อขายราคาถูก | BookMatch`
+  const description = `ซื้อ "${book.title}"${authorText}${translatorText} หนังสือมือสอง ${priceText ? priceText + ' ' : ''}${listingText ? listingText + ' ' : ''}ราคาถูก ส่งทั่วไทย | BookMatch ตลาดหนังสือมือสองออนไลน์`
 
   return {
     title,
