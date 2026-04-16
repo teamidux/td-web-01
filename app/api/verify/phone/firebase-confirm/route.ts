@@ -22,9 +22,6 @@ function db() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  if (user.phone_verified_at) {
-    return NextResponse.json({ error: 'already_verified' }, { status: 400 })
-  }
 
   const { idToken } = await req.json()
   if (!idToken || typeof idToken !== 'string') {
@@ -64,6 +61,16 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
   if (existing) {
     return NextResponse.json({ error: 'phone_in_use' }, { status: 409 })
+  }
+
+  // Audit log — บันทึกเบอร์เก่าก่อน update (ตามตัวได้ถ้าโกง)
+  const oldPhone = user.phone || null
+  if (oldPhone !== cleaned) {
+    await sb.from('phone_changes_log').insert({
+      user_id: user.id,
+      old_phone: oldPhone,
+      new_phone: cleaned,
+    }).catch(() => {})
   }
 
   // Update users record
