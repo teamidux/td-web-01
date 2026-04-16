@@ -60,9 +60,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. Update cover ถ้ายังไม่มี + มีรูปใหม่
-  if (!bookCoverUrl && photos?.[0] && bookId) {
-    await sb.from('books').update({ cover_url: photos[0] }).eq('id', bookId)
+  // 2. Update cover: ใช้รูป user แทนถ้ารูปเดิมเป็น URL ภายนอก หรือไม่มี
+  // รูป user ถ่ายเอง (Supabase storage) คุณภาพดีกว่า Google Books API เสมอ
+  if (photos?.[0] && bookId) {
+    const isExternal = bookCoverUrl && !bookCoverUrl.includes('supabase.co')
+    if (!bookCoverUrl || isExternal) {
+      await sb.from('books').update({ cover_url: photos[0] }).eq('id', bookId)
+    }
   }
 
   // 3. Insert listing
