@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [banning, setBanning] = useState(false)
   const [banReason, setBanReason] = useState('')
+  const [viewDoc, setViewDoc] = useState('')
 
   const searchParams = useSearchParams()
 
@@ -160,6 +161,14 @@ export default function AdminPage() {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 80px', fontFamily: "'Kanit', sans-serif" }}>
+      {/* Doc lightbox */}
+      {viewDoc && (
+        <div onClick={() => setViewDoc('')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <button onClick={() => setViewDoc('')} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', fontSize: 20, cursor: 'pointer' }}>✕</button>
+          <img src={viewDoc} alt="เอกสาร" style={{ maxWidth: '94vw', maxHeight: '90vh', borderRadius: 8, objectFit: 'contain' }} />
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <Link href="/tomga" style={{ color: 'var(--ink3)', textDecoration: 'none', fontSize: 14 }}>← Dashboard</Link>
@@ -372,28 +381,43 @@ export default function AdminPage() {
             </SectionCard>
           )}
 
-          {/* ID Verifications — เอกสารยืนยันตัวตน */}
+          {/* ID Verifications — เอกสารยืนยันตัวตน + รูปจริง */}
           {result.id_verifications.length > 0 && (
             <SectionCard title={`เอกสารยืนยันตัวตน (${result.id_verifications.length})`} icon="🪪">
-              {result.id_verifications.map((v: any) => (
-                <div key={v.id} style={{ padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                      background: v.status === 'approved' ? '#DCFCE7' : v.status === 'rejected' ? '#FEE2E2' : '#FEF9C3',
-                      color: v.status === 'approved' ? '#15803D' : v.status === 'rejected' ? '#DC2626' : '#92400E',
-                    }}>
-                      {v.status}
-                    </span>
-                    <span style={{ fontSize: 12, color: '#94A3B8' }}>{formatDate(v.created_at)}</span>
+              {result.id_verifications.map((v: any) => {
+                const supabaseUrl = 'https://khwgsorhvhtxbpteofta.supabase.co'
+                const idUrl = v.id_image_path ? `${supabaseUrl}/storage/v1/object/public/id-verifications/${v.id_image_path}` : ''
+                const selfieUrl = v.selfie_image_path ? `${supabaseUrl}/storage/v1/object/public/id-verifications/${v.selfie_image_path}` : ''
+                return (
+                  <div key={v.id} style={{ padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                        background: v.status === 'approved' ? '#DCFCE7' : v.status === 'rejected' ? '#FEE2E2' : '#FEF9C3',
+                        color: v.status === 'approved' ? '#15803D' : v.status === 'rejected' ? '#DC2626' : '#92400E',
+                      }}>
+                        {v.status}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#94A3B8' }}>{formatDate(v.created_at)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {idUrl && (
+                        <div onClick={() => setViewDoc(idUrl)} style={{ cursor: 'zoom-in' }}>
+                          <img src={idUrl} alt="บัตรประชาชน" style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #E2E8F0' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, textAlign: 'center' }}>📇 บัตรประชาชน</div>
+                        </div>
+                      )}
+                      {selfieUrl && (
+                        <div onClick={() => setViewDoc(selfieUrl)} style={{ cursor: 'zoom-in' }}>
+                          <img src={selfieUrl} alt="Selfie" style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #E2E8F0' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, textAlign: 'center' }}>🤳 Selfie + บัตร</div>
+                        </div>
+                      )}
+                    </div>
+                    {v.admin_note && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>Note: {v.admin_note}</div>}
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748B' }}>
-                    <div>ID: <span style={{ fontFamily: 'monospace' }}>{v.id_image_path}</span></div>
-                    <div>Selfie: <span style={{ fontFamily: 'monospace' }}>{v.selfie_image_path}</span></div>
-                  </div>
-                  {v.admin_note && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>Note: {v.admin_note}</div>}
-                </div>
-              ))}
+                )
+              })}
             </SectionCard>
           )}
 

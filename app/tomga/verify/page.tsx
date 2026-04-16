@@ -149,9 +149,68 @@ export default function AdminVerifyPage() {
         <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
           ตรวจสอบยืนยันตัวตน
         </div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
           {loading ? 'กำลังโหลด...' : `${pending.length} รายการรอตรวจ`}
         </div>
+
+        {/* วิธีตรวจ — step-by-step guide */}
+        <details style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
+          <summary style={{ fontSize: 15, fontWeight: 700, color: '#1D4ED8', cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+            📋 วิธีตรวจยืนยันตัวตน (กดเปิด)
+          </summary>
+          <div style={{ marginTop: 14, fontSize: 13, color: '#1E3A8A', lineHeight: 1.8 }}>
+
+            <div style={{ background: 'white', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Step 1: ตรวจบัตรประชาชน 📇</div>
+              <div style={{ color: '#475569' }}>
+                - รูปชัด เห็นครบ 4 มุม ไม่ถูกตัด<br/>
+                - ชื่อ-นามสกุลอ่านได้ชัด<br/>
+                - บัตรยังไม่หมดอายุ<br/>
+                - ไม่มีแสงสะท้อนบังข้อมูล
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Step 2: เทียบชื่อกับสมุดบัญชี 🏦</div>
+              <div style={{ color: '#475569' }}>
+                - ชื่อ-นามสกุลในบัตร <b>ต้องตรง</b> กับชื่อในสมุดบัญชี<br/>
+                - เห็นเลขที่บัญชีชัดเจน<br/>
+                - ถ่ายหน้าแรกที่มีชื่อบัญชี
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Step 3: ทดสอบโอนเงิน (ไม่ต้องโอนจริง) 💸</div>
+              <div style={{ color: '#475569' }}>
+                - เปิดแอปธนาคารของตัวเอง<br/>
+                - ทำเหมือนจะโอนเงินไปบัญชีที่ user ส่งมา<br/>
+                - <b>ดูชื่อผู้รับที่แอปแสดง</b> ว่าตรงกับบัตรไหม<br/>
+                - ถ้าตรง = ผ่าน / ถ้าไม่ตรง = ปฏิเสธ<br/>
+                - <b>ไม่ต้องกดโอนจริง</b> แค่ดูชื่อก็พอ
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Step 4: ตรวจ Selfie 🤳</div>
+              <div style={{ color: '#475569' }}>
+                - หน้าตรงกับรูปในบัตร<br/>
+                - ถือบัตรจริงในรูป (ไม่ใช่รูปจากจอ)<br/>
+                - ถ้าสงสัย ให้ปฏิเสธ แล้วให้ส่งใหม่
+              </div>
+            </div>
+
+            <div style={{ background: '#FEF9C3', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontWeight: 700, color: '#92400E', marginBottom: 4 }}>⚠️ เมื่อไหร่ควรปฏิเสธ</div>
+              <div style={{ color: '#78350F' }}>
+                - ชื่อในบัตร ≠ ชื่อในสมุดบัญชี<br/>
+                - ชื่อในบัตร ≠ ชื่อที่แอปธนาคารแสดง<br/>
+                - รูปเบลอ / แสงสะท้อน / ถูกตัด<br/>
+                - Selfie หน้าไม่ตรงกับบัตร<br/>
+                - บัตรหมดอายุ
+              </div>
+            </div>
+          </div>
+        </details>
 
         {!loading && pending.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 20px' }}>
