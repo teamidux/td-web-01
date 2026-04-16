@@ -28,11 +28,13 @@ export async function GET() {
     sb.from('notifications')
       .select('*')
       .eq('user_id', user.id)
+      .not('type', 'in', '("new_book","book_name_report")')
       .order('created_at', { ascending: false })
       .limit(50),
     sb.from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .not('type', 'in', '("new_book","book_name_report")')
       .is('read_at', null),
   ])
 

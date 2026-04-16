@@ -42,6 +42,7 @@ export async function GET() {
     { count: bannedCount },
     { count: unreadMessages },
     { count: pendingReports },
+    { count: adminNotifs },
     { data: recentContacts },
     { data: recentListings },
     { data: recentUsers },
@@ -72,6 +73,8 @@ export async function GET() {
     sb.from('contact_messages').select('*', { count: 'exact', head: true }).is('read_at', null),
     // Pending reports
     sb.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    // Admin notifications (new_book, book_name_report)
+    sb.from('notifications').select('*', { count: 'exact', head: true }).in('type', ['new_book', 'book_name_report']).is('read_at', null),
     // Recent activity
     sb.from('contact_events').select('listing_id, created_at, listings(books(title))').order('created_at', { ascending: false }).limit(5),
     sb.from('listings').select('id, created_at, price, books(title)').order('created_at', { ascending: false }).limit(5),
@@ -102,6 +105,7 @@ export async function GET() {
     bannedUsers: bannedCount || 0,
     unreadMessages: unreadMessages || 0,
     pendingReports: pendingReports || 0,
+    adminNotifs: adminNotifs || 0,
     recent: {
       contacts: recentContacts || [],
       listings: recentListings || [],
