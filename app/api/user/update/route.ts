@@ -24,6 +24,17 @@ export async function POST(req: NextRequest) {
   if (typeof data.display_name === 'string') allowed.display_name = data.display_name.trim()
   if (data.seller_type === 'individual' || data.seller_type === 'store') allowed.seller_type = data.seller_type
   if (data.store_name !== undefined) allowed.store_name = typeof data.store_name === 'string' ? data.store_name.trim() || null : null
+  // phone: validate เบอร์ไทย 10 หลัก ขึ้นต้น 0
+  if (typeof data.phone === 'string') {
+    const cleaned = data.phone.replace(/\D/g, '')
+    if (/^0\d{9}$/.test(cleaned)) {
+      allowed.phone = cleaned
+    } else if (data.phone.trim() === '') {
+      allowed.phone = null
+    } else {
+      return NextResponse.json({ error: 'invalid_phone', message: 'เบอร์โทรต้อง 10 หลัก ขึ้นต้น 0' }, { status: 400 })
+    }
+  }
   // avatar_url: user upload รูปเอง → ต้องเป็น URL จาก Supabase storage ของเรา (กัน external inject)
   if (typeof data.avatar_url === 'string') {
     const url = data.avatar_url.trim()
