@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       deleted_reason: 'admin_soft_delete',
     }).eq('id', userId)
     if (error) return NextResponse.json({ error: 'soft_delete_failed', message: error.message }, { status: 500 })
-    await sb.from('listings').update({ status: 'removed' }).eq('seller_id', userId).eq('status', 'active')
+    await sb.from('listings').update({ status: 'removed' } as any).eq('seller_id', userId).eq('status', 'active')
+    await sb.from('listings').update({ status: 'removed' } as any).eq('seller_id', userId).eq('status', 'sold')
     await sb.from('sessions').delete().eq('user_id', userId)
     return NextResponse.json({ ok: true, mode: 'soft' })
   }

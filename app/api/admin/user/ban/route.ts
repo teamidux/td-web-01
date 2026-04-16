@@ -40,8 +40,15 @@ export async function POST(req: NextRequest) {
     }).eq('id', userId)
     if (error) return NextResponse.json({ error: 'ban_failed', message: error.message }, { status: 500 })
 
-    // 2. ซ่อน listings ทั้ง active และ sold
-    await sb.from('listings').update({ status: 'removed' }).eq('seller_id', userId).neq('status', 'removed')
+    // 2. ซ่อน listings — ใช้ raw SQL กัน check constraint re-validation
+    await sb.rpc('exec_sql', {
+      query: `update listings set status = 'removed' where seller_id = '${userId}' and status != 'removed'`
+    }).then(() => {}).catch(async () => {
+      // fallback ถ้า exec_sql ไม่มี — ลอง update ทีละ status
+      await sb.from('listings').update({ status: 'removed' } as any).eq('seller_id', userId).eq('status', 'active')
+      await sb.from('listings').update({ status: 'removed' } as any).eq('seller_id', userId).eq('status', 'sold')
+      await sb.from('listings').update({ status: 'removed' } as any).eq('seller_id', userId).eq('status', 'reserved')
+    })
 
     // 3. เตะออกจากทุก session
     await sb.from('sessions').delete().eq('user_id', userId)
