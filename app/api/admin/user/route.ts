@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       total_phone_changes: (changesRes.data || []).filter((c: any) => !c.old_phone?.startsWith('[name]')).length,
       total_name_changes: (changesRes.data || []).filter((c: any) => c.old_phone?.startsWith('[name]')).length,
       total_listings: (listingsRes.data || []).length,
-      unique_ips: [...new Set((sessionsRes.data || []).map((s: any) => s.ip).filter(Boolean))],
+      unique_ips: Array.from(new Set((sessionsRes.data || []).map((s: any) => s.ip).filter(Boolean))),
     },
   })
 }

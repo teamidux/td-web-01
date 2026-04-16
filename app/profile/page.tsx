@@ -127,18 +127,9 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     if (!editName.trim()) { show('กรุณาใส่ชื่อ'); return }
-    const trimmedLine = editLineId.trim()
-    if (trimmedLine) {
-      const parsed = parseLineId(trimmedLine)
-      if (!parsed) { setEditLineError('LINE ID ต้องเป็น 4-20 ตัวอักษร (a-z, 0-9, จุด ขีด ขีดเส้นใต้)'); return }
-    }
-    setEditLineError('')
     setSaving(true)
     try {
-      await updateUser({
-        display_name: editName.trim(),
-        line_id: trimmedLine || (null as any),
-      })
+      await updateUser({ display_name: editName.trim() })
       setEditing(false)
       show('บันทึกแล้ว ✓')
     } catch (e: unknown) {
@@ -420,12 +411,8 @@ export default function ProfilePage() {
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>ชื่อที่แสดง</label>
               <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editName} onChange={e => setEditName(e.target.value)} placeholder="ชื่อของคุณ หรือชื่อร้าน" />
             </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>LINE ID <span style={{ fontSize: 12, fontWeight: 400, color: '#94A3B8' }}>(ไม่บังคับ — ใส่ให้ลูกค้า Add ง่าย)</span></label>
-              <input className="search-input" style={{ width: '100%', boxSizing: 'border-box', color: 'var(--ink1)' }} value={editLineId} onChange={e => { setEditLineId(e.target.value); setEditLineError('') }} placeholder="เช่น mylineid" />
-              {editLineError && <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 4 }}>{editLineError}</div>}
-            </div>
-            <div style={{ marginBottom: 24 }} />
+            {/* LINE ID ย้ายไปแก้ในส่วน "ข้อมูลติดต่อ" แทน (ต้อง re-auth) */}
+            <div style={{ marginBottom: 10 }} />
             <button className="btn" style={{ marginBottom: 8 }} onClick={saveProfile} disabled={saving}>
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
