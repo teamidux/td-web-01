@@ -564,7 +564,7 @@ export default function ProfilePage() {
                 onClick={() => setShowPhoneVerify(true)}
                 style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '6px 12px', fontFamily: 'Kanit', fontWeight: 600, fontSize: 12, color: 'var(--primary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
-                {user.phone ? 'เปลี่ยนเบอร์' : 'เพิ่มเบอร์'}
+                {!user.phone ? 'เพิ่มเบอร์' : user.phone_verified_at ? 'เปลี่ยนเบอร์' : 'ยืนยันเบอร์'}
               </button>
             </div>
 
