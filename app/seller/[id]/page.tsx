@@ -303,7 +303,7 @@ export default function SellerPage({ params }: PageProps) {
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <TrustBadge user={seller} size="md" />
-              {seller?.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก</span>}
+              {((seller as any)?.is_pioneer || (seller as any)?.pioneer_count > 0) && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก {(seller as any)?.pioneer_count || ''} เล่ม</span>}
             </div>
           </div>
           {/* ซ่อนปุ่มรายงานถ้าดู profile ตัวเอง */}

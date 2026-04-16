@@ -483,7 +483,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ผู้ซื้อจ่ายค่าส่ง'}</div>
+                <div style={{ fontSize: 13, color: l.price_includes_shipping ? 'var(--green)' : 'var(--ink3)', fontWeight: l.price_includes_shipping ? 600 : 400 }}>{l.price_includes_shipping ? '✓ ส่งฟรี' : 'ไม่รวมค่าส่ง'}</div>
                 <button onClick={async () => {
                   setCopied(false)
                   // fetch contact info (line_id, phone) แยก — ต้องรู้ทั้ง listing_id + seller_id

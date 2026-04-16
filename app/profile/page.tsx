@@ -525,7 +525,7 @@ export default function ProfilePage() {
             {user.line_id && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <TrustBadge user={user} size="md" />
-              {user.is_pioneer && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12 }}>🏆 ผู้บุกเบิก</span>}
+              {(user.is_pioneer || user.pioneer_count > 0) && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12 }}>🏆 ผู้บุกเบิก {user.pioneer_count} เล่ม</span>}
             </div>
           </div>
           <button onClick={startEdit} style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '7px 12px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
