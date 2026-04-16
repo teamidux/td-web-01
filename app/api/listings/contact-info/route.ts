@@ -23,26 +23,18 @@ export async function GET(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // ตรวจว่า listing นี้เป็นของ seller จริง + active — กัน enumerate seller_id มั่ว
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('id')
-    .eq('id', listingId)
-    .eq('seller_id', sellerId)
-    .eq('status', 'active')
-    .maybeSingle()
+  // Query พร้อมกัน — เร็วขึ้น 2x
+  const [{ data: listing }, { data: userData }] = await Promise.all([
+    supabase.from('listings').select('id').eq('id', listingId).eq('seller_id', sellerId).eq('status', 'active').maybeSingle(),
+    supabase.from('users').select('line_id, phone').eq('id', sellerId).maybeSingle(),
+  ])
+
   if (!listing) {
     return NextResponse.json({ error: 'listing not found' }, { status: 404 })
   }
 
-  const { data } = await supabase
-    .from('users')
-    .select('line_id, phone')
-    .eq('id', sellerId)
-    .maybeSingle()
-
   return NextResponse.json({
-    line_id: data?.line_id || null,
-    phone: data?.phone || null,
+    line_id: userData?.line_id || null,
+    phone: userData?.phone || null,
   })
 }

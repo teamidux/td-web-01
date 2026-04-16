@@ -26,6 +26,7 @@ export default function SellerPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true)
   const [contactListing, setContactListing] = useState<Listing | null>(null)
   const [copied, setCopied] = useState(false)
+  const [contactLoading, setContactLoading] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportDetails, setReportDetails] = useState('')
@@ -130,6 +131,15 @@ export default function SellerPage({ params }: PageProps) {
     <>
       <Nav />
       <Toast msg={msg} />
+
+      {contactLoading && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '36px 24px', textAlign: 'center' }}>
+            <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700 }}>กำลังโหลดข้อมูลติดต่อ...</div>
+          </div>
+        </div>
+      )}
 
       {showReport && (
         <div onClick={() => setShowReport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
@@ -402,9 +412,11 @@ export default function SellerPage({ params }: PageProps) {
             return (
               <div key={l.id} onClick={async () => {
                 setCopied(false)
+                setContactLoading(true)
                 const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
                 setSellerPII(ci)
                 setContactListing(l)
+                setContactLoading(false)
               }} style={{ cursor: 'pointer' }}>
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden' }}>
