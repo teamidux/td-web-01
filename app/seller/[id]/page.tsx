@@ -399,7 +399,12 @@ export default function SellerPage({ params }: PageProps) {
             return l.books?.title?.toLowerCase().includes(q) || l.books?.author?.toLowerCase().includes(q)
           }).map(l => {
             return (
-              <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div key={l.id} onClick={async () => {
+                setCopied(false)
+                const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
+                setSellerPII(ci)
+                setContactListing(l)
+              }} style={{ cursor: 'pointer' }}>
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                   <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden' }}>
                     {l.photos?.[0] ? (
@@ -414,9 +419,12 @@ export default function SellerPage({ params }: PageProps) {
                       <span className="price" style={{ fontSize: 16 }}>฿{l.price}</span>
                       {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>ส่งฟรี</span>}
                     </div>
+                    <div style={{ marginTop: 6, background: 'var(--primary)', borderRadius: 8, padding: '6px 0', textAlign: 'center', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, color: 'white' }}>
+                      ติดต่อผู้ขาย
+                    </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             )
           })}
           </div>

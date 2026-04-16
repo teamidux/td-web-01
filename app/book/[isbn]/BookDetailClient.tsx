@@ -476,7 +476,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 </div>
               )}
 
-              {l.notes && (
+              {l.notes && !l.notes.includes('ค่าส่งประมาณ') && (
                 <div style={{ fontSize: 13, color: 'var(--ink2)', background: 'var(--surface)', borderRadius: 8, padding: '7px 10px', marginBottom: 10, lineHeight: 1.5 }}>
                   📝 {l.notes}
                 </div>
