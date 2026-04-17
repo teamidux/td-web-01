@@ -19,6 +19,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const [wantedPrice, setWantedPrice] = useState('')
   const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null)
   const [contactLoading, setContactLoading] = useState(false)
+  const [wantedBusy, setWantedBusy] = useState(false)
   const [contactListing, setContactListing] = useState<Listing | null>(null)
   const [contactPII, setContactPII] = useState<{ line_id: string | null; phone: string | null } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -173,12 +174,16 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       return
     }
     if (isWanted && book?.id) {
-      // ลบ wanted ผ่าน API (กัน anon key abuse)
-      await fetch('/api/wanted', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: book.id }) })
-      const newCount = Math.max(0, (book.wanted_count || 1) - 1)
-      setIsWanted(false)
-      setBook(b => b ? { ...b, wanted_count: newCount } : b)
-      show('ลบออกจากรายการตามหาแล้ว')
+      setWantedBusy(true)
+      try {
+        await fetch('/api/wanted', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: book.id }) })
+        const newCount = Math.max(0, (book.wanted_count || 1) - 1)
+        setIsWanted(false)
+        setBook(b => b ? { ...b, wanted_count: newCount } : b)
+        show('ลบออกจากรายการตามหาแล้ว')
+      } finally {
+        setWantedBusy(false)
+      }
     } else {
       setShowWantedForm(true)
     }
@@ -186,19 +191,23 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
   const confirmWanted = async () => {
     if (!user) return
-    const bookId = await ensureBookInDB()
-    if (!bookId) { show('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'); return }
-    // เพิ่ม wanted ผ่าน API (กัน anon key abuse)
-    await fetch('/api/wanted', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ book_id: bookId, isbn, max_price: wantedPrice ? parseFloat(wantedPrice) : null }),
-    })
-    const newCount = (book?.wanted_count || 0) + 1
-    setIsWanted(true)
-    setBook(b => b ? { ...b, wanted_count: newCount } : b)
-    setShowWantedForm(false)
-    show('เพิ่มในรายการตามหาแล้ว 🔔')
+    setWantedBusy(true)
+    try {
+      const bookId = await ensureBookInDB()
+      if (!bookId) { show('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'); return }
+      await fetch('/api/wanted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_id: bookId, isbn, max_price: wantedPrice ? parseFloat(wantedPrice) : null }),
+      })
+      const newCount = (book?.wanted_count || 0) + 1
+      setIsWanted(true)
+      setBook(b => b ? { ...b, wanted_count: newCount } : b)
+      setShowWantedForm(false)
+      show('เพิ่มในรายการตามหาแล้ว 🔔')
+    } finally {
+      setWantedBusy(false)
+    }
   }
 
   // รวบ LINE + Phone ทั้งหมดจาก contact field + profile → deduplicate
@@ -299,6 +308,16 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         </div>
       )}
 
+      {/* Wanted busy overlay — ตามหา/ลบตามหา */}
+      {wantedBusy && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '32px 28px', textAlign: 'center', maxWidth: 300, width: '100%' }}>
+            <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700 }}>กำลังบันทึก...</div>
+          </div>
+        </div>
+      )}
+
       {showWantedForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }} onClick={() => setShowWantedForm(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
@@ -311,7 +330,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <input className="input" type="number" value={wantedPrice} onChange={e => setWantedPrice(e.target.value)} placeholder="เช่น 200" />
               </div>
             </div>
-            <button className="btn" onClick={confirmWanted}>เพิ่มในรายการตามหา 🔔</button>
+            <button className="btn" onClick={confirmWanted} disabled={wantedBusy} style={{ opacity: wantedBusy ? 0.6 : 1 }}>{wantedBusy ? 'กำลังบันทึก...' : 'เพิ่มในรายการตามหา 🔔'}</button>
             <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => setShowWantedForm(false)}>ยกเลิก</button>
           </div>
         </div>

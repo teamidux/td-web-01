@@ -400,6 +400,22 @@ export function MultiLoginButton({
     <div style={{ maxWidth: 320, margin: '0 auto' }}>
       <Toast msg={msg} />
 
+      {/* Full-screen overlay ตอน redirect ไป LINE/FB — กัน "เหมือนค้าง" */}
+      {redirecting && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.75)', zIndex: 9998, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '32px 28px', textAlign: 'center', maxWidth: 320, width: '100%' }}>
+            <span className="spin" style={{ width: 32, height: 32, marginBottom: 14 }} />
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, fontWeight: 700, marginBottom: 4 }}>
+              กำลังเชื่อมต่อ {redirecting === 'line' ? 'LINE' : 'Facebook'}...
+            </div>
+            <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
+              จะเปิดหน้า {redirecting === 'line' ? 'LINE' : 'Facebook'} ให้อัตโนมัติ<br />
+              กรุณารอสักครู่
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Phone OTP — primary */}
       <button
         className="btn"

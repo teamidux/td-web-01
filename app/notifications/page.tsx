@@ -34,6 +34,7 @@ export default function NotificationsPage() {
   const [notifs, setNotifs] = useState<Notification[]>([])
   const [wanted, setWanted] = useState<Wanted[]>([])
   const [loading, setLoading] = useState(true)
+  const [markingAll, setMarkingAll] = useState(false)
   const { msg, show } = useToast()
 
   useEffect(() => {
@@ -67,14 +68,20 @@ export default function NotificationsPage() {
   }
 
   const markAllRead = async () => {
-    await fetch('/api/notifications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ all: true }),
-    })
-    setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })))
-    window.dispatchEvent(new Event('notifications:read'))
-    show('อ่านทั้งหมดแล้ว')
+    if (markingAll) return
+    setMarkingAll(true)
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      })
+      setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })))
+      window.dispatchEvent(new Event('notifications:read'))
+      show('อ่านทั้งหมดแล้ว')
+    } finally {
+      setMarkingAll(false)
+    }
   }
 
   const markRead = async (id: string) => {
@@ -129,9 +136,11 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                style={{ fontSize: 13, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                disabled={markingAll}
+                style={{ fontSize: 13, color: 'var(--primary)', background: 'none', border: 'none', cursor: markingAll ? 'wait' : 'pointer', fontWeight: 600, opacity: markingAll ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                อ่านทั้งหมด
+                {markingAll && <span className="spin" style={{ width: 12, height: 12, borderColor: 'rgba(37,99,235,.2)', borderTopColor: 'var(--primary)' }} />}
+                {markingAll ? 'กำลังอ่าน...' : 'อ่านทั้งหมด'}
               </button>
             )}
           </div>
