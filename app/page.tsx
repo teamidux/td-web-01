@@ -12,6 +12,7 @@ export default function HomePage() {
   const router = useRouter()
   const [recentListings, setRecentListings] = useState<any[]>([])
   const [wantedBooks, setWantedBooks] = useState<Book[]>([])
+  const [totalWanted, setTotalWanted] = useState(0)
   const [query, setQuery] = useState('')
   const [liveResults, setLiveResults] = useState<any[]>([])
   const [liveSearching, setLiveSearching] = useState(false)
@@ -97,13 +98,15 @@ export default function HomePage() {
   }, [query])
 
   const loadData = async () => {
-    const [recentRes, { data: wanted }] = await Promise.all([
+    const [recentRes, { data: wanted }, { count: wantedTotal }] = await Promise.all([
       fetch('/api/listings/recent?limit=10'),
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).order('created_at', { ascending: false }).limit(3),
+      supabase.from('wanted').select('*', { count: 'exact', head: true }).eq('status', 'waiting'),
     ])
     const { listings } = await recentRes.json()
     setRecentListings(listings || [])
     setWantedBooks(wanted || [])
+    setTotalWanted(wantedTotal || 0)
     setLoading(false)
   }
 
@@ -312,7 +315,42 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="section">
+        {/* Wanted Feed — conditional: โผล่เมื่อ wanted รวม ≥ 10 (supply-side growth signal) */}
+        {totalWanted >= 10 && wantedBooks.length > 0 && (
+          <div className="section">
+            <div className="section-hd" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+                  🔔 มีคนรอซื้ออยู่
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
+                  เล่มเหล่านี้มีคนรอซื้ออยู่ — คุณมีไหม?
+                </div>
+              </div>
+              <Link href="/market" style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                ดูทั้งหมด →
+              </Link>
+            </div>
+            {wantedBooks.map(b => (
+              <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="card">
+                  <div className="book-card">
+                    <BookCover isbn={b.isbn} title={b.title} size={60} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="book-title">{b.title}</div>
+                      {b.author && <div className="book-author">{b.author}</div>}
+                      <div style={{ marginTop: 8 }}>
+                        <span className="badge badge-blue">🔔 {b.wanted_count} คนตามหา</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <div className="section" style={{ marginTop: 12 }}>
           <div className="section-hd" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
             <div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
@@ -350,39 +388,32 @@ export default function HomePage() {
           ))}
         </div>
 
-        {wantedBooks.length > 0 && (
-          <div className="section" style={{ marginTop: 12 }}>
-            <div className="section-hd" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em' }}>
-                  🔔 มีคนรอซื้ออยู่
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
-                  หนังสือที่หลายคนกำลังตามหา — ลงขายโอกาสขายไว
-                </div>
+        {/* How it works — 3 steps ช่วย user ใหม่เข้าใจระบบ */}
+        <div className="section" style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#121212', lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 16 }}>
+            ใช้งานยังไง?
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { n: 1, icon: '📷', title: 'สแกน', desc: 'สแกน barcode หรือค้นชื่อ' },
+              { n: 2, icon: '💰', title: 'ตั้งราคา', desc: 'ใส่สภาพและราคาที่อยากขาย' },
+              { n: 3, icon: '💬', title: 'รอคนทัก', desc: 'คนสนใจติดต่อตรงไม่ผ่านระบบ' },
+            ].map(s => (
+              <div key={s.n} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 10px', textAlign: 'center' }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>STEP {s.n}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#121212', marginTop: 2 }}>{s.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.4 }}>{s.desc}</div>
               </div>
-              <Link href="/market" style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                ดูทั้งหมด →
-              </Link>
-            </div>
-            {wantedBooks.map(b => (
-              <Link key={b.id} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="card">
-                  <div className="book-card">
-                    <BookCover isbn={b.isbn} title={b.title} size={60} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="book-title">{b.title}</div>
-                      {b.author && <div className="book-author">{b.author}</div>}
-                      <div style={{ marginTop: 8 }}>
-                        <span className="badge badge-blue">🔔 {b.wanted_count} คนตามหา</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
             ))}
           </div>
-        )}
+          <Link href="/sell" style={{ display: 'block', marginTop: 14 }}>
+            <button className="btn" style={{ width: '100%' }}>
+              📖 ลงขายเล่มแรก
+            </button>
+          </Link>
+        </div>
+
         <div style={{ height: 12 }} />
         <TermsFooter />
       </div>

@@ -22,6 +22,8 @@ export default function SellerPage({ params }: PageProps) {
   const { user, loginWithLine } = useAuth()
   const [seller, setSeller] = useState<User | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
+  const [soldListings, setSoldListings] = useState<Listing[]>([])
+  const [tab, setTab] = useState<'active' | 'sold'>('active')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [contactListing, setContactListing] = useState<Listing | null>(null)
@@ -95,7 +97,7 @@ export default function SellerPage({ params }: PageProps) {
 
   useEffect(() => {
     const load = async () => {
-      const [userRes, { data: ls }] = await Promise.all([
+      const [userRes, { data: active }, { data: sold }] = await Promise.all([
         fetch(`/api/users/${encodeURIComponent(id)}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
         supabase
           .from('listings')
@@ -103,9 +105,17 @@ export default function SellerPage({ params }: PageProps) {
           .eq('seller_id', id)
           .eq('status', 'active')
           .order('created_at', { ascending: false }),
+        supabase
+          .from('listings')
+          .select('*, books(isbn, title, author, cover_url)')
+          .eq('seller_id', id)
+          .eq('status', 'sold')
+          .order('sold_at', { ascending: false })
+          .limit(50),
       ])
       setSeller(userRes?.user || null)
-      setListings(ls || [])
+      setListings(active || [])
+      setSoldListings(sold || [])
       setLoading(false)
     }
     load()
@@ -390,13 +400,43 @@ export default function SellerPage({ params }: PageProps) {
         </div>
 
         <div className="section">
-          <div className="section-title" style={{ marginBottom: 12 }}>หนังสือที่กำลังขาย ({listings.length} เล่ม)</div>
+          {/* Tabs: แสดง tab "ขายแล้ว" เฉพาะเมื่อมี sold listing */}
+          {soldListings.length > 0 ? (
+            <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border)', marginBottom: 14 }}>
+              <button
+                onClick={() => setTab('active')}
+                style={{
+                  flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 700,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: tab === 'active' ? 'var(--primary)' : 'var(--ink3)',
+                  borderBottom: tab === 'active' ? '2px solid var(--primary)' : '2px solid transparent',
+                  marginBottom: -2, fontFamily: 'Kanit',
+                }}
+              >
+                กำลังขาย ({listings.length})
+              </button>
+              <button
+                onClick={() => setTab('sold')}
+                style={{
+                  flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 700,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: tab === 'sold' ? 'var(--primary)' : 'var(--ink3)',
+                  borderBottom: tab === 'sold' ? '2px solid var(--primary)' : '2px solid transparent',
+                  marginBottom: -2, fontFamily: 'Kanit',
+                }}
+              >
+                ขายแล้ว ({soldListings.length})
+              </button>
+            </div>
+          ) : (
+            <div className="section-title" style={{ marginBottom: 12 }}>หนังสือที่กำลังขาย ({listings.length} เล่ม)</div>
+          )}
 
-          {listings.length === 0 && (
+          {tab === 'active' && listings.length === 0 && (
             <div className="empty"><div className="empty-icon">📚</div><div>ไม่มีหนังสือที่กำลังขาย</div></div>
           )}
 
-          {listings.length >= 5 && (
+          {tab === 'active' && listings.length >= 5 && (
             <input
               className="input"
               style={{ marginBottom: 12 }}
@@ -406,44 +446,73 @@ export default function SellerPage({ params }: PageProps) {
             />
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {listings.filter(l => {
-            if (!query.trim()) return true
-            const q = query.toLowerCase()
-            return l.books?.title?.toLowerCase().includes(q) || l.books?.author?.toLowerCase().includes(q)
-          }).map(l => {
-            return (
-              <div key={l.id} onClick={async () => {
-                setCopied(false)
-                setContactLoading(true)
-                const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
-                setSellerPII(ci)
-                setContactListing(l)
-                setContactLoading(false)
-              }} style={{ cursor: 'pointer' }}>
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden' }}>
+          {tab === 'active' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {listings.filter(l => {
+              if (!query.trim()) return true
+              const q = query.toLowerCase()
+              return l.books?.title?.toLowerCase().includes(q) || l.books?.author?.toLowerCase().includes(q)
+            }).map(l => {
+              return (
+                <div key={l.id} onClick={async () => {
+                  setCopied(false)
+                  setContactLoading(true)
+                  const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
+                  setSellerPII(ci)
+                  setContactListing(l)
+                  setContactLoading(false)
+                }} style={{ cursor: 'pointer' }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden' }}>
+                      {l.photos?.[0] ? (
+                        <img src={l.photos[0]} alt={l.books?.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <BookCover isbn={l.books?.isbn} title={l.books?.title} size={120} />
+                      )}
+                    </div>
+                    <div style={{ padding: '10px 12px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 38 }}>{l.books?.title}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <span className="price" style={{ fontSize: 16 }}>฿{l.price}</span>
+                        {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>ส่งฟรี</span>}
+                      </div>
+                      <div style={{ marginTop: 6, background: 'var(--primary)', borderRadius: 8, padding: '6px 0', textAlign: 'center', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, color: 'white' }}>
+                        ติดต่อผู้ขาย
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            </div>
+          )}
+
+          {tab === 'sold' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {soldListings.map(l => (
+              <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', opacity: 0.65 }}>
+                  <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--surface)', overflow: 'hidden', position: 'relative' }}>
                     {l.photos?.[0] ? (
-                      <img src={l.photos[0]} alt={l.books?.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={l.photos[0]} alt={l.books?.title} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(0.4)' }} />
                     ) : (
                       <BookCover isbn={l.books?.isbn} title={l.books?.title} size={120} />
                     )}
+                    <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,23,42,.85)', color: 'white', fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 4, letterSpacing: '0.05em' }}>
+                      SOLD
+                    </span>
                   </div>
                   <div style={{ padding: '10px 12px' }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 38 }}>{l.books?.title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <span className="price" style={{ fontSize: 16 }}>฿{l.price}</span>
-                      {l.price_includes_shipping && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>ส่งฟรี</span>}
-                    </div>
-                    <div style={{ marginTop: 6, background: 'var(--primary)', borderRadius: 8, padding: '6px 0', textAlign: 'center', fontFamily: 'Kanit', fontWeight: 700, fontSize: 12, color: 'white' }}>
-                      ติดต่อผู้ขาย
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink3)' }}>฿{l.price}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-          </div>
+              </Link>
+            ))}
+            </div>
+          )}
         </div>
         <div style={{ height: 12 }} />
       </div>

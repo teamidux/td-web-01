@@ -50,6 +50,35 @@ export async function GET(req: NextRequest) {
     .delete({ count: 'exact' })
     .lt('expires_at', now)
 
+  // 5. Trim sold listing photos — หลัง sold 90 วัน เก็บแค่ photos[0] (cover)
+  //    เหตุผล: /seller/[id] tab ขายแล้ว + book sold history ยังต้องโชว์ปก
+  //            รูปอื่น (สันปก/ตำหนิ) หมดประโยชน์ — ลบประหยัด storage ~80%
+  const BUCKET_PUBLIC_PREFIX = '/storage/v1/object/public/listing-photos/'
+  let trimmedListings = 0
+  let deletedFiles = 0
+  const { data: oldSold } = await sb
+    .from('listings')
+    .select('id, photos')
+    .eq('status', 'sold')
+    .lt('sold_at', ninetyDaysAgo)
+
+  for (const l of oldSold || []) {
+    if (!Array.isArray(l.photos) || l.photos.length <= 1) continue
+    const toDelete = l.photos.slice(1)
+      .map((u: string) => {
+        const idx = u.indexOf(BUCKET_PUBLIC_PREFIX)
+        return idx >= 0 ? u.slice(idx + BUCKET_PUBLIC_PREFIX.length) : null
+      })
+      .filter((p: string | null): p is string => !!p)
+
+    if (toDelete.length > 0) {
+      const { error: delErr } = await sb.storage.from('listing-photos').remove(toDelete)
+      if (!delErr) deletedFiles += toDelete.length
+    }
+    await sb.from('listings').update({ photos: [l.photos[0]] }).eq('id', l.id)
+    trimmedListings++
+  }
+
   return NextResponse.json({
     ok: true,
     cleaned: {
@@ -57,6 +86,8 @@ export async function GET(req: NextRequest) {
       oldReadNotifs: oldReadNotifs || 0,
       veryOldNotifs: veryOldNotifs || 0,
       expiredOtps: expiredOtps || 0,
+      trimmedListings,
+      deletedFiles,
     },
   })
 }

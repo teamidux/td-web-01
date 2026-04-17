@@ -213,11 +213,19 @@ function SearchPage() {
           {/* รวม with listings + no listings เป็น list เดียว — listings ก่อน */}
           {[...results, ...(googleResults as any[])].map((b: any) => {
             const hasListing = (b.active_listings_count || 0) > 0
+            const hasSoldHistory = !hasListing && b.last_sold_price
             return (
               <Link key={b.isbn} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="card">
+                <div className="card" style={hasSoldHistory ? { opacity: 0.75 } : undefined}>
                   <div className="book-card">
-                    <BookCover isbn={b.isbn} title={b.title} size={60} />
+                    <div style={{ position: 'relative' }}>
+                      <BookCover isbn={b.isbn} title={b.title} size={60} />
+                      {hasSoldHistory && (
+                        <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(15,23,42,.85)', color: 'white', fontSize: 9, fontWeight: 800, padding: '2px 5px', borderRadius: 3, letterSpacing: '0.05em' }}>
+                          SOLD
+                        </span>
+                      )}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
                       <div className="book-author">{b.author}</div>
@@ -227,6 +235,10 @@ function SearchPage() {
                             <span className="price">฿{b.min_price}</span>
                             <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>
                           </>
+                        ) : hasSoldHistory ? (
+                          <span style={{ fontSize: 13, color: 'var(--ink3)' }}>
+                            ขายล่าสุด <b style={{ color: 'var(--ink2)' }}>฿{b.last_sold_price}</b> · กดเพื่อตามหา
+                          </span>
                         ) : (
                           <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>
                         )}

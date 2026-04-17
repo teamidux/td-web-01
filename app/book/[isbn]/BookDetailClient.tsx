@@ -10,6 +10,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const { user, loginWithLine } = useAuth()
   const [book, setBook] = useState<Book | null>((initialBook as Book) ?? null)
   const [listings, setListings] = useState<Listing[]>([])
+  const [lastSold, setLastSold] = useState<Listing | null>(null)
   const [isWanted, setIsWanted] = useState(false)
   const [loading, setLoading] = useState(true)
   // showLogin removed — login goes directly to LINE OAuth
@@ -66,9 +67,19 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
   const loadListings = async (bookId: string) => {
     try {
-      const res = await fetch(`/api/listings?book_id=${bookId}`)
-      const { listings } = await res.json()
+      const [{ listings }, soldRes] = await Promise.all([
+        fetch(`/api/listings?book_id=${bookId}`).then(r => r.json()),
+        supabase
+          .from('listings')
+          .select('id, price, sold_at')
+          .eq('book_id', bookId)
+          .eq('status', 'sold')
+          .order('sold_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
       setListings(listings || [])
+      setLastSold((soldRes.data as any) || null)
     } catch (err) {
       console.error('[loadListings]', err)
       setListings([])
@@ -418,16 +429,47 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
           {listings.length === 0 && (
             <>
-              {/* สถานะ: ยังไม่มีผู้ขาย */}
-              <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 22, flexShrink: 0 }}>📭</span>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีผู้ลงขายตอนนี้</div>
-                  <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>กด "ตามหาเล่มนี้" เพื่อรับแจ้งเตือนเมื่อมีคนนำมาขาย</div>
+              {/* สถานะ: ยังไม่มีผู้ขาย + ประวัติราคา (ถ้ามี) */}
+              <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>📭</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>ยังไม่มีผู้ลงขายตอนนี้</div>
+                    {lastSold ? (
+                      <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>
+                        ขายครั้งล่าสุดในราคา <b>฿{lastSold.price}</b> — กดตามหาเพื่อรับแจ้งเตือน
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>กดตามหาเล่มนี้เพื่อรับแจ้งเตือนเมื่อมีคนนำมาขาย</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* เชิญชวนลงขาย */}
+              {/* Primary CTA: ตามหาเล่มนี้ (capture demand) */}
+              {!isWanted && (
+                <button
+                  onClick={toggleWanted}
+                  style={{
+                    width: '100%',
+                    background: 'var(--primary)',
+                    border: 'none',
+                    borderRadius: 12,
+                    padding: '16px',
+                    color: 'white',
+                    fontFamily: 'Kanit',
+                    fontWeight: 700,
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    marginBottom: 12,
+                    boxShadow: '0 4px 14px rgba(22,163,74,.25)',
+                  }}
+                >
+                  🔔 ตามหาเล่มนี้ — แจ้งเตือนเมื่อมีคนมาขาย
+                </button>
+              )}
+
+              {/* Secondary: เชิญชวนลงขาย */}
               <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
                 <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
@@ -436,6 +478,14 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <button className="btn" onClick={goSell} style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
               </div>
             </>
+          )}
+
+          {/* Strip: ขายล่าสุด (แสดงเมื่อมี active + มี sold history) */}
+          {listings.length > 0 && lastSold && (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14 }}>📊</span>
+              <span>ขายครั้งล่าสุดในราคา <b style={{ color: 'var(--ink)' }}>฿{lastSold.price}</b></span>
+            </div>
           )}
 
           {/* หา listing แรกสุดของ book นี้ = ผู้บุกเบิก */}

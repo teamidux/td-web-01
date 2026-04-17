@@ -114,17 +114,23 @@ export async function GET(req: NextRequest) {
   // 3. ดึง listings count + min_price จริงจาก listings table
   // ─────────────────────────────────────────────────────────────────
   const bookIds = (dbBooks || []).map(b => b.id).filter(Boolean)
-  const listingMap: Record<string, { count: number; min_price: number }> = {}
+  const listingMap: Record<string, { count: number; min_price: number | null; last_sold_price: number | null }> = {}
   if (bookIds.length > 0) {
     const { data: listings } = await supabase
       .from('listings')
-      .select('book_id, price')
+      .select('book_id, price, status, sold_at')
       .in('book_id', bookIds)
-      .eq('status', 'active')
+      .in('status', ['active', 'sold'])
+      .order('sold_at', { ascending: false, nullsFirst: false })
     for (const l of listings || []) {
-      if (!listingMap[l.book_id]) listingMap[l.book_id] = { count: 0, min_price: l.price }
-      listingMap[l.book_id].count++
-      if (l.price < listingMap[l.book_id].min_price) listingMap[l.book_id].min_price = l.price
+      if (!listingMap[l.book_id]) listingMap[l.book_id] = { count: 0, min_price: null, last_sold_price: null }
+      const entry = listingMap[l.book_id]
+      if (l.status === 'active') {
+        entry.count++
+        if (entry.min_price === null || l.price < entry.min_price) entry.min_price = l.price
+      } else if (l.status === 'sold' && entry.last_sold_price === null) {
+        entry.last_sold_price = l.price
+      }
     }
   }
 
@@ -135,7 +141,7 @@ export async function GET(req: NextRequest) {
 
   for (const b of dbBooks) {
     if (!b.isbn) continue
-    const lm = listingMap[b.id] || { count: 0, min_price: null as any }
+    const lm = listingMap[b.id] || { count: 0, min_price: null, last_sold_price: null }
     byIsbn.set(b.isbn, {
       isbn: b.isbn,
       title: b.title,
@@ -143,6 +149,7 @@ export async function GET(req: NextRequest) {
       cover_url: b.cover_url || null,
       active_listings_count: lm.count,
       min_price: lm.min_price,
+      last_sold_price: lm.last_sold_price,
       wanted_count: b.wanted_count || 0,
       view_count: (b as any).view_count || 0,
       source: 'db' as const,
@@ -158,6 +165,7 @@ export async function GET(req: NextRequest) {
       cover_url: b.cover_url || null,
       active_listings_count: 0,
       min_price: null,
+      last_sold_price: null,
       wanted_count: 0,
       view_count: 0,
       source: 'google' as const,

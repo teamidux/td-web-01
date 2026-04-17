@@ -13,39 +13,72 @@ const CONDITIONS = [
   { key: 'fair', label: '📖 พอใช้', desc: 'มีรอยชัดเจน แต่เนื้อหาครบถ้วน' },
 ]
 
-function compressImage(file: File, maxKB = 200): Promise<File> {
+// Resize + compress: MAX 1000px (เผื่อ zoom ดูตำหนิบน retina), ≤ 220KB, JPEG
+// ใช้ createImageBitmap + imageOrientation เพื่อ auto-rotate ตาม EXIF (รูปแนวตั้งจากมือถือจะไม่หมุนผิด)
+async function compressImage(file: File, maxKB = 220): Promise<File> {
+  const MAX = 1000
+  let bitmap: ImageBitmap | null = null
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch {
+    // Fallback: บาง browser เก่า/Safari เก่า — ใช้ <img> แทน (EXIF auto-respect ใน Safari 13.4+)
+    return new Promise(resolve => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const canvas = document.createElement('canvas')
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+          else { width = Math.round(width * MAX / height); height = MAX }
+        }
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        const tryQ = (q: number) => {
+          canvas.toBlob(blob => {
+            if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
+            if (blob.size <= maxKB * 1024 || q <= 0.1) {
+              canvas.width = 0; canvas.height = 0
+              resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+            } else tryQ(Math.round((q - 0.1) * 10) / 10)
+          }, 'image/jpeg', q)
+        }
+        tryQ(0.8)
+      }
+      img.onerror = () => resolve(file)
+      img.src = url
+    })
+  }
+
+  const canvas = document.createElement('canvas')
+  let width = bitmap.width
+  let height = bitmap.height
+  if (width > MAX || height > MAX) {
+    if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+    else { width = Math.round(width * MAX / height); height = MAX }
+  }
+  canvas.width = width
+  canvas.height = height
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close?.()
+
   return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const canvas = document.createElement('canvas')
-      let { width, height } = img
-      const MAX = 800
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-        else { width = Math.round(width * MAX / height); height = MAX }
-      }
-      canvas.width = width
-      canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      const tryQ = (q: number) => {
-        canvas.toBlob(blob => {
-          if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
-          if (blob.size <= maxKB * 1024 || q <= 0.1) {
-            canvas.width = 0; canvas.height = 0 // free GPU memory
-            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
-          } else {
-            tryQ(Math.round((q - 0.1) * 10) / 10)
-          }
-        }, 'image/jpeg', q)
-      }
-      tryQ(0.7)
+    const tryQ = (q: number) => {
+      canvas.toBlob(blob => {
+        if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
+        if (blob.size <= maxKB * 1024 || q <= 0.1) {
+          canvas.width = 0; canvas.height = 0
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+        } else tryQ(Math.round((q - 0.1) * 10) / 10)
+      }, 'image/jpeg', q)
     }
-    img.onerror = () => resolve(file)
-    img.src = url
+    tryQ(0.8)
   })
 }
+
+const MAX_PHOTOS = 5
 
 export default function SellPageWrapper() {
   return (
@@ -96,8 +129,9 @@ function SellPage() {
   const [manualTranslator, setManualTranslator] = useState('')
   const [notes, setNotes] = useState('')
   const [bmIsbn] = useState(() => 'BM-' + Math.random().toString(36).toUpperCase().slice(2, 7))
-  const [coverFile, setCoverFile] = useState<File | null>(null)
-  const [coverPreview, setCoverPreview] = useState('')
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [compressing, setCompressing] = useState(false)
   // แสดงข้อความแนะนำครั้งแรกที่หาไม่เจอ (per session)
   const [seenNotFoundTip, setSeenNotFoundTip] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('bm_notfound_tip') === '1'
@@ -113,8 +147,7 @@ function SellPage() {
   const [noIsbnSearching, setNoIsbnSearching] = useState(false)
   const [noIsbnSearchDone, setNoIsbnSearchDone] = useState(false)
 
-  const cameraInputRef = useRef<HTMLInputElement | null>(null)
-  const galleryInputRef = useRef<HTMLInputElement | null>(null)
+  const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
   // Debounced search: ISBN → fetchBook / title → DB search
   useEffect(() => {
@@ -239,13 +272,21 @@ function SellPage() {
     processScanPhoto(rawFile)
   }
 
-  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const compressed = await compressImage(file)
-    setCoverFile(compressed)
-    if (coverPreview) URL.revokeObjectURL(coverPreview)
-    setCoverPreview(URL.createObjectURL(compressed))
+  const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (files.length === 0) return
+    const remaining = MAX_PHOTOS - photoFiles.length
+    const accepted = files.slice(0, remaining)
+    setCompressing(true)
+    try {
+      const compressed = await Promise.all(accepted.map(f => compressImage(f)))
+      const previews = compressed.map(f => URL.createObjectURL(f))
+      setPhotoFiles(prev => [...prev, ...compressed])
+      setPhotoPreviews(prev => [...prev, ...previews])
+    } finally {
+      setCompressing(false)
+    }
   }
 
   const selectBook = async (book: any) => {
@@ -272,12 +313,11 @@ function SellPage() {
     setMarketPrice(null)
   }
 
-  const removeCover = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setCoverFile(null)
-    setCoverPreview('')
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
-    if (galleryInputRef.current) galleryInputRef.current.value = ''
+  const removePhoto = (index: number) => {
+    const preview = photoPreviews[index]
+    if (preview) URL.revokeObjectURL(preview)
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const submit = async () => {
@@ -294,7 +334,7 @@ function SellPage() {
     }
 
     if (!fetchedBook?.title && !manualTitle) { show('กรุณาดึงข้อมูลหนังสือก่อน'); return }
-    if (!coverFile) { show('กรุณาใส่รูปหน้าปก'); return }
+    if (photoFiles.length === 0) { show('กรุณาใส่รูปหน้าปก'); return }
     if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) { show('กรุณาใส่ราคาที่ถูกต้อง'); return }
     // contact: ใช้ค่าที่ auto-fill ไว้ หรือ fallback เป็นเบอร์โทร
     const finalContact = contact.trim() || phone
@@ -305,18 +345,25 @@ function SellPage() {
 
     try {
       const currentIsbn = (fetchedBook as any)?.isbn || (notFoundMode === 'no_isbn' ? bmIsbn : isbn)
-      // Upload รูปหน้าปกไปยัง Supabase Storage
-      const uploadPath = `covers/${user.id}/${Date.now()}.jpg`
-      const { error: upErr } = await supabase.storage
-        .from('listing-photos')
-        .upload(uploadPath, coverFile, { contentType: 'image/jpeg', upsert: false })
-      if (upErr) {
-        if (upErr.message.toLowerCase().includes('bucket')) {
-          throw new Error('กรุณาสร้าง bucket "listing-photos" ใน Supabase Storage ก่อน (ดูวิธีด้านล่าง)')
-        }
-        throw new Error(upErr.message)
-      }
-      const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(uploadPath)
+      // Upload รูปทั้งหมดแบบขนาน (รูปแรก = ปกหน้า)
+      const ts = Date.now()
+      const uploadResults = await Promise.all(
+        photoFiles.map(async (file, i) => {
+          const path = `covers/${user.id}/${ts}_${i}.jpg`
+          const { error } = await supabase.storage
+            .from('listing-photos')
+            .upload(path, file, { contentType: 'image/jpeg', upsert: false })
+          if (error) {
+            if (error.message.toLowerCase().includes('bucket')) {
+              throw new Error('กรุณาสร้าง bucket "listing-photos" ใน Supabase Storage ก่อน (ดูวิธีด้านล่าง)')
+            }
+            throw new Error(error.message)
+          }
+          return supabase.storage.from('listing-photos').getPublicUrl(path).data.publicUrl
+        })
+      )
+      const photoUrls = uploadResults
+      const publicUrl = photoUrls[0]
 
       // สร้าง listing ผ่าน API (กัน anon key abuse)
       const createRes = await fetch('/api/listings/create', {
@@ -334,7 +381,7 @@ function SellPage() {
           price_includes_shipping: shipping === 'free',
           contact: finalContact,
           notes: notes.trim() || null,
-          photos: [publicUrl],
+          photos: photoUrls,
           existing_book_id: (fetchedBook as any)?.id || null,
           existing_cover_url: fetchedBook?.cover_url || '',
         }),
@@ -357,7 +404,7 @@ function SellPage() {
       if (createData.is_new_book) {
         setPioneerBook({
           title: fetchedBook?.title || manualTitle,
-          coverUrl: coverPreview || '',
+          coverUrl: photoPreviews[0] || '',
         })
       } else {
         show('ลงขายเรียบร้อยแล้ว 🎉')
@@ -740,31 +787,92 @@ function SellPage() {
                 กรอกข้อมูลหนังสือที่คุณจะขาย
               </div>
               <div className="form-group">
-                <label className="label">รูปหน้าปก <span style={{ color: 'var(--red)' }}>*</span></label>
+                <label className="label">
+                  รูปสินค้า <span style={{ color: 'var(--red)' }}>*</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)', marginLeft: 8 }}>
+                    ({photoFiles.length}/{MAX_PHOTOS})
+                  </span>
+                </label>
 
-                {coverPreview ? (
-                  <div style={{ position: 'relative', width: 120, height: 180, borderRadius: 12, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
-                    <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button onClick={removeCover} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,.65)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: 'white', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>✕</button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  ref={addPhotoInputRef}
+                  onChange={handleAddPhotos}
+                  style={{ display: 'none' }}
+                />
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {/* รูปที่เลือกแล้ว */}
+                  {photoPreviews.map((preview, i) => (
+                    <div key={i} style={{ position: 'relative', width: 96, height: 144, borderRadius: 10, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                      <img src={preview} alt={`รูป ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {i === 0 && (
+                        <span style={{ position: 'absolute', top: 4, left: 4, background: 'var(--primary)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                          ปกหน้า
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.65)', border: 'none', borderRadius: '50%', width: 22, height: 22, color: 'white', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* ปุ่มเพิ่มรูป */}
+                  {photoFiles.length < MAX_PHOTOS && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!user) { goLogin(); return }
+                        addPhotoInputRef.current?.click()
+                      }}
+                      disabled={compressing}
+                      style={{
+                        width: 96, height: 144,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: photoFiles.length === 0 ? 'var(--primary-light)' : 'var(--surface)',
+                        border: photoFiles.length === 0 ? '1.5px dashed var(--primary)' : '1.5px dashed var(--border)',
+                        borderRadius: 10, cursor: compressing ? 'wait' : 'pointer',
+                        fontSize: 13, fontWeight: 600,
+                        color: photoFiles.length === 0 ? 'var(--primary)' : 'var(--ink2)',
+                        fontFamily: 'Kanit',
+                        opacity: compressing ? 0.5 : 1,
+                      }}
+                    >
+                      {compressing ? (
+                        <>
+                          <span className="spin" style={{ width: 20, height: 20 }} />
+                          <span style={{ fontSize: 11 }}>ย่อรูป...</span>
+                        </>
+                      ) : photoFiles.length === 0 ? (
+                        <>
+                          <span style={{ fontSize: 28 }}>📷</span>
+                          <span>ใส่รูปปก</span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 28, lineHeight: 1 }}>+</span>
+                          <span style={{ fontSize: 11, lineHeight: 1.3, textAlign: 'center', padding: '0 4px' }}>เพิ่มรูป</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {photoFiles.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--red)', lineHeight: 1.6, marginTop: 8 }}>
+                    ⚠ กรุณาใส่รูปหน้าปก แนะนำถ่ายแนวตั้งให้เห็นทั้งเล่ม
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {/* portrait 2:3 — ขนาดพอดีต่อการใช้งาน ไม่ใหญ่จนกินจอ */}
-                    <label onClick={!user ? (e) => { e.preventDefault(); goLogin() } : undefined}
-                      style={{ width: 120, height: 180, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--primary-light)', border: '1.5px dashed var(--primary)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--primary)', flexShrink: 0 }}>
-                      {user && <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
-                      <span style={{ fontSize: 28 }}>📷</span>
-                      <span>ถ่ายรูป</span>
-                    </label>
-                    <label onClick={!user ? (e) => { e.preventDefault(); goLogin() } : undefined}
-                      style={{ width: 120, height: 180, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--surface)', border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', flexShrink: 0 }}>
-                      {user && <input type="file" accept="image/*" ref={galleryInputRef} onChange={handleCoverChange} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />}
-                      <span style={{ fontSize: 28 }}>🖼️</span>
-                      <span>คลังภาพ</span>
-                    </label>
+                ) : photoFiles.length < MAX_PHOTOS && (
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, marginTop: 8 }}>
+                    💡 เพิ่มรูปสันปก / ตำหนิ / ปกหลัง ช่วยให้ขายได้เร็วขึ้น
                   </div>
                 )}
-                {!coverPreview && <div style={{ fontSize: 13, color: 'var(--red)', lineHeight: 1.6, marginTop: 8 }}>⚠ กรุณาใส่รูปหน้าปก แนะนำให้ถ่ายแนวตั้งให้เห็นทั้งเล่ม</div>}
               </div>
 
               <div className="form-group">
