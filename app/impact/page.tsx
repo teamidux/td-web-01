@@ -38,13 +38,22 @@ export default function ImpactPage() {
       </h2>
 
       <div style={{ background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: 14, padding: '20px 22px', marginBottom: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#713F12', marginBottom: 8 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#713F12', marginBottom: 10 }}>
           1. ของดีหาไม่เจอ
         </div>
-        <p style={{ fontSize: 15, color: '#78350F', lineHeight: 1.75, margin: 0 }}>
+        <p style={{ fontSize: 15, color: '#78350F', lineHeight: 1.75, margin: 0, marginBottom: 10 }}>
           ในกลุ่มขายหนังสือมือสองบน Facebook คนขายมักถ่ายรูปหนังสือกองรวมกัน
           ไม่สะดวกพิมพ์ชื่อทีละเล่ม ส่วนคนซื้อก็ search ไม่ได้เพราะ FB
-          ไม่มี search รูป — <strong>คนมีของดีแต่ไม่รู้ตัว คนที่หาก็หาไม่เจอสักที
+          ไม่มี search รูป
+        </p>
+        <p style={{ fontSize: 15, color: '#78350F', lineHeight: 1.75, margin: 0, marginBottom: 10 }}>
+          ในร้านหนังสือมือสองก็เจอปัญหาเดียวกัน — ร้านส่วนใหญ่ไม่มีระบบจัดการ
+          สต็อก เวลาลูกค้าถามว่า "มีเล่มนี้ไหม?" เจ้าของร้านตอบไม่ได้ ต้อง
+          ไปรื้อกองหาเอง <strong>แถมเจ้าของบางร้านไม่รู้ด้วยซ้ำว่าตัวเอง
+          มีหนังสือหายากราคาหลักพันอยู่ในกอง</strong>
+        </p>
+        <p style={{ fontSize: 15, color: '#78350F', lineHeight: 1.75, margin: 0 }}>
+          ผลคือ — <strong>คนมีของดีแต่ไม่รู้ตัว คนที่หาก็หาไม่เจอสักที
           เดินกันคนละทาง</strong>
         </p>
       </div>
@@ -70,6 +79,7 @@ export default function ImpactPage() {
         {[
           { icon: '📱', title: 'สแกนลงขาย 1 barcode = 1 เล่ม', desc: 'ไม่ต้องพิมพ์ชื่อ ราคา ผู้แต่ง — ระบบดึงข้อมูลให้เอง ลดแรงเสียดทานฝั่งคนขาย' },
           { icon: '🔔', title: 'Wanted + Alert', desc: 'คนซื้อกด "ตามหา" รอไว้ พอมีคนมาลงขาย ระบบแจ้งเตือนเข้า LINE ทันที — ของดีไม่หลุดมือ คนที่ตามหาเจอก่อน' },
+          { icon: '🏪', title: 'ระบบสต็อกสำหรับร้านมือสอง', desc: 'ร้านใช้เป็น inventory ฟรี — สแกนเข้าเล่ม ดูราคากลางในระบบ รู้ว่าเล่มไหนในกองคือของหายาก ลูกค้าถามตอบได้ทันที ไม่ต้องรื้อ' },
           { icon: '🔄', title: 'Extended lifecycle', desc: '1 เล่ม → 2 ผู้อ่าน → 3 ผู้อ่าน → ... ทุก reuse = 1 เล่มใหม่ที่ไม่ต้องพิมพ์' },
         ].map(s => (
           <div key={s.title} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px', display: 'flex', gap: 14 }}>
