@@ -159,10 +159,10 @@ export default function ImpactPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 28 }}>
         {[
-          { icon: '📖', title: 'ผู้ใช้งาน', desc: 'ลงขาย/ตามหาหนังสือ ฟรี ไม่มีขั้นต่ำ', cta: 'เริ่มใช้งาน', href: '/', color: '#16A34A' },
-          { icon: '🏢', title: 'สำนักพิมพ์ / ร้านหนังสือ', desc: 'ข้อมูล demand + ESG report partnership', cta: 'ติดต่อเรา', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × สำนักพิมพ์', color: '#2563EB' },
-          { icon: '💼', title: 'นักลงทุน / Partner', desc: 'Circular economy in publishing — BCG / Impact focus', cta: 'ติดต่อเรา', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × Investor', color: '#7C3AED' },
-          { icon: '📰', title: 'สื่อ / นักวิจัย', desc: 'Media kit + ข้อมูล impact', cta: 'ขอข้อมูล', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × Media', color: '#DC2626' },
+          { icon: '📖', title: 'ผู้ใช้งาน', desc: 'ขายหนังสือที่ไม่ได้อ่านแล้ว หรือตามหาเล่มที่อยากอ่าน — ใช้ฟรี ไม่มีขั้นต่ำ', cta: 'เริ่มใช้งาน', href: '/', color: '#16A34A' },
+          { icon: '🏢', title: 'สำนักพิมพ์ / ร้านหนังสือ', desc: 'ดูว่าหนังสือของคุณยังมีคนตามหาไหม + ร่วมลดขยะหนังสือไปกับเรา', cta: 'ติดต่อเรา', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × สำนักพิมพ์', color: '#2563EB' },
+          { icon: '💼', title: 'นักลงทุน / Partner', desc: 'สนใจร่วมลงทุนใน startup ที่แก้ปัญหาหนังสือถูกทิ้ง — คุยกันได้', cta: 'ติดต่อเรา', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × Investor', color: '#7C3AED' },
+          { icon: '📰', title: 'สื่อ / นักวิจัย', desc: 'ขอข้อมูล รูปภาพ หรือสัมภาษณ์ — สำหรับบทความและงานวิจัย', cta: 'ขอข้อมูล', href: 'mailto:bookmatch2468@gmail.com?subject=BookMatch × Media', color: '#DC2626' },
         ].map(c => (
           <div key={c.title} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '20px 18px' }}>
             <div style={{ fontSize: 30, marginBottom: 10 }}>{c.icon}</div>
