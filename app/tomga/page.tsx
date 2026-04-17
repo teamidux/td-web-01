@@ -58,6 +58,7 @@ export default function AdminPage() {
       title: 'จัดการ Content',
       items: [
         { href: '/tomga/books', icon: '📖', title: 'ข้อมูลหนังสือ', desc: 'แก้ชื่อ, ผู้แต่ง, รูปปก', badge: 0 },
+        { href: '/tomga/reports', icon: '✏️', title: 'รายงานแก้ข้อมูล', desc: 'user รายงานว่าชื่อ/ผู้แต่งผิด', badge: (data as any)?.pendingBookReports || 0 },
         { href: '/tomga/listings', icon: '📦', title: 'Listings', desc: 'ลบ listing ไม่เหมาะสม', badge: 0 },
         { href: '/tomga/import', icon: '📥', title: 'Import หนังสือ', desc: 'Upload CSV เข้า DB', badge: 0 },
       ],
@@ -82,7 +83,7 @@ export default function AdminPage() {
     { count: data.unreadMessages, icon: '📬', label: 'ข้อความใหม่ยังไม่อ่าน', href: '/tomga/messages', color: '#7C3AED' },
     { count: data.pendingReports, icon: '🚨', label: 'รายงานใหม่ยังไม่ตรวจ', href: '/tomga/messages', color: '#DC2626' },
     { count: data.suspiciousUsers, icon: '🚩', label: 'User น่าสงสัย', href: '/tomga/users?tab=suspicious', color: '#D97706' },
-    { count: (data as any).adminNotifs || 0, icon: '📖', label: 'หนังสือใหม่ / แก้ชื่อ รอตรวจ', href: '/tomga/books', color: '#2563EB' },
+    { count: (data as any).pendingBookReports || 0, icon: '✏️', label: 'รายงานแก้ข้อมูลหนังสือ', href: '/tomga/reports', color: '#2563EB' },
   ].filter(a => a.count > 0) : []
 
   const timeSince = (dt: string) => {

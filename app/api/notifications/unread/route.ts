@@ -20,6 +20,7 @@ export async function GET() {
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
+    .not('type', 'in', '("new_book","book_name_report")')
     .is('read_at', null)
 
   return NextResponse.json({ unread: count || 0 })

@@ -86,9 +86,11 @@ export function BottomNav() {
     const interval = setInterval(fetchUnread, 60000)
     const onVisible = () => { if (document.visibilityState === 'visible') fetchUnread() }
     document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('notifications:read', fetchUnread)
     return () => {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('notifications:read', fetchUnread)
     }
   }, [user])
 

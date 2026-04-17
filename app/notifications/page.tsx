@@ -73,6 +73,7 @@ export default function NotificationsPage() {
       body: JSON.stringify({ all: true }),
     })
     setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })))
+    window.dispatchEvent(new Event('notifications:read'))
     show('อ่านทั้งหมดแล้ว')
   }
 
@@ -83,6 +84,7 @@ export default function NotificationsPage() {
       body: JSON.stringify({ ids: [id] }),
     })
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
+    window.dispatchEvent(new Event('notifications:read'))
   }
 
   const removeWanted = async (id: string) => {
@@ -192,7 +194,10 @@ export default function NotificationsPage() {
                         borderLeft: n.read_at ? 'none' : '3px solid #3B82F6',
                       }}>
                         <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>
-                          {n.type === 'wanted_match' ? '📚' : n.type === 'contact' ? '👤' : '🔔'}
+                          {n.type === 'wanted_match' ? '📚'
+                            : n.type === 'contact' ? '👤'
+                            : n.type === 'report_resolved' ? '✏️'
+                            : '🔔'}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: n.read_at ? 500 : 700, color: '#0F172A', lineHeight: 1.4 }}>

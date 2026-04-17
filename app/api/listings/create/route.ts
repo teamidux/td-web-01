@@ -80,24 +80,9 @@ export async function POST(req: NextRequest) {
   })
   if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
 
-  // 4. ถ้าเป็นหนังสือใหม่ → update pioneer_count + แจ้ง admin
+  // 4. ถ้าเป็นหนังสือใหม่ → update pioneer_count ให้ user
   if (isNewBook) {
-    // เพิ่ม pioneer_count ให้ user
     try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) } catch {}
-    // แจ้ง admin ว่ามีหนังสือใหม่ถูกเพิ่ม (ตรวจความถูกต้อง)
-    const adminIds = (process.env.ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
-    for (const adminId of adminIds) {
-      try {
-        await sb.from('notifications').insert({
-          user_id: adminId,
-          type: 'new_book',
-          title: '📖 หนังสือใหม่ถูกเพิ่มเข้าระบบ',
-          body: `"${title}" โดย ${user.display_name || 'ผู้ใช้'} — ตรวจความถูกต้อง`,
-          url: `/tomga/books`,
-          metadata: { book_id: bookId, isbn, added_by: user.id },
-        })
-      } catch {}
-    }
   }
 
   return NextResponse.json({ ok: true, book_id: bookId, isbn, is_new_book: isNewBook })
