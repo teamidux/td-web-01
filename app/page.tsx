@@ -12,7 +12,6 @@ export default function HomePage() {
   const router = useRouter()
   const [recentListings, setRecentListings] = useState<any[]>([])
   const [wantedBooks, setWantedBooks] = useState<Book[]>([])
-  const [totalWanted, setTotalWanted] = useState(0)
   const [query, setQuery] = useState('')
   const [liveResults, setLiveResults] = useState<any[]>([])
   const [liveSearching, setLiveSearching] = useState(false)
@@ -98,15 +97,13 @@ export default function HomePage() {
   }, [query])
 
   const loadData = async () => {
-    const [recentRes, { data: wanted }, { count: wantedTotal }] = await Promise.all([
+    const [recentRes, { data: wanted }] = await Promise.all([
       fetch('/api/listings/recent?limit=10'),
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).order('created_at', { ascending: false }).limit(3),
-      supabase.from('wanted').select('*', { count: 'exact', head: true }).eq('status', 'waiting'),
     ])
     const { listings } = await recentRes.json()
     setRecentListings(listings || [])
     setWantedBooks(wanted || [])
-    setTotalWanted(wantedTotal || 0)
     setLoading(false)
   }
 
@@ -315,8 +312,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Wanted Feed — conditional: โผล่เมื่อ wanted รวม ≥ 10 (supply-side growth signal) */}
-        {totalWanted >= 10 && wantedBooks.length > 0 && (
+        {/* Wanted Feed — โผล่เมื่อมี wanted (supply-side growth signal) */}
+        {wantedBooks.length > 0 && (
           <div className="section">
             <div className="section-hd" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
               <div>
