@@ -1,5 +1,41 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+
+// Resize book cover: max 800px (รองรับ retina), jpg quality ปรับอัตโนมัติจน ≤ 300KB
+function compressCover(file: File, maxKB = 300): Promise<File> {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      const MAX = 800
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      const tryQ = (q: number) => {
+        canvas.toBlob(blob => {
+          if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
+          if (blob.size <= maxKB * 1024 || q <= 0.1) {
+            canvas.width = 0; canvas.height = 0
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+          } else {
+            tryQ(Math.round((q - 0.1) * 10) / 10)
+          }
+        }, 'image/jpeg', q)
+      }
+      tryQ(0.85)
+    }
+    img.onerror = () => resolve(file)
+    img.src = url
+  })
+}
 
 type Book = {
   id: string
@@ -22,6 +58,27 @@ export default function AdminBooksPage() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<Book | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const pickCover = async (file: File) => {
+    if (!editing) return
+    if (!file.type.startsWith('image/')) { alert('เลือกไฟล์รูปภาพเท่านั้น'); return }
+    setUploading(true)
+    try {
+      const compressed = await compressCover(file)
+      const path = `book-covers/${editing.isbn || editing.id}/${Date.now()}.jpg`
+      const { error } = await supabase.storage
+        .from('listing-photos')
+        .upload(path, compressed, { contentType: 'image/jpeg', upsert: false })
+      if (error) { alert('อัปโหลดไม่สำเร็จ: ' + error.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(path)
+      setEditing(e => e ? { ...e, cover_url: publicUrl } : e)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -117,12 +174,58 @@ export default function AdminBooksPage() {
             <div style={{ fontFamily: 'Kanit', fontSize: 19, fontWeight: 700, marginBottom: 4 }}>แก้ไขข้อมูลหนังสือ</div>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 18 }}>ISBN: {editing.isbn}</div>
 
+            {/* Cover upload */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>รูปปก</label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                {editing.cover_url ? (
+                  <img src={editing.cover_url} alt="cover" style={{ width: 90, height: 130, objectFit: 'cover', borderRadius: 6, border: '1px solid #E2E8F0', background: '#F1F5F9', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 90, height: 130, borderRadius: 6, background: '#F1F5F9', border: '1px dashed #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>📖</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) pickCover(f) }}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: uploading ? 'wait' : 'pointer', fontFamily: 'Kanit', opacity: uploading ? 0.6 : 1, marginBottom: 8 }}
+                  >
+                    {uploading ? 'กำลังอัปโหลด...' : editing.cover_url ? '📷 เปลี่ยนรูปปก' : '📷 อัปโหลดรูปปก'}
+                  </button>
+                  {editing.cover_url && (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(e => e ? { ...e, cover_url: '' } : e)}
+                      style={{ background: 'white', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Kanit', marginLeft: 8, marginBottom: 8 }}
+                    >
+                      ลบ
+                    </button>
+                  )}
+                  <div style={{ fontSize: 11, color: '#94A3B8', lineHeight: 1.5, marginBottom: 6 }}>
+                    ระบบย่อเหลือ 800px / ≤300KB ให้อัตโนมัติ
+                  </div>
+                  <input
+                    placeholder="หรือวาง URL รูปปก"
+                    value={editing.cover_url || ''}
+                    onChange={e => setEditing({ ...editing, cover_url: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontFamily: 'Kanit', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+            </div>
+
             {[
               { key: 'title', label: 'ชื่อหนังสือ', type: 'input' },
               { key: 'author', label: 'ผู้แต่ง', type: 'input' },
               { key: 'translator', label: 'ผู้แปล', type: 'input' },
               { key: 'publisher', label: 'สำนักพิมพ์', type: 'input' },
-              { key: 'cover_url', label: 'URL รูปปก', type: 'input' },
               { key: 'language', label: 'ภาษา (th, en)', type: 'input' },
               { key: 'description', label: 'รายละเอียด', type: 'textarea' },
             ].map(f => (
@@ -144,13 +247,6 @@ export default function AdminBooksPage() {
                 )}
               </div>
             ))}
-
-            {editing.cover_url && (
-              <div style={{ marginBottom: 14, fontSize: 12, color: '#94A3B8' }}>
-                <div style={{ marginBottom: 4 }}>Preview:</div>
-                <img src={editing.cover_url} alt="cover preview" style={{ maxWidth: 120, maxHeight: 160, borderRadius: 6, border: '1px solid #E2E8F0' }} />
-              </div>
-            )}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
               <button
