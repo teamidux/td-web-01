@@ -132,6 +132,14 @@ function SellPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [compressing, setCompressing] = useState(false)
+  // Ref เก็บ latest previews สำหรับ cleanup ตอน unmount (กัน memory leak จาก Object URL)
+  const photoPreviewsRef = useRef<string[]>([])
+  useEffect(() => { photoPreviewsRef.current = photoPreviews }, [photoPreviews])
+  useEffect(() => {
+    return () => {
+      photoPreviewsRef.current.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [])
   // แสดงข้อความแนะนำครั้งแรกที่หาไม่เจอ (per session)
   const [seenNotFoundTip, setSeenNotFoundTip] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('bm_notfound_tip') === '1'

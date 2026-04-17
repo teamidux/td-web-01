@@ -1,9 +1,19 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // LINE browser → iOS แสดงหน้าจอเต็มให้กดปุ่มเปิด Safari, Android auto-redirect
 export default function LineBrowserBanner() {
   const [mode, setMode] = useState<'hidden' | 'ios' | 'android-fallback'>('hidden')
+  // Ref เก็บ cleanup ของ openExternal ปัจจุบัน — กด repeat ไม่ทำให้ listener ซ้อน
+  const pendingCleanupRef = useRef<(() => void) | null>(null)
+
+  // Cleanup pending listeners ตอน unmount — กัน leak
+  useEffect(() => {
+    return () => {
+      pendingCleanupRef.current?.()
+      pendingCleanupRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -14,47 +24,50 @@ export default function LineBrowserBanner() {
     if (ios) {
       // iOS: แสดงหน้าจอเต็มพร้อมปุ่ม "เปิดใน Safari"
       setMode('ios')
-    } else {
-      // Android: auto-redirect ทันที
-      const url = window.location.href
-      let wentAway = false
-      const markAway = () => { wentAway = true }
-      document.addEventListener('visibilitychange', markAway)
-      window.addEventListener('pagehide', markAway)
-      window.addEventListener('beforeunload', markAway, { once: true })
-      window.location.href = `https://line.me/R/nv/externalBrowser?url=${encodeURIComponent(url)}`
-      // fallback ถ้า LINE scheme ไม่ work (ยังอยู่หน้าเดิม)
-      setTimeout(() => {
-        document.removeEventListener('visibilitychange', markAway)
-        window.removeEventListener('pagehide', markAway)
-        if (!wentAway && !document.hidden) setMode('android-fallback')
-      }, 1500)
+      return
+    }
+
+    // Android: auto-redirect ทันที
+    const url = window.location.href
+    let wentAway = false
+    const markAway = () => { wentAway = true }
+    document.addEventListener('visibilitychange', markAway)
+    window.addEventListener('pagehide', markAway)
+    window.addEventListener('beforeunload', markAway)
+    window.location.href = `https://line.me/R/nv/externalBrowser?url=${encodeURIComponent(url)}`
+
+    const timer = setTimeout(() => {
+      if (!wentAway && !document.hidden) setMode('android-fallback')
+    }, 1500)
+
+    // Cleanup: clear timer + remove all listeners (กัน memory leak ตอน unmount)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', markAway)
+      window.removeEventListener('pagehide', markAway)
+      window.removeEventListener('beforeunload', markAway)
     }
   }, [])
 
   const openExternal = () => {
-    const url = window.location.href
+    // ถ้ามีคำสั่งก่อนหน้ายังค้างอยู่ → cleanup ก่อน กัน listener ซ้อน
+    pendingCleanupRef.current?.()
 
-    // Track ว่า redirect สำเร็จไหม — ใช้ visibilitychange/pagehide ตรวจว่า browser
-    // ออกไปแอพอื่น (Safari/Chrome) ถ้าใช่ถือว่าสำเร็จ ไม่ต้อง fallback
+    const url = window.location.href
     let wentAway = false
     const markAway = () => { wentAway = true }
     document.addEventListener('visibilitychange', markAway)
     window.addEventListener('pagehide', markAway)
     window.addEventListener('blur', markAway)
 
-    // ลอง LINE scheme ก่อน (ใช้ได้ทั้ง iOS + Android)
     window.location.href = `https://line.me/R/nv/externalBrowser?url=${encodeURIComponent(url)}`
 
-    // fallback หลัง 1200ms ถ้ายังอยู่หน้าเดิม
-    setTimeout(() => {
-      document.removeEventListener('visibilitychange', markAway)
-      window.removeEventListener('pagehide', markAway)
-      window.removeEventListener('blur', markAway)
-      if (wentAway || document.hidden) return // redirect สำเร็จ
+    const timer = setTimeout(() => {
+      cleanup()
+      pendingCleanupRef.current = null
+      if (wentAway || document.hidden) return
 
       if (mode === 'ios') {
-        // iOS fallback: copy URL + alert ให้ paste
         if (navigator.clipboard) {
           navigator.clipboard.writeText(url).then(() => {
             alert('คัดลอกลิงก์แล้ว ✓\nเปิด Safari แล้ววาง URL ได้เลย')
@@ -65,10 +78,17 @@ export default function LineBrowserBanner() {
           alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
         }
       } else {
-        // Android fallback: intent
         window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
       }
     }, 1200)
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', markAway)
+      window.removeEventListener('pagehide', markAway)
+      window.removeEventListener('blur', markAway)
+    }
+    pendingCleanupRef.current = cleanup
   }
 
   // ── iOS: หน้าจอเต็มพร้อมปุ่มใหญ่ ──

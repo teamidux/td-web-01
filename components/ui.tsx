@@ -1736,6 +1736,16 @@ export function IdentityVerifyWizard({
     }
   }, [])
 
+  // Cleanup object URLs ตอน unmount (กัน memory leak)
+  const previewsRef = useRef({ id: '', bank: '' })
+  useEffect(() => { previewsRef.current = { id: idCardPreview, bank: bankPreview } }, [idCardPreview, bankPreview])
+  useEffect(() => {
+    return () => {
+      if (previewsRef.current.id) URL.revokeObjectURL(previewsRef.current.id)
+      if (previewsRef.current.bank) URL.revokeObjectURL(previewsRef.current.bank)
+    }
+  }, [])
+
   // ref ของ modal scroll container — scroll ขึ้นบนสุดทุกครั้งที่เปลี่ยน step
   const modalScrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -1747,10 +1757,10 @@ export function IdentityVerifyWizard({
     const url = URL.createObjectURL(file)
     if (type === 'id') {
       setIdCardFile(file)
-      setIdCardPreview(url)
+      setIdCardPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url })
     } else {
       setBankFile(file)
-      setBankPreview(url)
+      setBankPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url })
     }
   }
 
@@ -1758,7 +1768,9 @@ export function IdentityVerifyWizard({
   const resizeImage = async (file: File, maxPx = 2000): Promise<File> => {
     return new Promise((resolve) => {
       const img = new Image()
+      const url = URL.createObjectURL(file)
       img.onload = () => {
+        URL.revokeObjectURL(url)
         let { width, height } = img
         if (width > maxPx || height > maxPx) {
           if (width > height) { height = Math.round(height * maxPx / width); width = maxPx }
@@ -1769,6 +1781,7 @@ export function IdentityVerifyWizard({
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
         canvas.toBlob(
           (blob) => {
+            canvas.width = 0; canvas.height = 0 // free GPU memory
             if (!blob) { resolve(file); return }
             resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
           },
@@ -1776,8 +1789,8 @@ export function IdentityVerifyWizard({
           0.85
         )
       }
-      img.onerror = () => resolve(file)
-      img.src = URL.createObjectURL(file)
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
     })
   }
 
