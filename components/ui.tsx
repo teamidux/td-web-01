@@ -126,22 +126,40 @@ export function BottomNav() {
             <span>{t.label}</span>
           </Link>
         ))}
-        <Link
-          href="/sell"
-          className={`bnav-item ${sellActive ? 'active' : ''}`}
-          style={{
-            background: sellActive
-              ? 'linear-gradient(135deg, #15803D 0%, #14532D 100%)'
-              : 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
-            color: 'white',
-            margin: '4px 6px 4px 2px',
-            borderRadius: 12,
-            boxShadow: '0 2px 8px rgba(22,163,74,.3)',
-          }}
-        >
-          <span>📖</span>
-          <span>ลงขาย</span>
-        </Link>
+        {sellActive ? (
+          // อยู่หน้า /sell อยู่แล้ว — disabled + เทา กัน user กดพลาดทับปุ่ม submit
+          <div
+            aria-disabled="true"
+            className="bnav-item"
+            style={{
+              background: '#94A3B8',
+              color: 'white',
+              margin: '4px 6px 4px 2px',
+              borderRadius: 12,
+              opacity: 0.55,
+              cursor: 'not-allowed',
+              pointerEvents: 'none',
+            }}
+          >
+            <span>📖</span>
+            <span>ลงขาย</span>
+          </div>
+        ) : (
+          <Link
+            href="/sell"
+            className="bnav-item"
+            style={{
+              background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
+              color: 'white',
+              margin: '4px 6px 4px 2px',
+              borderRadius: 12,
+              boxShadow: '0 2px 8px rgba(22,163,74,.3)',
+            }}
+          >
+            <span>📖</span>
+            <span>ลงขาย</span>
+          </Link>
+        )}
       </div>
     </>
   )
