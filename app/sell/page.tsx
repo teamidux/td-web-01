@@ -147,7 +147,9 @@ function SellPage() {
   const [noIsbnSearching, setNoIsbnSearching] = useState(false)
   const [noIsbnSearchDone, setNoIsbnSearchDone] = useState(false)
 
-  const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
+  const cameraInputRef = useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement | null>(null)
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false)
 
   // Debounced search: ISBN → fetchBook / title → DB search
   useEffect(() => {
@@ -504,6 +506,92 @@ function SellPage() {
         </div>
       )}
 
+      {/* Photo picker sheet — เลือกกล้อง/คลังภาพ */}
+      {showPhotoPicker && (
+        <div
+          onClick={() => setShowPhotoPicker(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '20px 20px 24px', width: '100%', maxWidth: 480, margin: '0 auto' }}
+          >
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>
+              เพิ่มรูป
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginBottom: 16 }}>
+              ถ่ายจากกล้อง หรือเลือกจากคลังภาพ
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setShowPhotoPicker(false); cameraInputRef.current?.click() }}
+              style={{
+                width: '100%',
+                background: 'var(--primary)',
+                border: 'none',
+                borderRadius: 12,
+                padding: '14px',
+                color: 'white',
+                fontFamily: 'Kanit',
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: 'pointer',
+                marginBottom: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+              }}
+            >
+              📷 ถ่ายรูปด้วยกล้อง
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setShowPhotoPicker(false); galleryInputRef.current?.click() }}
+              style={{
+                width: '100%',
+                background: 'white',
+                border: '1.5px solid var(--border)',
+                borderRadius: 12,
+                padding: '14px',
+                color: 'var(--ink)',
+                fontFamily: 'Kanit',
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: 'pointer',
+                marginBottom: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+              }}
+            >
+              🖼️ เลือกจากคลังภาพ
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPhotoPicker(false)}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                padding: '12px',
+                color: 'var(--ink3)',
+                fontFamily: 'Kanit',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Scanning / Fetching overlay */}
       {(scanning || fetching) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -794,11 +882,21 @@ function SellPage() {
                   </span>
                 </label>
 
+                {/* กล้อง — ถ่ายทีละรูป (capture=environment เรียกกล้องหลัง) */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={cameraInputRef}
+                  onChange={handleAddPhotos}
+                  style={{ display: 'none' }}
+                />
+                {/* คลังภาพ — เลือกหลายรูปพร้อมกันได้ */}
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  ref={addPhotoInputRef}
+                  ref={galleryInputRef}
                   onChange={handleAddPhotos}
                   style={{ display: 'none' }}
                 />
@@ -823,13 +921,13 @@ function SellPage() {
                     </div>
                   ))}
 
-                  {/* ปุ่มเพิ่มรูป */}
+                  {/* ปุ่มเพิ่มรูป → เปิด sheet เลือกกล้อง/คลัง */}
                   {photoFiles.length < MAX_PHOTOS && (
                     <button
                       type="button"
                       onClick={() => {
                         if (!user) { goLogin(); return }
-                        addPhotoInputRef.current?.click()
+                        setShowPhotoPicker(true)
                       }}
                       disabled={compressing}
                       style={{
