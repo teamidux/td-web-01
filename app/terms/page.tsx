@@ -7,7 +7,7 @@ export default function TermsPage() {
       <div style={{ marginBottom: 40 }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: '#2563EB', marginBottom: 6 }}>BookMatch</div>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>ข้อตกลงและเงื่อนไขการใช้บริการ</h1>
-        <p style={{ fontSize: 13, color: '#6B7280' }}>มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2568 | เวอร์ชัน 1.2</p>
+        <p style={{ fontSize: 13, color: '#6B7280' }}>มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2568 | เวอร์ชัน 1.3</p>
       </div>
 
       <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 10, padding: '14px 18px', marginBottom: 28, fontSize: 14, color: '#92400E' }}>
@@ -211,8 +211,37 @@ export default function TermsPage() {
       </Section>
 
       <Section num="11" title="ทรัพย์สินทางปัญญา">
+        <p style={{ marginBottom: 8, fontWeight: 600 }}>11.1 แหล่งที่มาของรูปปกหนังสือ</p>
         <ul>
-          <li>ข้อมูลหนังสือที่ดึงจาก Open Library และ Google Books เป็นไปตามเงื่อนไขของแต่ละแหล่ง</li>
+          <li>ข้อมูลและรูปปกหนังสือที่ปรากฏบนแพลตฟอร์มอาจมาจาก 3 แหล่ง ได้แก่
+            <ul style={{ marginTop: 6 }}>
+              <li>รูปที่ผู้ขายถ่ายหรืออัปโหลดเองในฐานะเจ้าของหนังสือฉบับนั้น</li>
+              <li>Google Books API ตามเงื่อนไขการใช้งานของ Google</li>
+              <li>Open Library ซึ่งเป็นโครงการไม่แสวงหากำไร</li>
+            </ul>
+          </li>
+          <li>รูปปกเหล่านี้ใช้เพื่อวัตถุประสงค์ระบุตัวสินค้าที่ผู้ขายนำมาขายเท่านั้น (Nominative Use) ไม่ใช่เพื่อการโฆษณาหรือจำหน่ายผลงานในนามของเจ้าของลิขสิทธิ์</li>
+        </ul>
+
+        <p style={{ marginBottom: 8, marginTop: 16, fontWeight: 600 }}>11.2 สถานะของ BookMatch</p>
+        <ul>
+          <li>BookMatch ทำหน้าที่เป็น "สื่อกลาง" เชื่อมต่อผู้ซื้อและผู้ขายหนังสือมือสอง ไม่ได้เป็นผู้ผลิต จัดจำหน่าย หรือแสวงหาผลกำไรจากรูปปกโดยตรง</li>
+        </ul>
+
+        <p style={{ marginBottom: 8, marginTop: 16, fontWeight: 600 }}>11.3 สิทธิ์ในการขอให้ลบรูปปก (Notice &amp; Takedown)</p>
+        <ul>
+          <li>หากท่านเป็นเจ้าของลิขสิทธิ์ (สำนักพิมพ์ / ผู้วาดภาพประกอบ / ผู้แต่ง) และไม่ประสงค์ให้ BookMatch แสดงรูปปกของท่าน กรุณาแจ้งผ่านช่องทางต่อไปนี้
+            <ul style={{ marginTop: 6 }}>
+              <li>LINE: <strong>@bookmatch</strong></li>
+              <li>อีเมล: <strong>bookmatch2468@gmail.com</strong></li>
+            </ul>
+          </li>
+          <li>โดยแจ้งรายละเอียด ได้แก่ ชื่อหนังสือ / ISBN และหลักฐานแสดงความเป็นเจ้าของสิทธิ์</li>
+          <li>BookMatch จะดำเนินการลบรูปปกที่ได้รับแจ้งภายใน <strong>48 ชั่วโมง</strong> นับจากวันที่ได้รับคำขอโดยสุจริต (Good-faith takedown)</li>
+        </ul>
+
+        <p style={{ marginBottom: 8, marginTop: 16, fontWeight: 600 }}>11.4 อื่นๆ</p>
+        <ul>
           <li>รูปภาพที่ผู้ขายอัปโหลดถือเป็นสิทธิ์ของผู้ขาย โดยผู้ขายมอบสิทธิ์ให้ BookMatch แสดงผลบนแพลตฟอร์ม</li>
           <li>ห้ามนำเนื้อหา โลโก้ หรือระบบของ BookMatch ไปใช้โดยไม่ได้รับอนุญาต</li>
         </ul>
