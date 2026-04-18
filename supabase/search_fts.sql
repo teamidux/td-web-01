@@ -65,14 +65,14 @@ BEGIN
     b.id, b.isbn, b.title, b.author, b.cover_url,
     b.wanted_count, b.view_count,
     GREATEST(
-      CASE WHEN lower(b.title) LIKE lower(q_trim) || '%' THEN 1.0::real ELSE 0::real END,
-      CASE WHEN b.title ILIKE '%' || q_trim || '%' THEN 0.9::real ELSE 0::real END,
-      CASE WHEN b.title_norm LIKE '%' || q_compact || '%' THEN 0.85::real ELSE 0::real END,
-      similarity(b.title, q_trim) * 0.6,
-      similarity(b.title_norm, q_compact) * 0.6,
-      CASE WHEN b.author ILIKE '%' || q_trim || '%' THEN 0.4::real ELSE 0::real END,
-      similarity(coalesce(b.author, ''), q_trim) * 0.3
-    ) AS score
+      CASE WHEN lower(b.title) LIKE lower(q_trim) || '%' THEN 1.0 ELSE 0 END,
+      CASE WHEN b.title ILIKE '%' || q_trim || '%' THEN 0.9 ELSE 0 END,
+      CASE WHEN b.title_norm LIKE '%' || q_compact || '%' THEN 0.85 ELSE 0 END,
+      (similarity(b.title, q_trim) * 0.6)::double precision,
+      (similarity(b.title_norm, q_compact) * 0.6)::double precision,
+      CASE WHEN b.author ILIKE '%' || q_trim || '%' THEN 0.4 ELSE 0 END,
+      (similarity(coalesce(b.author, ''), q_trim) * 0.3)::double precision
+    )::real AS score
   FROM books b
   WHERE
     b.title ILIKE '%' || q_trim || '%'
