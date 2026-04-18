@@ -49,6 +49,54 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ books: books || [] })
 }
 
+// POST — create new book (admin)
+export async function POST(req: NextRequest) {
+  const adminId = await currentAdmin()
+  if (!adminId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const { isbn, title, author, translator, publisher, description, cover_url, language } = await req.json()
+
+  // Validate ISBN — must be ISBN-13 starting with 978/979
+  const cleanIsbn = (isbn || '').toString().replace(/[^0-9X]/gi, '')
+  if (!cleanIsbn || !/^(978|979)\d{10}$/.test(cleanIsbn)) {
+    return NextResponse.json({ error: 'invalid ISBN (ต้องเป็น 13 หลัก ขึ้นต้น 978/979)' }, { status: 400 })
+  }
+  if (!title?.trim()) return NextResponse.json({ error: 'missing title' }, { status: 400 })
+
+  const db = sb()
+
+  // เช็ค ISBN ซ้ำก่อน — กันทับ
+  const { data: existing } = await db.from('books').select('id, title').eq('isbn', cleanIsbn).maybeSingle()
+  if (existing) {
+    return NextResponse.json({ error: `ISBN นี้มีอยู่แล้ว: "${existing.title}"`, existing_id: existing.id }, { status: 409 })
+  }
+
+  const insertData = {
+    isbn: cleanIsbn,
+    title: title.trim().normalize('NFC'),
+    author: (author || '').trim().normalize('NFC'),
+    translator: translator?.trim() ? translator.trim().normalize('NFC') : null,
+    publisher: publisher?.trim() ? publisher.trim().normalize('NFC') : null,
+    description: description?.trim() || null,
+    cover_url: cover_url?.trim() || null,
+    language: language?.trim() || 'th',
+    source: 'admin',
+  }
+
+  const { data: newBook, error } = await db.from('books').insert(insertData).select('id, isbn').single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  logAdminAction({
+    adminId,
+    action: 'create_book',
+    targetType: 'book',
+    targetId: newBook.id,
+    metadata: { isbn: cleanIsbn },
+  })
+
+  return NextResponse.json({ ok: true, book: newBook })
+}
+
 // PUT — update book fields
 export async function PUT(req: NextRequest) {
   const adminId = await currentAdmin()

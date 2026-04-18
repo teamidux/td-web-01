@@ -57,9 +57,11 @@ export default function AdminBooksPage() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<Book | null>(null)
+  const [creating, setCreating] = useState<Partial<Book> | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const createFileInputRef = useRef<HTMLInputElement>(null)
 
   const pickCover = async (file: File) => {
     if (!editing) return
@@ -121,6 +123,58 @@ export default function AdminBooksPage() {
     } finally { setSaving(false) }
   }
 
+  const createBook = async () => {
+    if (!creating) return
+    if (!creating.isbn?.trim()) { alert('ใส่ ISBN ก่อน'); return }
+    if (!creating.title?.trim()) { alert('ใส่ชื่อหนังสือก่อน'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/tomga/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(creating),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        if (res.status === 409 && d.existing_id) {
+          if (confirm(`${d.error}\nเปิดแก้ไขแทนไหม?`)) {
+            setCreating(null)
+            // หา book ใน list ถ้าเจอเปิด modal edit
+            const existing = books.find(b => b.id === d.existing_id)
+            if (existing) setEditing(existing)
+            else { setQ(creating.isbn || ''); setCreating(null) }
+          }
+        } else {
+          alert('สร้างไม่สำเร็จ: ' + (d.error || 'unknown'))
+        }
+        return
+      }
+      setCreating(null)
+      await load()
+    } finally { setSaving(false) }
+  }
+
+  const pickCreateCover = async (file: File) => {
+    if (!creating) return
+    if (!file.type.startsWith('image/')) { alert('เลือกไฟล์รูปภาพเท่านั้น'); return }
+    const isbn = creating.isbn?.replace(/[^0-9X]/gi, '') || ''
+    if (!isbn) { alert('ใส่ ISBN ก่อนอัปโหลดรูป'); return }
+    setUploading(true)
+    try {
+      const compressed = await compressCover(file)
+      const path = `book-covers/${isbn}/${Date.now()}.jpg`
+      const { error } = await supabase.storage
+        .from('listing-photos')
+        .upload(path, compressed, { contentType: 'image/jpeg', upsert: false })
+      if (error) { alert('อัปโหลดไม่สำเร็จ: ' + error.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('listing-photos').getPublicUrl(path)
+      setCreating(c => c ? { ...c, cover_url: publicUrl } : c)
+    } finally {
+      setUploading(false)
+      if (createFileInputRef.current) createFileInputRef.current.value = ''
+    }
+  }
+
   return (
     <>
       <div style={{ padding: '24px 0 80px' }}>
@@ -131,12 +185,20 @@ export default function AdminBooksPage() {
           แก้ไขชื่อ, ผู้แต่ง, สำนักพิมพ์, รูปปก, รายละเอียด
         </p>
 
-        <input
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder="🔍 ค้นหาจากชื่อ / ผู้แต่ง / ISBN"
-          style={{ width: '100%', padding: '12px 16px', border: '1px solid #E2E8F0', borderRadius: 10, fontFamily: 'Kanit', fontSize: 15, marginBottom: 16, outline: 'none' }}
-        />
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="🔍 ค้นหาจากชื่อ / ผู้แต่ง / ISBN"
+            style={{ flex: 1, minWidth: 200, padding: '12px 16px', border: '1px solid #E2E8F0', borderRadius: 10, fontFamily: 'Kanit', fontSize: 15, outline: 'none' }}
+          />
+          <button
+            onClick={() => setCreating({ isbn: '', title: '', author: '', translator: '', publisher: '', description: '', cover_url: '', language: 'th', id: '', active_listings_count: 0, wanted_count: 0, created_at: '' })}
+            style={{ background: '#16A34A', color: 'white', border: 'none', borderRadius: 10, padding: '12px 18px', minHeight: 44, fontSize: 14, fontWeight: 700, fontFamily: 'Kanit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            ➕ เพิ่มหนังสือ
+          </button>
+        </div>
 
         {loading && <div style={{ textAlign: 'center', padding: 60, color: '#94A3B8' }}>Loading...</div>}
         {!loading && books.length === 0 && <div style={{ textAlign: 'center', padding: 60, color: '#CBD5E1' }}>ไม่พบหนังสือ</div>}
@@ -261,6 +323,109 @@ export default function AdminBooksPage() {
                 style={{ flex: 2, background: '#2563EB', border: 'none', borderRadius: 10, padding: '12px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, cursor: 'pointer', fontSize: 14, opacity: saving ? 0.5 : 1 }}
               >
                 {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create modal — เพิ่มหนังสือใหม่ */}
+      {creating && (
+        <div onClick={() => setCreating(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: '24px 26px', width: '100%', maxWidth: 560 }}>
+            <div style={{ fontFamily: 'Kanit', fontSize: 19, fontWeight: 700, marginBottom: 4 }}>➕ เพิ่มหนังสือใหม่</div>
+            <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 18 }}>กรอก ISBN และชื่อหนังสืออย่างน้อย</div>
+
+            {/* ISBN — required */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                ISBN <span style={{ color: '#DC2626' }}>*</span>
+                <span style={{ fontSize: 11, fontWeight: 400, color: '#94A3B8', marginLeft: 6 }}>13 หลัก ขึ้นต้น 978/979</span>
+              </label>
+              <input
+                value={creating.isbn || ''}
+                onChange={e => setCreating({ ...creating, isbn: e.target.value.replace(/[^0-9X]/gi, '') })}
+                placeholder="9786160123456"
+                maxLength={13}
+                inputMode="numeric"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'monospace', fontSize: 15, outline: 'none', letterSpacing: 1 }}
+              />
+            </div>
+
+            {/* Cover upload */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>รูปปก</label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                {creating.cover_url ? (
+                  <img src={creating.cover_url} alt="cover" style={{ width: 90, height: 130, objectFit: 'cover', borderRadius: 6, border: '1px solid #E2E8F0', background: '#F1F5F9', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 90, height: 130, borderRadius: 6, background: '#F1F5F9', border: '1px dashed #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>📖</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <input ref={createFileInputRef} type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) pickCreateCover(f) }} style={{ display: 'none' }} />
+                  <button
+                    type="button"
+                    onClick={() => createFileInputRef.current?.click()}
+                    disabled={uploading}
+                    style={{ background: '#2563EB', color: 'white', border: 'none', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: uploading ? 'wait' : 'pointer', fontFamily: 'Kanit', opacity: uploading ? 0.6 : 1, marginBottom: 8 }}
+                  >
+                    {uploading ? 'กำลังอัปโหลด...' : creating.cover_url ? '📷 เปลี่ยนรูปปก' : '📷 อัปโหลดรูปปก'}
+                  </button>
+                  <div style={{ fontSize: 11, color: '#94A3B8', lineHeight: 1.5, marginBottom: 6 }}>
+                    ระบบย่อเหลือ 800px / ≤300KB ให้อัตโนมัติ
+                  </div>
+                  <input
+                    placeholder="หรือวาง URL รูปปก"
+                    value={creating.cover_url || ''}
+                    onChange={e => setCreating({ ...creating, cover_url: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontFamily: 'Kanit', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {[
+              { key: 'title', label: 'ชื่อหนังสือ *', type: 'input', placeholder: 'ระบุชื่อหนังสือ' },
+              { key: 'author', label: 'ผู้แต่ง', type: 'input', placeholder: '' },
+              { key: 'translator', label: 'ผู้แปล', type: 'input', placeholder: '' },
+              { key: 'publisher', label: 'สำนักพิมพ์', type: 'input', placeholder: '' },
+              { key: 'language', label: 'ภาษา', type: 'input', placeholder: 'th / en' },
+              { key: 'description', label: 'รายละเอียด', type: 'textarea', placeholder: '' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                {f.type === 'textarea' ? (
+                  <textarea
+                    value={(creating as any)[f.key] || ''}
+                    onChange={e => setCreating({ ...creating, [f.key]: e.target.value })}
+                    placeholder={f.placeholder}
+                    rows={4}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'Kanit', fontSize: 14, outline: 'none', resize: 'vertical' }}
+                  />
+                ) : (
+                  <input
+                    value={(creating as any)[f.key] || ''}
+                    onChange={e => setCreating({ ...creating, [f.key]: e.target.value })}
+                    placeholder={f.placeholder}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'Kanit', fontSize: 14, outline: 'none' }}
+                  />
+                )}
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+              <button
+                onClick={() => setCreating(null)}
+                style={{ flex: 1, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, padding: '12px', fontFamily: 'Kanit', fontWeight: 600, color: '#64748B', cursor: 'pointer', fontSize: 14 }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={createBook}
+                disabled={saving}
+                style={{ flex: 2, background: '#16A34A', border: 'none', borderRadius: 10, padding: '12px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, cursor: 'pointer', fontSize: 14, opacity: saving ? 0.5 : 1 }}
+              >
+                {saving ? 'กำลังสร้าง...' : '➕ เพิ่มหนังสือ'}
               </button>
             </div>
           </div>
