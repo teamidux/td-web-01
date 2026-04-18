@@ -90,10 +90,9 @@ function SearchPage() {
         allResults = data1.results || []
         mq = data1.matchQuality || 'none'
 
-        // Fallback Google 1 page ถ้า DB ไม่มี exact match
-        // เดิมใช้ count >= 3 แต่ผิด — DB อาจมี 5 เล่มที่บังเอิญ substring match แต่ไม่ใช่เล่มที่หา
-        // ใช้ matchQuality='exact' แทน — ถ้า top result ตรง/prefix → ไม่ต้อง Google
-        if (mq !== 'exact') {
+        // Fallback Google — ถ้า DB เจอ ≤ 3 เล่ม ดึง Google เพิ่มเพื่อให้เห็น edition อื่นๆ
+        // (เคส: มีแต่ฉบับการ์ตูนใน DB แต่ user อยากได้ฉบับปกติด้วย)
+        if (allResults.length <= 3) {
           setExpanding(true)
           const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all&pages=1`, { signal: ctrl.signal })
           const data2 = await r2.json()
