@@ -96,37 +96,36 @@ export default function HomePage() {
     return () => { cancelled = true; clearTimeout(t) }
   }, [query])
 
-  // Round-robin per seller — กัน seller 1 คนยึดหน้าแรก + เพิ่ม variety
-  // รับ listings เยอะ (ตามวันที่) แล้วสลับสลับ seller + cap max per seller
-  const diversifyBySeller = (items: any[], maxPerSeller = 3, target = 12): any[] => {
-    const bySeller: Record<string, any[]> = {}
-    for (const l of items) {
-      const sid = l.seller_id || 'unknown'
-      if (!bySeller[sid]) bySeller[sid] = []
-      if (bySeller[sid].length < maxPerSeller) bySeller[sid].push(l)
-    }
+  // Diversify by seller — เดินตามลำดับใหม่สุด, cap per seller, fill ที่เหลือจาก skipped
+  // ผลลัพธ์: variety เมื่อมี seller หลายคน + fill ครบ 12 ถ้า seller น้อย
+  const diversifyBySeller = (items: any[], maxPerSeller = 4, target = 12): any[] => {
+    const used: Record<string, number> = {}
     const result: any[] = []
-    const sellers = Object.keys(bySeller)
-    let round = 0
-    while (result.length < target) {
-      let added = false
-      for (const s of sellers) {
-        if (bySeller[s][round]) {
-          result.push(bySeller[s][round])
-          added = true
-          if (result.length >= target) break
-        }
+    const skipped: any[] = []
+    // Pass 1: เดินตามลำดับใหม่สุด cap max ต่อ seller
+    for (const l of items) {
+      if (result.length >= target) break
+      const sid = l.seller_id || 'unknown'
+      const count = used[sid] || 0
+      if (count < maxPerSeller) {
+        result.push(l)
+        used[sid] = count + 1
+      } else {
+        skipped.push(l)
       }
-      if (!added) break
-      round++
+    }
+    // Pass 2: ถ้ายังไม่ครบ fill จาก skipped (ไม่สนใจ cap แล้ว)
+    for (const l of skipped) {
+      if (result.length >= target) break
+      result.push(l)
     }
     return result
   }
 
   const loadData = async () => {
     const [recentRes, { data: wanted }] = await Promise.all([
-      // ดึงเยอะหน่อย (40) เพื่อให้ diversify ใช้ได้แม้มี seller เยอะ
-      fetch('/api/listings/recent?limit=40'),
+      // ดึงเยอะหน่อย (50 = max) เพื่อให้ diversify ครอบคลุมทุก seller
+      fetch('/api/listings/recent?limit=50'),
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).order('created_at', { ascending: false }).limit(3),
     ])
     const { listings } = await recentRes.json()
