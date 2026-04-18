@@ -90,9 +90,11 @@ function SearchPage() {
         allResults = data1.results || []
         mq = data1.matchQuality || 'none'
 
-        // Fallback Google — ถ้า DB เจอ ≤ 3 เล่ม ดึง Google เพิ่มเพื่อให้เห็น edition อื่นๆ
-        // (เคส: มีแต่ฉบับการ์ตูนใน DB แต่ user อยากได้ฉบับปกติด้วย)
-        if (allResults.length <= 3) {
+        // Fallback Google — hybrid: ดึงเพิ่มเมื่อ DB ≤ 3 เล่ม OR top result ไม่ใช่ exact match
+        // - ≤ 3 เล่ม → อาจขาด edition (เช่น Atomic Habits มีแต่ฉบับการ์ตูน)
+        // - ไม่ exact → DB มีหลายเล่มแต่ไม่มีเล่มที่ user หา → ลอง Google
+        // - มี exact + ≥ 4 เล่ม → skip (ประหยัด quota)
+        if (allResults.length <= 3 || mq !== 'exact') {
           setExpanding(true)
           const r2 = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&mode=all&pages=1`, { signal: ctrl.signal })
           const data2 = await r2.json()
