@@ -7,6 +7,8 @@ node_modules/
 .next/
 out/
 build/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # env files — ห้าม commit เด็ดขาด
 .env
