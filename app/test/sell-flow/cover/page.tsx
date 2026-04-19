@@ -192,6 +192,8 @@ function SellFlowCoverPageInner() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   // user กด "ไม่ใช่" บน candidate question → ซ่อนไป (ไม่ถามอีก)
   const [dismissedCandidates, setDismissedCandidates] = useState(false)
+  // เปิด form แก้ไขข้อมูลหนังสือ (default ซ่อน — green card แสดงพอ)
+  const [showEditForm, setShowEditForm] = useState(false)
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
@@ -228,6 +230,7 @@ function SellFlowCoverPageInner() {
   useEffect(() => {
     if (!parsed) return
     setDismissedCandidates(false)
+    setShowEditForm(false)
     if (candidates.length > 0 && candidates[0].isCertain) {
       const top = candidates[0]
       setSelectedBookId(top.id)
@@ -259,6 +262,8 @@ function SellFlowCoverPageInner() {
     try {
       const b = await fileToBase64(file)
       setBase64(b)
+      // auto-analyze ทันทีหลังถ่าย/upload — ไม่ต้องกดปุ่ม
+      await analyze(b)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'ไม่สามารถอ่านไฟล์ได้')
     }
@@ -275,17 +280,18 @@ function SellFlowCoverPageInner() {
     if (uploadRef.current) uploadRef.current.value = ''
   }
 
-  async function analyze() {
-    if (!base64) return
+  async function analyze(inputBase64?: { data: string; mimeType: string }) {
+    const target = inputBase64 || base64
+    if (!target) return
     setLoading(true); setErr(null); setResp(null); setSelectedBookId(null)
     try {
       const r = await fetch('/api/test/sell-flow/scan', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: base64.data,
-          mimeType: base64.mimeType,
-          isbn: incomingIsbn || undefined,  // ถ้ามาจาก barcode fallback ส่ง ISBN ด้วย
+          imageBase64: target.data,
+          mimeType: target.mimeType,
+          isbn: incomingIsbn || undefined,
         }),
       })
       const j: ScanResp = await r.json()
@@ -454,7 +460,7 @@ function SellFlowCoverPageInner() {
           />
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              type="button" onClick={analyze} disabled={loading || !base64}
+              type="button" onClick={() => analyze()} disabled={loading || !base64}
               style={{ ...btn('primary'), flex: 1, opacity: loading ? 0.6 : 1 }}
             >
               {loading ? '⏳ กำลังอ่านปก...' : '🔍 วิเคราะห์'}
@@ -588,8 +594,49 @@ function SellFlowCoverPageInner() {
             )
           })()}
 
-          {/* Book info form — แสดงเฉพาะ Case B (user ตอบไม่ใช่) หรือ Case C (ไม่เจอ) */}
-          {!selectedBookId && (
+          {/* Case C / B-dismissed: green card แสดงข้อมูลจาก AI — เตรียมลงขายเลย */}
+          {!selectedBookId && (dismissedCandidates || candidates.length === 0) && !showEditForm && (
+            <div style={{
+              background: 'var(--green-bg)', border: '1px solid #BBF7D0',
+              borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14,
+              display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start',
+            }}>
+              {preview && (
+                <img src={preview} alt="" style={{ width: 68, height: 102, objectFit: 'cover', borderRadius: 6, background: '#e2e8f0', flexShrink: 0 }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>
+                  {form.title || '(ไม่มีชื่อ)'}
+                </div>
+                {form.authors && (
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{form.authors}
+                  </div>
+                )}
+                {form.publisher && (
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ color: 'var(--ink3)' }}>สำนักพิมพ์ </span>{form.publisher}
+                  </div>
+                )}
+                <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>
+                  ✓ อ่านปกสำเร็จ
+                </span>
+              </div>
+              <button
+                type="button" onClick={() => setShowEditForm(true)}
+                style={{
+                  background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                  padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600,
+                  color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0,
+                }}
+              >
+                แก้ไข
+              </button>
+            </div>
+          )}
+
+          {/* Book info form — แสดงเฉพาะเมื่อ user กด "แก้ไข" หรือยังตอบ question อยู่ */}
+          {!selectedBookId && (showEditForm || (!dismissedCandidates && candidates.length > 0)) && (
           <section style={card}>
             <div style={sectionLabel}>
               📖 ข้อมูลหนังสือ
