@@ -67,6 +67,10 @@ async function searchDuplicates(queries: string[]): Promise<Candidate[]> {
 }
 
 export async function POST(req: NextRequest) {
+  // Feature flag — ปิดใน production ถ้าไม่ได้ enable
+  if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
+    return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
+  }
   let body: { imageBase64?: string; mimeType?: string; model?: string; isbn?: string }
   try {
     body = await req.json()

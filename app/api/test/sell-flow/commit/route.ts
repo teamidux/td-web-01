@@ -13,8 +13,9 @@ export const dynamic = 'force-dynamic'
 
 const ALLOWED_CONFIDENCE = new Set(['high', 'medium', 'low'])
 const ALLOWED_CONDITION = new Set(['brand_new', 'new', 'good', 'fair'])
-// source = 'vision_test' ระหว่างเทส; พอ go live เปลี่ยนเป็น 'vision'
-const SOURCE_TAG = 'vision_test'
+// source = 'vision' → ลงจริง tag ใน books.source
+// ถ้าต้องการ isolate เทสเพิ่ม → เปลี่ยนเป็น 'vision_test' (filter ง่าย)
+const SOURCE_TAG = 'vision'
 
 function db() {
   return createClient(
@@ -28,6 +29,9 @@ function synthIsbn(): string {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
+    return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
+  }
   let user = await getSessionUser()
   // Dev-only bypass: บน localhost LINE OAuth callback ใช้ไม่ได้ → fall back admin user
   // กัน prod โดย require NODE_ENV=development + ADMIN_USER_IDS set

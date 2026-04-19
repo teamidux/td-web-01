@@ -826,6 +826,24 @@ function SellPage() {
                     </div>
                     <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
+                  {/* ถ่ายหน้าปก shortcut — แสดงเฉพาะเมื่อเปิด feature flag */}
+                  {process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' && (
+                    <a
+                      href={`/test/sell-flow/cover?isbn=${encodeURIComponent(isbn)}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                        background: 'var(--primary-light)', border: '1px solid var(--primary)',
+                        borderRadius: 10, marginBottom: 12, textDecoration: 'none',
+                      }}
+                    >
+                      <span style={{ fontSize: 22 }}>📷</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)' }}>ถ่ายหน้าปกให้ AI ช่วยกรอก 🆕</div>
+                        <div style={{ fontSize: 12, color: 'var(--primary-strong)' }}>ไม่ต้องพิมพ์ชื่อ/ผู้แต่งเอง</div>
+                      </div>
+                      <span style={{ fontSize: 18, color: 'var(--primary)' }}>→</span>
+                    </a>
+                  )}
                   <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
                     <div style={{ fontSize: 14, color: '#1E40AF', lineHeight: 1.7 }}>
                       หนังสือบางเล่มอาจเป็นสำนักพิมพ์อิสระ, หนังสือเก่า, หรือไม่ได้ขึ้นทะเบียน ISBN — กรอกข้อมูลด้านล่างเพื่อเพิ่มเข้าระบบได้เลย 🙏

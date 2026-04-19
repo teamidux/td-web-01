@@ -4,6 +4,14 @@
 import Link from 'next/link'
 
 export default function SellFlowEntryPage() {
+  if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+        <div style={{ fontSize: 16 }}>ฟีเจอร์นี้ยังไม่เปิดให้บริการ</div>
+      </div>
+    )
+  }
   return (
     <div style={{ padding: 16, paddingBottom: 80 }}>
       <header style={{ marginBottom: 20 }}>

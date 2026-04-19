@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
+  if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
+    return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
+  }
   let body: { imageBase64?: string; mimeType?: string; model?: string }
   try {
     body = await req.json()

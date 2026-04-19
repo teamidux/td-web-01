@@ -3,10 +3,12 @@
 // Save จริงเข้า DB แต่ tag source='vision_test' — filter/ลบทีหลังได้
 // เข้าถึง: /test/sell-flow/cover (ไม่ link จากหน้าหลัก)
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
+import { BookCover } from '@/components/ui'
 
 const CONDITIONS = [
   { key: 'brand_new', label: '🆕 มือหนึ่ง', desc: 'ยังไม่ผ่านการใช้งาน' },
@@ -150,7 +152,26 @@ async function fileToBase64(file: File, maxEdge = 1600, quality = 0.85): Promise
 }
 
 export default function SellFlowCoverPage() {
+  if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+        <div style={{ fontSize: 16 }}>ฟีเจอร์นี้ยังไม่เปิดให้บริการ</div>
+      </div>
+    )
+  }
+  // useSearchParams ต้องอยู่ใน Suspense ใน Next.js 14 app router
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>⏳</div>}>
+      <SellFlowCoverPageInner />
+    </Suspense>
+  )
+}
+
+function SellFlowCoverPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const incomingIsbn = searchParams.get('isbn') || ''
   const { user, loading: authLoading, loginWithLine } = useAuth()
   const [preview, setPreview] = useState<string | null>(null)
   const [base64, setBase64] = useState<{ data: string; mimeType: string } | null>(null)
@@ -225,7 +246,7 @@ export default function SellFlowCoverPage() {
         publisher: parsed.publisher || '',
         language: parsed.language || 'th',
         edition: parsed.edition || '',
-        isbn: '',
+        isbn: incomingIsbn || '',  // carry ISBN จาก barcode scan ถ้ามี
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,6 +285,7 @@ export default function SellFlowCoverPage() {
         body: JSON.stringify({
           imageBase64: base64.data,
           mimeType: base64.mimeType,
+          isbn: incomingIsbn || undefined,  // ถ้ามาจาก barcode fallback ส่ง ISBN ด้วย
         }),
       })
       const j: ScanResp = await r.json()
@@ -514,15 +536,65 @@ export default function SellFlowCoverPage() {
             </section>
           )}
 
-          {/* Case A (ตรงเป๊ะ) silent — ไม่แสดงอะไร ผู้ใช้ดูจาก section header ของฟอร์ม "(จากระบบ)"
-              ถ้าเลือกผิดเล่ม: แก้ field เอง หรือถ่ายใหม่ได้ */}
+          {/* Case A (ตรงเป๊ะ): green card สไตล์ /sell เดิม — ไม่ต้องมี book info form */}
+          {selectedBookId && candidates.find(c => c.id === selectedBookId) && (() => {
+            const cand = candidates.find(c => c.id === selectedBookId)!
+            return (
+              <div style={{
+                background: 'var(--green-bg)', border: '1px solid #BBF7D0',
+                borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14,
+                display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start',
+              }}>
+                <BookCover isbn={cand.isbn || undefined} coverUrl={cand.cover_url || undefined} title={cand.title} size={68} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>
+                    {cand.title}
+                  </div>
+                  {cand.author && (
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                      <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{cand.author}
+                    </div>
+                  )}
+                  <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>
+                    ✓ ดึงข้อมูลสำเร็จ
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBookId(null)
+                    setDismissedCandidates(true)
+                    if (parsed) {
+                      setForm({
+                        title: parsed.title || '',
+                        subtitle: parsed.subtitle || '',
+                        authors: parsed.authors?.join(', ') || '',
+                        publisher: parsed.publisher || '',
+                        language: parsed.language || 'th',
+                        edition: parsed.edition || '',
+                        isbn: '',
+                      })
+                    }
+                  }}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                    padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600,
+                    color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0,
+                  }}
+                >
+                  เปลี่ยน
+                </button>
+              </div>
+            )
+          })()}
 
-          {/* Form */}
+          {/* Book info form — แสดงเฉพาะ Case B (user ตอบไม่ใช่) หรือ Case C (ไม่เจอ) */}
+          {!selectedBookId && (
           <section style={card}>
             <div style={sectionLabel}>
               📖 ข้อมูลหนังสือ
               <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
-                {selectedBookId ? '(จากระบบ — เพิ่มข้อมูลที่ขาดได้)' : '(จาก AI — แก้ไขได้)'}
+                (จาก AI — แก้ไขได้)
               </span>
             </div>
             <FormField
@@ -560,6 +632,7 @@ export default function SellFlowCoverPage() {
               hint="ว่างได้ ถ้าไม่มีบาร์โค้ด"
             />
           </section>
+          )}
 
           {/* Sell fields — สไตล์เดียวกับ /sell เดิม */}
           <section style={card}>
