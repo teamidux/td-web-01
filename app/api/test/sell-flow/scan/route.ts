@@ -25,23 +25,45 @@ type Candidate = {
   score: number
 }
 
-async function searchDuplicates(title: string): Promise<Candidate[]> {
+// Multi-query dedup: ค้นด้วย AI title, combined title+subtitle, subtitle
+// รวม candidates จากทุก query → dedup ตาม book.id → คง max score ต่อเล่ม
+// แก้เคส AI split title/subtitle ไม่ตรงกับ DB (DB อาจ merge ไว้)
+async function searchDuplicates(queries: string[]): Promise<Candidate[]> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  const { data, error } = await supabase.rpc('search_books', { q: title, result_limit: 5 })
-  if (error) {
-    console.warn('[sell-flow/scan] search_books error:', error.message)
-    return []
-  }
-  return (data || []).map((r: {
-    id: string; isbn: string | null; title: string; author: string | null;
-    cover_url: string | null; score: number
-  }) => ({
-    id: r.id, isbn: r.isbn, title: r.title, author: r.author,
-    cover_url: r.cover_url, score: r.score,
+  const uniqueQueries = Array.from(new Set(queries.map(q => q.trim()).filter(q => q.length >= 2)))
+  if (uniqueQueries.length === 0) return []
+
+  const results = await Promise.all(uniqueQueries.map(async q => {
+    const { data, error } = await supabase.rpc('search_books', { q, result_limit: 5 })
+    if (error) {
+      console.warn('[sell-flow/scan] search_books error:', error.message)
+      return [] as unknown[]
+    }
+    return (data || []) as unknown[]
   }))
+
+  // Merge: เก็บ max score ต่อ book.id
+  const byId = new Map<string, Candidate>()
+  for (const rows of results) {
+    for (const raw of rows) {
+      const r = raw as {
+        id: string; isbn: string | null; title: string; author: string | null;
+        cover_url: string | null; score: number
+      }
+      const existing = byId.get(r.id)
+      if (!existing || r.score > existing.score) {
+        byId.set(r.id, {
+          id: r.id, isbn: r.isbn, title: r.title, author: r.author,
+          cover_url: r.cover_url, score: r.score,
+        })
+      }
+    }
+  }
+  // Sort desc by score, top 5
+  return Array.from(byId.values()).sort((a, b) => b.score - a.score).slice(0, 5)
 }
 
 export async function POST(req: NextRequest) {
@@ -93,10 +115,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ถ้า ISBN ไม่เจอ (หรือไม่มี ISBN) → ใช้ title จาก AI
+    // ถ้า ISBN ไม่เจอ (หรือไม่มี ISBN) → multi-query ด้วย title + subtitle + combined
     if (candidates.length === 0 && extract.parsed?.title) {
       const t0 = Date.now()
-      candidates = await searchDuplicates(extract.parsed.title)
+      const title = extract.parsed.title
+      const subtitle = extract.parsed.subtitle || ''
+      const queries = [
+        title,
+        subtitle ? `${title} ${subtitle}` : '',
+        subtitle,
+      ].filter(Boolean)
+      candidates = await searchDuplicates(queries)
       dedup_duration_ms += Date.now() - t0
       searched_by = 'title'
     }

@@ -2,7 +2,7 @@
 // Sell flow v2: Cover capture + AI extract + dedup + sell form + save
 // Save จริงเข้า DB แต่ tag source='vision_test' — filter/ลบทีหลังได้
 // เข้าถึง: /test/sell-flow/cover (ไม่ link จากหน้าหลัก)
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -76,14 +76,39 @@ function normStrict(s: string): string {
     .trim()
 }
 
-// Match แน่นอนถ้า: normalized title เหมือนเป๊ะ
-// หรือ score ≥ 0.85 AND length ratio ≥ 0.7 (กัน short query match long title)
-function isCertainMatch(aiTitle: string, dbTitle: string, score: number): boolean {
+// Author compatibility: ถ้าทั้ง 2 ข้างมี author → substring check (ลบ whitespace)
+// ถ้าข้างใดข้างหนึ่งว่าง → unknown ยอมผ่าน (ใช้ title เป็นหลัก)
+// ป้องกันเคส AI title สั้น prefix-match DB ของเล่มต่างเรื่อง (แต่ผู้เขียนคนละคน)
+function authorsCompatible(aiAuthors: string[] | null | undefined, dbAuthor: string | null | undefined): boolean {
+  if (!aiAuthors || aiAuthors.length === 0) return true
+  if (!dbAuthor || !dbAuthor.trim()) return true
+  const dbNorm = normStrict(dbAuthor)
+  if (!dbNorm) return true
+  for (const a of aiAuthors) {
+    const aNorm = normStrict(a)
+    if (!aNorm) continue
+    if (dbNorm.includes(aNorm) || aNorm.includes(dbNorm)) return true
+  }
+  return false
+}
+
+// Match แน่นอนถ้า:
+//   1) normalized title เหมือนเป๊ะ (+ author ไม่ขัด)
+//   2) score ≥ 0.85 AND author compatible AND (gap ≥ 0.4 OR ratio ≥ 0.7)
+//      → author check กัน prefix-match ของเล่มคนละเรื่อง
+function isCertainMatch(
+  aiTitle: string, dbTitle: string, score: number,
+  aiAuthors: string[] | null, dbAuthor: string | null,
+  secondScore?: number,
+): boolean {
   const a = normStrict(aiTitle)
   const b = normStrict(dbTitle)
   if (!a || !b) return false
-  if (a === b) return true
+  const authorOk = authorsCompatible(aiAuthors, dbAuthor)
+  if (a === b) return authorOk
   if (score < 0.85) return false
+  if (!authorOk) return false
+  if (secondScore !== undefined && (score - secondScore) >= 0.4) return true
   const ratio = Math.min(a.length, b.length) / Math.max(a.length, b.length)
   return ratio >= 0.7
 }
@@ -144,6 +169,8 @@ export default function SellFlowCoverPage() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  // user กด "ไม่ใช่" บน candidate question → ซ่อนไป (ไม่ถามอีก)
+  const [dismissedCandidates, setDismissedCandidates] = useState(false)
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
@@ -152,29 +179,57 @@ export default function SellFlowCoverPage() {
   const confidence = parsed?.confidence
   const rawCandidates = resp?.dedup?.candidates ?? []
 
-  // Post-process: เช็คว่าเป็น "match แน่นอน" จริงๆ ไม่ใช่แค่ prefix match
-  // เคสปัญหา: AI title "ฮวงจุ้ย" match "ฮวงจุ้ย ศาสตร์..." ได้ 100% ทั้งที่คนละเล่ม
-  // แก้: normalize strict + เช็ค length ratio
+  // Post-process:
+  // 1) ตัด candidate ที่ score < 30% ทิ้ง (ต่ำเกินไป = น่าจะไม่เกี่ยวกัน ไม่ต้องโชว์)
+  // 2) mark isCertain ด้วย normalize strict + length ratio
   const aiTitle = parsed?.title || ''
-  const candidates = rawCandidates.map(c => ({
+  const aiAuthors = parsed?.authors || null
+  const filtered = rawCandidates
+    .filter(c => c.score >= 0.30)
+    // ตัดเล่มที่ author ขัดกันชัด (ทั้ง 2 ข้างมี author + substring ไม่ตรง)
+    // → กัน prefix-match ของเล่มคนละเรื่อง (101 วิธี..., ดูนก...)
+    .filter(c => authorsCompatible(aiAuthors, c.author))
+  const candidates = filtered.map((c, i) => ({
     ...c,
-    isCertain: isCertainMatch(aiTitle, c.title, c.score),
+    isCertain: isCertainMatch(
+      aiTitle, c.title, c.score, aiAuthors, c.author,
+      i === 0 ? filtered[1]?.score : undefined,
+    ),
   }))
   const hasTopMatch = candidates.length > 0 && candidates[0].isCertain
 
-  // Auto-fill form เมื่อ AI extract สำเร็จ
   const autoFilled = !!parsed
-  if (parsed && form.title === '' && form.authors === '') {
-    setForm({
-      title: parsed.title || '',
-      subtitle: parsed.subtitle || '',
-      authors: parsed.authors?.join(', ') || '',
-      publisher: parsed.publisher || '',
-      language: parsed.language || 'th',
-      edition: parsed.edition || '',
-      isbn: '',
-    })
-  }
+
+  // Auto-fill form + auto-select เมื่อ scan เสร็จ
+  // - ถ้าเจอ certain match → เลือกเล่มนั้นอัตโนมัติ + fill ด้วย DB data
+  // - ถ้าไม่เจอ certain → สร้างใหม่ fill ด้วย AI data
+  // ทำแค่ครั้งเดียวต่อ scan (dep = resp) — ถ้า user toggle ทีหลังไม่ re-trigger
+  useEffect(() => {
+    if (!parsed) return
+    setDismissedCandidates(false)
+    if (candidates.length > 0 && candidates[0].isCertain) {
+      const top = candidates[0]
+      setSelectedBookId(top.id)
+      setForm({
+        title: top.title, subtitle: '',
+        authors: top.author || '', publisher: '',
+        language: 'th', edition: '',
+        isbn: top.isbn || '',
+      })
+    } else {
+      setSelectedBookId(null)
+      setForm({
+        title: parsed.title || '',
+        subtitle: parsed.subtitle || '',
+        authors: parsed.authors?.join(', ') || '',
+        publisher: parsed.publisher || '',
+        language: parsed.language || 'th',
+        edition: parsed.edition || '',
+        isbn: '',
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resp])
 
   async function onPick(file: File | null) {
     if (!file) return
@@ -221,7 +276,25 @@ export default function SellFlowCoverPage() {
     }
   }
 
-  function useThisBook(cand: Candidate) {
+  // Toggle select: กดเล่มเดิมซ้ำ = ยกเลิก (กลับไปใช้ข้อมูล AI สร้างใหม่)
+  function toggleBook(cand: Candidate) {
+    if (selectedBookId === cand.id) {
+      // deselect → กลับไปใช้ข้อมูล AI
+      setSelectedBookId(null)
+      if (parsed) {
+        setForm({
+          title: parsed.title || '',
+          subtitle: parsed.subtitle || '',
+          authors: parsed.authors?.join(', ') || '',
+          publisher: parsed.publisher || '',
+          language: parsed.language || 'th',
+          edition: parsed.edition || '',
+          isbn: '',
+        })
+      }
+      return
+    }
+    // select → ใช้ข้อมูล DB
     setSelectedBookId(cand.id)
     setForm({
       title: cand.title,
@@ -232,21 +305,6 @@ export default function SellFlowCoverPage() {
       edition: '',
       isbn: cand.isbn || '',
     })
-  }
-
-  function createNewInstead() {
-    setSelectedBookId(null)
-    if (parsed) {
-      setForm({
-        title: parsed.title || '',
-        subtitle: parsed.subtitle || '',
-        authors: parsed.authors?.join(', ') || '',
-        publisher: parsed.publisher || '',
-        language: parsed.language || 'th',
-        edition: parsed.edition || '',
-        isbn: '',
-      })
-    }
   }
 
   // Dev mode bypass — บน localhost LINE OAuth ใช้ไม่ได้ → ยอมให้เทสแบบไม่ login
@@ -418,166 +476,162 @@ export default function SellFlowCoverPage() {
             </div>
           )}
 
-          {/* Dedup section */}
-          {candidates.length > 0 && (
-            <section style={card}>
-              <div style={sectionLabel}>
-                {hasTopMatch
-                  ? '✅ พบหนังสือนี้ในระบบแล้ว'
-                  : '🤔 อาจมีในระบบ — กรุณาตรวจสอบเองก่อนเลือก'}
+          {/* ─── Dedup: แสดงเฉพาะตอน "ไม่แน่ใจ" — ถามใช่/ไม่ใช่ ─── */}
+          {/* เจอแน่ (hasTopMatch) → silent auto-select ไม่ต้องถาม */}
+          {/* ไม่เจอเลย → silent, form จาก AI */}
+          {/* มี candidates แต่ไม่ certain AND user ยังไม่ตอบ → ถาม */}
+          {!hasTopMatch && candidates.length > 0 && !dismissedCandidates && !selectedBookId && (
+            <section style={{ ...card, background: '#fef9c3', border: '1px solid #fde68a' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#713f12', marginBottom: 10 }}>
+                📚 ใช่หนังสือเล่มเดียวกันไหม?
               </div>
-              {candidates.map(cand => (
-                <div
-                  key={cand.id}
-                  style={{
-                    display: 'flex', gap: 12, padding: 12, marginBottom: 10,
-                    minHeight: 96,
-                    border: selectedBookId === cand.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                    borderRadius: 12, background: selectedBookId === cand.id ? 'var(--primary-light)' : 'white',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => useThisBook(cand)}
+              <CandidateCard
+                cand={candidates[0]}
+                selected={false}
+                onClick={() => toggleBook(candidates[0])}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => toggleBook(candidates[0])}
+                  style={{ ...btn('primary'), flex: 1 }}
                 >
-                  <div style={{ width: 56, height: 76, background: '#e2e8f0', borderRadius: 6, flexShrink: 0, overflow: 'hidden' }}>
-                    {cand.cover_url && <img src={cand.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {cand.title}
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.4 }}>
-                      {cand.author || '—'}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.4 }}>
-                      {cand.isCertain
-                        ? <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓ ตรงกันแน่นอน</span>
-                        : <>ความคล้าย: <strong style={{ color: 'var(--accent-dark)' }}>{Math.round(cand.score * 100)}%</strong></>
-                      }
-                      {cand.isbn && ` · ISBN ${cand.isbn}`}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {selectedBookId && (
-                <button type="button" onClick={createNewInstead} style={{ ...btn('ghost'), width: '100%', marginTop: 4 }}>
-                  ไม่ใช่ — สร้างเป็นหนังสือใหม่
+                  ใช่ — ใช้ข้อมูลร่วม
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedCandidates(true)}
+                  style={{ ...btn('ghost'), flex: 1 }}
+                >
+                  ไม่ใช่ — เพิ่มใหม่
+                </button>
+              </div>
+              {candidates.length > 1 && (
+                <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 10 }}>
+                  (มีเล่มคล้ายอีก {candidates.length - 1} เล่ม — ถ้าไม่ใช่กดไม่ใช่ แล้วลองใหม่ได้)
+                </div>
               )}
             </section>
           )}
 
-          {candidates.length === 0 && (
-            <div style={{ ...card, background: 'var(--primary-light)', border: '1px solid var(--primary)', color: 'var(--primary-strong)', fontSize: 14, lineHeight: 1.6 }}>
-              🆕 <strong>ไม่พบในระบบ</strong> — จะสร้างเป็นหนังสือใหม่
-            </div>
-          )}
+          {/* Case A (ตรงเป๊ะ) silent — ไม่แสดงอะไร ผู้ใช้ดูจาก section header ของฟอร์ม "(จากระบบ)"
+              ถ้าเลือกผิดเล่ม: แก้ field เอง หรือถ่ายใหม่ได้ */}
 
           {/* Form */}
           <section style={card}>
             <div style={sectionLabel}>
-              {selectedBookId ? 'ข้อมูลจากระบบ (แก้ไขไม่ได้)' : 'ข้อมูลจาก AI (แก้ไขได้)'}
+              📖 ข้อมูลหนังสือ
+              <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
+                {selectedBookId ? '(จากระบบ — เพิ่มข้อมูลที่ขาดได้)' : '(จาก AI — แก้ไขได้)'}
+              </span>
             </div>
             <FormField
               label="ชื่อหนังสือ *"
               value={form.title}
               onChange={v => setForm(s => ({ ...s, title: v }))}
-              required readOnly={!!selectedBookId}
+              required
             />
             <FormField
               label="ชื่อรอง"
               value={form.subtitle}
               onChange={v => setForm(s => ({ ...s, subtitle: v }))}
-              readOnly={!!selectedBookId}
             />
             <FormField
               label="ผู้แต่ง *"
               value={form.authors}
               onChange={v => setForm(s => ({ ...s, authors: v }))}
               hint="คั่นด้วย comma ถ้ามีหลายคน"
-              required readOnly={!!selectedBookId}
+              required
             />
             <FormField
               label="สำนักพิมพ์"
               value={form.publisher}
               onChange={v => setForm(s => ({ ...s, publisher: v }))}
-              readOnly={!!selectedBookId}
             />
             <FormField
               label="พิมพ์ครั้งที่"
               value={form.edition}
               onChange={v => setForm(s => ({ ...s, edition: v }))}
-              readOnly={!!selectedBookId}
             />
             <FormField
               label="ISBN"
               value={form.isbn}
               onChange={v => setForm(s => ({ ...s, isbn: v }))}
               hint="ว่างได้ ถ้าไม่มีบาร์โค้ด"
-              readOnly={!!selectedBookId}
             />
           </section>
 
-          {/* Sell fields */}
+          {/* Sell fields — สไตล์เดียวกับ /sell เดิม */}
           <section style={card}>
             <div style={sectionLabel}>💰 รายละเอียดที่ลงขาย</div>
 
-            <div style={{ marginBottom: 14 }}>
-              <label className="label">สภาพหนังสือ *</label>
-              <div style={{ display: 'grid', gap: 8 }}>
+            <div className="form-group">
+              <label className="label">สภาพหนังสือ</label>
+              <div style={{ display: 'flex', gap: 7 }}>
                 {CONDITIONS.map(c => (
                   <button
-                    key={c.key} type="button"
-                    onClick={() => setCond(c.key)}
+                    key={c.key} type="button" onClick={() => setCond(c.key)}
                     style={{
-                      textAlign: 'left', padding: '12px 14px', borderRadius: 12,
-                      border: cond === c.key ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      flex: 1, padding: '10px 6px', borderRadius: 10,
+                      border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`,
                       background: cond === c.key ? 'var(--primary-light)' : 'white',
-                      fontFamily: "'Kanit', sans-serif", cursor: 'pointer', minHeight: 48,
+                      fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      color: cond === c.key ? 'var(--primary-dark)' : 'var(--ink2)',
                     }}
                   >
-                    <div style={{ fontSize: 15, fontWeight: 600 }}>{c.label}</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>{c.desc}</div>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
+                {CONDITIONS.find(c => c.key === cond)?.desc}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="label">หมายเหตุเพิ่มเติม <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+              <textarea
+                className="input" value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ"
+                rows={2} style={{ resize: 'none', lineHeight: 1.6 }}
+              />
+            </div>
+
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
+              <label className="label">ราคาขาย (บาท)</label>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink3)' }}>฿</span>
+                <input className="input" type="number" inputMode="numeric" min="1"
+                  value={price} onChange={e => setPrice(e.target.value)} placeholder="150" />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="label">ค่าส่ง</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { val: false, label: 'ไม่รวมค่าส่ง' },
+                  { val: true,  label: 'ส่งฟรี' },
+                ].map(opt => (
+                  <button key={String(opt.val)} type="button" onClick={() => setIncludesShipping(opt.val)}
+                    style={{
+                      flex: 1, padding: '10px 8px', borderRadius: 10,
+                      border: `1.5px solid ${includesShipping === opt.val ? 'var(--primary)' : 'var(--border)'}`,
+                      background: includesShipping === opt.val ? 'var(--primary-light)' : 'white',
+                      fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                      color: includesShipping === opt.val ? 'var(--primary-dark)' : 'var(--ink2)',
+                    }}
+                  >
+                    {opt.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <label className="label">ราคา (บาท) *</label>
-              <input
-                className="input" type="number" inputMode="numeric" min="1"
-                value={price} onChange={e => setPrice(e.target.value)}
-                placeholder="เช่น 150"
-              />
-            </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', minHeight: 44 }}>
-              <input
-                type="checkbox" checked={includesShipping}
-                onChange={e => setIncludesShipping(e.target.checked)}
-                style={{ width: 20, height: 20, cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: 15 }}>ราคานี้รวมค่าส่งแล้ว</span>
-            </label>
-
-            <div style={{ marginBottom: 14 }}>
-              <label className="label">ช่องทางติดต่อ *</label>
-              <input
-                className="input" type="text"
-                value={contact} onChange={e => setContact(e.target.value)}
-                placeholder="เบอร์โทร / LINE ID"
-              />
-            </div>
-
-            <div style={{ marginBottom: 4 }}>
-              <label className="label">หมายเหตุ (ไม่บังคับ)</label>
-              <textarea
-                className="input"
-                value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="เช่น มีรอยเล็กน้อยที่มุม"
-                rows={3}
-                style={{ minHeight: 80, paddingTop: 12, paddingBottom: 12, resize: 'vertical' }}
-              />
+            <div className="form-group">
+              <label className="label">ช่องทางติดต่อ</label>
+              <input className="input" type="text" value={contact}
+                onChange={e => setContact(e.target.value)} placeholder="เบอร์โทร / LINE ID" />
             </div>
           </section>
 
@@ -624,6 +678,46 @@ export default function SellFlowCoverPage() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function CandidateCard({
+  cand, selected, onClick,
+}: {
+  cand: EnrichedCandidate
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', gap: 12, padding: 12, marginBottom: 8,
+        minHeight: 96,
+        border: selected ? '2px solid var(--primary)' : '1px solid var(--border)',
+        borderRadius: 12, background: selected ? 'var(--primary-light)' : 'white',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ width: 56, height: 76, background: '#e2e8f0', borderRadius: 6, flexShrink: 0, overflow: 'hidden' }}>
+        {cand.cover_url && <img src={cand.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {cand.title}
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.4 }}>
+          {cand.author || '—'}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.4 }}>
+          {cand.isCertain
+            ? <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓ ตรงกันแน่นอน</span>
+            : <>ความคล้าย: <strong style={{ color: 'var(--accent-dark)' }}>{Math.round(cand.score * 100)}%</strong></>
+          }
+          {cand.isbn && ` · ISBN ${cand.isbn}`}
+        </div>
+      </div>
     </div>
   )
 }

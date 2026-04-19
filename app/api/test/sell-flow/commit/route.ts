@@ -85,6 +85,21 @@ export async function POST(req: NextRequest) {
   let bookId = existing_book_id
   let isNewBook = false
 
+  // ถ้า user เลือก existing book — UPDATE เฉพาะ field ที่ DB ยังว่าง
+  // (เพื่อให้ user เติม author/publisher ที่หายได้ โดยไม่ทับข้อมูลดี)
+  if (bookId) {
+    const { data: current } = await sb.from('books')
+      .select('author, publisher').eq('id', bookId).maybeSingle()
+    if (current) {
+      const updates: Record<string, string> = {}
+      if (!current.author && author) updates.author = author
+      if (!current.publisher && publisher) updates.publisher = publisher
+      if (Object.keys(updates).length > 0) {
+        await sb.from('books').update(updates).eq('id', bookId)
+      }
+    }
+  }
+
   // Create book if not reusing existing
   if (!bookId) {
     const isbn = isbn_in || synthIsbn()
