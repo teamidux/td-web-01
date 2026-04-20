@@ -187,6 +187,9 @@ function SellFlowCoverPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const incomingIsbn = searchParams.get('isbn') || ''
+  // Silent mode = มาจาก barcode miss (/sell → redirect) — ซ่อน UI cover-scan ทั้งหมด
+  // user ไม่ควรรู้ว่ามี cover scan step เกิดขึ้น ให้เหมือน sell flow ปกติ
+  const silentMode = !!incomingIsbn
   const { user, loading: authLoading, loginWithLine, reloadUser } = useAuth()
   const [preview, setPreview] = useState<string | null>(null)
   const [base64, setBase64] = useState<{ data: string; mimeType: string } | null>(null)
@@ -219,6 +222,8 @@ function SellFlowCoverPageInner() {
   const [dismissedCandidates, setDismissedCandidates] = useState(false)
   // เปิด form แก้ไขข้อมูลหนังสือ (default ซ่อน — green card แสดงพอ)
   const [showEditForm, setShowEditForm] = useState(false)
+  // Snapshot ค่า form ก่อนกดแก้ไข → กด "ยกเลิก" แล้วย้อนกลับได้
+  const formSnapshotRef = useRef<FormData | null>(null)
   // Extra photos (เพิ่มเติมจากรูปปกที่สแกน) — max 4 extra (+1 cover = 5 total)
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [extraPreviews, setExtraPreviews] = useState<string[]>([])
@@ -534,7 +539,7 @@ function SellFlowCoverPageInner() {
         <h1 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35, letterSpacing: '-0.02em' }}>
           ลงขายหนังสือ
         </h1>
-        {incomingIsbn && !preview && (
+        {incomingIsbn && !preview && !silentMode && (
           <div style={{ marginTop: 10, background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 18 }}>📷</span>
             <div>
@@ -548,15 +553,7 @@ function SellFlowCoverPageInner() {
       {/* ─── Capture section ─── */}
       {!preview && (
         <>
-          <div style={tipsBox}>
-            💡 <strong>เคล็ดลับถ่ายปก</strong>
-            <ul style={{ margin: '8px 0 0 20px', fontSize: 14, lineHeight: 1.7 }}>
-              <li>ถ่ายหน้าตรง ให้ปกเต็มกรอบ</li>
-              <li>ถ้าปกสะท้อนแสง ลองหามุมเอียงใหม่</li>
-              <li>ถ่ายในที่สว่างพอ</li>
-            </ul>
-          </div>
-
+          {/* Inputs ต้อง mount เสมอ — auto-click camera ใน silentMode ต้องใช้ ref */}
           <input
             ref={cameraRef} type="file" accept="image/*" capture="environment"
             onChange={e => onPick(e.target.files?.[0] ?? null)} style={{ display: 'none' }}
@@ -565,19 +562,31 @@ function SellFlowCoverPageInner() {
             ref={uploadRef} type="file" accept="image/*"
             onChange={e => onPick(e.target.files?.[0] ?? null)} style={{ display: 'none' }}
           />
-          <div style={{ display: 'grid', gap: 8 }}>
-            <button type="button" onClick={() => cameraRef.current?.click()} style={btn('primary')}>
-              📷 ถ่ายรูปปก
-            </button>
-            <button type="button" onClick={() => uploadRef.current?.click()} style={btn('secondary')}>
-              🖼️ อัปโหลดจากคลัง
-            </button>
-          </div>
+          {!silentMode && (
+            <>
+              <div style={tipsBox}>
+                💡 <strong>เคล็ดลับถ่ายปก</strong>
+                <ul style={{ margin: '8px 0 0 20px', fontSize: 14, lineHeight: 1.7 }}>
+                  <li>ถ่ายหน้าตรง ให้ปกเต็มกรอบ</li>
+                  <li>ถ้าปกสะท้อนแสง ลองหามุมเอียงใหม่</li>
+                  <li>ถ่ายในที่สว่างพอ</li>
+                </ul>
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <button type="button" onClick={() => cameraRef.current?.click()} style={btn('primary')}>
+                  📷 ถ่ายรูปปก
+                </button>
+                <button type="button" onClick={() => uploadRef.current?.click()} style={btn('secondary')}>
+                  🖼️ อัปโหลดจากคลัง
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
 
-      {/* ─── Loading overlay — auto-analyze หลังถ่าย ไม่ต้องกดปุ่ม ─── */}
-      {loading && preview && (
+      {/* ─── Loading: silent mode = inline เล็กๆ / ปกติ = full-screen overlay ─── */}
+      {loading && preview && !silentMode && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.92)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -590,6 +599,19 @@ function SellFlowCoverPageInner() {
           </div>
           <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 8 }}>
             ประมาณ 3–5 วินาที
+          </div>
+        </div>
+      )}
+      {/* Silent mode: แสดงแค่ preview + small spinner (ดูเหมือนอัปโหลดรูปปกติ) */}
+      {loading && preview && silentMode && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: 14,
+          background: 'white', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 12,
+        }}>
+          <img src={preview} alt="" style={{ width: 56, height: 80, objectFit: 'cover', borderRadius: 6 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)', fontSize: 14, fontWeight: 500 }}>
+            <span className="spin" style={{ width: 16, height: 16 }} />
+            กำลังประมวลผล...
           </div>
         </div>
       )}
@@ -730,11 +752,15 @@ function SellFlowCoverPageInner() {
                   </div>
                 )}
                 <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>
-                  ✓ อ่านปกสำเร็จ
+                  ✓ {silentMode ? 'ดึงข้อมูลสำเร็จ' : 'อ่านปกสำเร็จ'}
                 </span>
               </div>
               <button
-                type="button" onClick={() => setShowEditForm(true)}
+                type="button"
+                onClick={() => {
+                  formSnapshotRef.current = { ...form }
+                  setShowEditForm(true)
+                }}
                 style={{
                   background: 'none', border: '1px solid var(--border)', borderRadius: 8,
                   padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600,
@@ -845,6 +871,37 @@ function SellFlowCoverPageInner() {
               onChange={v => setForm(s => ({ ...s, isbn: v }))}
               hint="ว่างได้ ถ้าไม่มีบาร์โค้ด"
             />
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (formSnapshotRef.current) setForm(formSnapshotRef.current)
+                  formSnapshotRef.current = null
+                  setShowEditForm(false)
+                }}
+                style={{
+                  flex: 1, padding: '10px 12px', minHeight: 44,
+                  background: 'white', border: '1px solid var(--border)', borderRadius: 10,
+                  fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer',
+                }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  formSnapshotRef.current = null
+                  setShowEditForm(false)
+                }}
+                style={{
+                  flex: 1, padding: '10px 12px', minHeight: 44,
+                  background: 'var(--primary)', border: 'none', borderRadius: 10,
+                  fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: 'pointer',
+                }}
+              >
+                บันทึก
+              </button>
+            </div>
           </section>
           )}
 

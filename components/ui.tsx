@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '@/lib/auth'
 import { computeTrustScore, TRUST_TIERS, type TrustItemKey, type TrustItem } from '@/lib/trust'
 
@@ -167,6 +167,7 @@ export function BottomNav() {
 
 // Footer terms link — แสดงเฉพาะหน้า home (ที่อื่นรกสายตา)
 export function TermsFooter() {
+  const [showFeedback, setShowFeedback] = useState(false)
   return (
     <div style={{ textAlign: 'center', padding: '20px 0 12px', fontSize: 13, color: '#94A3B8' }}>
       <div style={{ marginBottom: 6, color: '#64748B', fontSize: 13, lineHeight: 1.6 }}>
@@ -175,8 +176,184 @@ export function TermsFooter() {
           เรื่องราวของเรา →
         </Link>
       </div>
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 8, display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}>ข้อตกลงการใช้บริการ</Link>
+        <button
+          type="button"
+          onClick={() => setShowFeedback(true)}
+          style={{ background: 'none', border: 0, padding: 0, fontFamily: 'Kanit', fontSize: 13, color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer' }}
+        >
+          แจ้งปัญหา / ข้อเสนอแนะ
+        </button>
+      </div>
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
+    </div>
+  )
+}
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const [kind, setKind] = useState<'complaint' | 'suggestion' | 'bug' | 'general'>('general')
+  const [message, setMessage] = useState('')
+  const [contact, setContact] = useState('')
+  const [website, setWebsite] = useState('') // honeypot
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (sending) return
+    const trimmed = message.trim()
+    if (!trimmed) { setError('กรุณากรอกข้อความ'); return }
+    if (trimmed.length > 2000) { setError('ข้อความยาวเกิน 2000 ตัวอักษร'); return }
+    setError('')
+    setSending(true)
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, message: trimmed, contact: contact.trim(), website }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 429) setError('ส่งบ่อยเกินไป ลองใหม่อีกครั้งในอีกสักครู่')
+        else setError(data?.error === 'missing_message' ? 'กรุณากรอกข้อความ' : 'ส่งไม่สำเร็จ ลองอีกครั้ง')
+        return
+      }
+      setSent(true)
+    } catch {
+      setError('ส่งไม่สำเร็จ ลองอีกครั้ง')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'white', borderRadius: 16, width: '100%', maxWidth: 440,
+          padding: 20, fontFamily: 'Kanit', textAlign: 'left',
+          maxHeight: '90vh', overflow: 'auto',
+        }}
+      >
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>✓</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>ส่งเรียบร้อยแล้ว</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>ขอบคุณที่ช่วยให้เราทำงานได้ดีขึ้น</div>
+            <button
+              type="button" onClick={onClose}
+              style={{ padding: '10px 24px', minHeight: 44, background: 'var(--primary)', color: 'white', border: 0, borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+            >
+              ปิด
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={submit}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>แจ้งปัญหา / ข้อเสนอแนะ</div>
+              <button
+                type="button" onClick={onClose}
+                style={{ background: 'none', border: 0, fontSize: 22, color: 'var(--ink3)', cursor: 'pointer', lineHeight: 1, padding: 4 }}
+                aria-label="ปิด"
+              >×</button>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>ประเภท</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {([
+                  { k: 'complaint', label: 'ร้องเรียน' },
+                  { k: 'bug', label: 'บั๊ก/ใช้งานไม่ได้' },
+                  { k: 'suggestion', label: 'ข้อเสนอแนะ' },
+                  { k: 'general', label: 'อื่นๆ' },
+                ] as const).map(o => (
+                  <button
+                    key={o.k} type="button"
+                    onClick={() => setKind(o.k)}
+                    style={{
+                      padding: '10px 8px', minHeight: 44, borderRadius: 10, fontFamily: 'Kanit',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      background: kind === o.k ? 'var(--primary-light)' : 'white',
+                      border: kind === o.k ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                      color: kind === o.k ? 'var(--primary-strong)' : 'var(--ink2)',
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+                ข้อความ <span style={{ color: '#EF4444' }}>*</span>
+              </label>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                maxLength={2000}
+                placeholder="บอกเราหน่อย เจอปัญหาอะไร หรืออยากให้เราปรับตรงไหน"
+                style={{
+                  width: '100%', minHeight: 120, padding: '10px 12px',
+                  borderRadius: 10, border: '1px solid var(--border)',
+                  fontFamily: 'Kanit', fontSize: 14, resize: 'vertical', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'right', marginTop: 2 }}>
+                {message.length}/2000
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
+                ช่องทางติดต่อกลับ <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span>
+              </label>
+              <input
+                type="text" value={contact} onChange={e => setContact(e.target.value)}
+                maxLength={200} placeholder="อีเมล หรือ LINE ID"
+                style={{
+                  width: '100%', minHeight: 44, padding: '10px 12px',
+                  borderRadius: 10, border: '1px solid var(--border)',
+                  fontFamily: 'Kanit', fontSize: 14, boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Honeypot — ซ่อนจาก user ทั้ง visual + screen reader แต่ bot ที่ fill all fields จะกรอก */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+              <label>Website (leave blank)</label>
+              <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} />
+            </div>
+
+            {error && (
+              <div style={{ fontSize: 13, color: '#DC2626', marginBottom: 10 }}>{error}</div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button" onClick={onClose}
+                style={{ flex: 1, padding: '10px 12px', minHeight: 44, background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit" disabled={sending}
+                style={{ flex: 1, padding: '10px 12px', minHeight: 44, background: 'var(--primary)', border: 0, borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.7 : 1 }}
+              >
+                {sending ? 'กำลังส่ง…' : 'ส่ง'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )

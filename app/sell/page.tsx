@@ -927,17 +927,12 @@ function SellPage() {
               {/* ── แบ่ง 2 ส่วน: มี Barcode / ไม่มี Barcode ── */}
               {!fetchedBook && !notFoundMode && (
                 <>
-                  {/* ส่วนบน: มี Barcode → สแกนเลย */}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)', marginBottom: 8, textAlign: 'center' }}>
-                    ✓ แนะนำ — เร็วและแม่นที่สุด
-                  </div>
-                  {/* Primary: Barcode — big blue card */}
+                  {/* Primary: Barcode card — ชัดว่าเป็นปุ่ม + icon เป็นบาร์โค้ดจริง */}
                   <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
                   <button
                     type="button"
                     onClick={() => {
                       if (!user) { goLogin(); return }
-                      // Show guide only if not seen before
                       const key = 'bm_seen_capture_guide_barcode'
                       if (typeof window !== 'undefined' && localStorage.getItem(key)) {
                         if (isLineIAB) setShowCamera(true)
@@ -948,15 +943,28 @@ function SellPage() {
                     }}
                     disabled={scanning}
                     style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      display: 'flex', alignItems: 'center', gap: 14,
                       width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
-                      padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 12,
+                      padding: '20px 18px', cursor: 'pointer', fontFamily: 'Kanit',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 14, textAlign: 'left',
                     }}
                   >
-                    <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
+                    <div style={{
+                      flexShrink: 0, width: 64, height: 50, borderRadius: 10,
+                      background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--primary)',
+                    }}>
+                      <BarcodeSvg />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'white', marginBottom: 2, lineHeight: 1.3 }}>
+                        หนังสือของคุณมีบาร์โค้ดไหม?
+                      </div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                        แตะเพื่อสแกน ISBN
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, fontSize: 20, color: 'white', opacity: 0.9 }}>›</div>
                   </button>
 
                   {showCamera && (
@@ -967,13 +975,13 @@ function SellPage() {
                   )}
 
                   {/* เส้นแบ่ง */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0 14px' }}>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                     <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
 
-                  {/* Secondary: Cover scan — downrank visually (less prominent than barcode) */}
+                  {/* Secondary: Cover scan — ไม่พูดถึง AI (functional benefit: ไม่ต้องพิมพ์) */}
                   <input
                     ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
                     style={{ display: 'none' }}
@@ -986,16 +994,13 @@ function SellPage() {
                   />
                   <div style={{
                     background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
-                    padding: 18, position: 'relative',
+                    padding: 16,
                   }}>
-                    <span style={{ position: 'absolute', top: 12, right: 12, background: 'var(--accent)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 999 }}>
-                      🆕 ใหม่
-                    </span>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>
-                      📖 ไม่มี barcode?
+                      📖 สำหรับหนังสือไม่มีบาร์โค้ด
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 14 }}>
-                      ใช้ตัวเลือกนี้เฉพาะหนังสือเก่า/หนังสือหายาก AI จะช่วยอ่านปกให้
+                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 12 }}>
+                      ถ่ายหน้าปก — ระบบจะอ่านชื่อและผู้แต่งให้อัตโนมัติ ไม่ต้องพิมพ์
                     </div>
                     <div style={{ display: 'grid', gap: 8 }}>
                       <button
@@ -1010,7 +1015,7 @@ function SellPage() {
                           }
                         }}
                         style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 10,
+                          width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
                           background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
                           fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)',
                           cursor: 'pointer',
@@ -1022,7 +1027,7 @@ function SellPage() {
                         type="button"
                         onClick={() => { if (!user) { goLogin(); return }; coverGalleryRef.current?.click() }}
                         style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 10,
+                          width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
                           background: 'white', border: '1px solid var(--border)',
                           fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)',
                           cursor: 'pointer',
