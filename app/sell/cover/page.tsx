@@ -209,17 +209,27 @@ function SellFlowCoverPageInner() {
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
-  const autoClickedRef = useRef(false)
+  const pickedFromStorageRef = useRef(false)
 
-  // Auto-open camera ทันทีที่ mount — ลดคลิก (user กดจาก /sell มาแล้ว = มี intent ถ่ายอยู่แล้ว)
+  // เช็ค sessionStorage: ถ้ามีรูปที่ถ่ายมาจาก /sell แล้ว → ใช้เลย ข้ามขั้นตอน capture
   useEffect(() => {
-    if (autoClickedRef.current) return
-    autoClickedRef.current = true
-    // delay เล็กน้อยให้ component mount เสร็จ + browser ยอมให้ trigger
-    const t = setTimeout(() => {
-      cameraRef.current?.click()
-    }, 150)
-    return () => clearTimeout(t)
+    if (pickedFromStorageRef.current) return
+    pickedFromStorageRef.current = true
+    try {
+      const raw = sessionStorage.getItem('bm_cover_scan')
+      if (!raw) return
+      sessionStorage.removeItem('bm_cover_scan') // ใช้ครั้งเดียว
+      const parsed = JSON.parse(raw) as { data: string; mimeType: string; ts: number }
+      if (!parsed?.data) return
+      // แปลง base64 → File → preview URL
+      const bytes = Uint8Array.from(atob(parsed.data), c => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: parsed.mimeType || 'image/jpeg' })
+      const file = new File([blob], 'cover.jpg', { type: blob.type })
+      onPick(file) // เรียก flow ปกติ — จะ compress + AI analyze อัตโนมัติ
+    } catch {
+      // ignore — fallback ปุ่ม capture บน page
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const parsed = resp?.extract?.parsed

@@ -126,6 +126,7 @@ function SellPage() {
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
   const scanInputRef = useRef<HTMLInputElement | null>(null)
+  const coverCaptureRef = useRef<HTMLInputElement | null>(null)
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [shipping, setShipping] = useState('buyer')
@@ -782,23 +783,35 @@ function SellPage() {
               {!fetchedBook && !notFoundMode && (
                 <>
                   {/* ส่วนบน: มี Barcode → สแกนเลย */}
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
-                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>มี Barcode</div>
-                    {isLineIAB ? (
-                      <button
-                        onClick={() => { if (!user) { goLogin(); return }; setShowCamera(true) }}
-                        disabled={scanning}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15, color: 'white' }}
-                      >
-                        📷 สแกน Barcode หลังปก
-                      </button>
-                    ) : (
-                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15, color: 'white' }}>
-                        <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-                        📷 สแกน Barcode หลังปก
-                      </label>
-                    )}
-                  </div>
+                  {/* Primary: Barcode — big blue card */}
+                  {isLineIAB ? (
+                    <button
+                      onClick={() => { if (!user) { goLogin(); return }; setShowCamera(true) }}
+                      disabled={scanning}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
+                        padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 12,
+                      }}
+                    >
+                      <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
+                    </button>
+                  ) : (
+                    <label style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
+                      padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 12,
+                    }}>
+                      <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                      <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
+                    </label>
+                  )}
 
                   {showCamera && (
                     <CameraCaptureModal
@@ -808,30 +821,51 @@ function SellPage() {
                   )}
 
                   {/* เส้นแบ่ง */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 12px' }}>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                     <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
 
-                  {/* ส่วนล่าง: ไม่มี Barcode → ถ่ายหน้าปก AI ช่วยกรอก */}
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
-                    <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>ไม่มี Barcode / หนังสือเก่า</div>
-                    <a
-                      href="/sell/cover"
-                      onClick={(e) => { if (!user) { e.preventDefault(); goLogin() } }}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12,
-                        padding: '14px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15,
-                        color: 'white', textDecoration: 'none', cursor: 'pointer',
-                      }}
-                    >
-                      📖 ถ่ายหน้าปก — AI ช่วยกรอก
-                    </a>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
-                      ไม่ต้องพิมพ์ ไม่ต้องรู้ ISBN
-                    </div>
+                  {/* Secondary: Cover scan — big white card w/ blue border */}
+                  <input
+                    ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]; if (!f) return
+                      if (!user) { goLogin(); return }
+                      const buf = await f.arrayBuffer()
+                      const bytes = new Uint8Array(buf)
+                      let bin = ''
+                      for (let i = 0; i < bytes.length; i += 0x8000) {
+                        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
+                      }
+                      sessionStorage.setItem('bm_cover_scan', JSON.stringify({
+                        data: btoa(bin), mimeType: f.type || 'image/jpeg', ts: Date.now(),
+                      }))
+                      router.push('/sell/cover')
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { if (!user) { goLogin(); return }; coverCaptureRef.current?.click() }}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', background: 'white', border: '2px solid var(--primary)', borderRadius: 16,
+                      padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
+                      position: 'relative', marginBottom: 12,
+                    }}
+                  >
+                    <span style={{ position: 'absolute', top: 10, right: 10, background: 'var(--accent)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 999 }}>
+                      🆕 ใหม่
+                    </span>
+                    <div style={{ fontSize: 44, marginBottom: 10 }}>📖</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>ค้นหาด้วยหน้าปก</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>สำหรับหนังสือเก่า ไม่มีบาร์โค้ด</div>
+                  </button>
+
+                  <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6 }}>
+                    💡 <strong>ทิป:</strong> สแกนบาร์โค้ดแล้วไม่เจอ จะเปิดให้ถ่ายหน้าปกต่อให้อัตโนมัติ
                   </div>
                 </>
               )}
