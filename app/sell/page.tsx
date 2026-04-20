@@ -818,7 +818,7 @@ function SellPage() {
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
                     <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>ไม่มี Barcode / หนังสือเก่า</div>
                     <a
-                      href="/test/sell-flow/cover"
+                      href="/sell/cover"
                       onClick={(e) => { if (!user) { e.preventDefault(); goLogin() } }}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
