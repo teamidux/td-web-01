@@ -36,3 +36,7 @@ CONTEXT.md
 # scraped data & import scripts — ห้าม push เด็ดขาด
 data/
 scripts/
+
+# design reference — local only (เอาไว้อ้างอิง port ไม่ใช้ตอน build)
+design_handoff_bookmatch/
+design-ref/
