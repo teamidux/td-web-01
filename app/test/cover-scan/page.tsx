@@ -1,7 +1,7 @@
 'use client'
 // Spike: ทดสอบ Gemini Vision อ่านหน้าปก — ไม่มี DB, ไม่มี history
 // เข้าถึงด้วย URL ตรงเท่านั้น ไม่ link จากหน้าหลัก
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 type Parsed = {
   title?: string | null
@@ -80,10 +80,18 @@ export default function CoverScanTestPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
+  // Cleanup preview ตอน unmount — ref pattern กัน stale closure
+  const previewRef = useRef<string | null>(null)
+  useEffect(() => { previewRef.current = preview }, [preview])
+  useEffect(() => {
+    return () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current) }
+  }, [])
+
   async function onPick(file: File | null) {
     if (!file) return
     setResp(null); setErr(null)
-    setPreview(URL.createObjectURL(file))
+    // Revoke อันเก่า + ใส่ใหม่ — กัน memory leak ถ้า user เลือกหลายรูปต่อกัน
+    setPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file) })
     try {
       const b = await fileToBase64(file)
       setBase64(b)

@@ -233,13 +233,17 @@ function SellFlowCoverPageInner() {
   const uploadRef = useRef<HTMLInputElement>(null)
   const pickedFromStorageRef = useRef(false)
 
-  // Cleanup object URLs ตอน unmount (กัน memory leak ถ้า user ออกระหว่างกลาง)
+  // Cleanup object URLs ตอน unmount — ใช้ ref pattern กัน stale closure
+  // (empty deps + access state ใน cleanup = เห็นแค่ค่าตอน mount → รูปที่เพิ่มหลังจากนั้นไม่ถูก revoke)
+  const previewRef = useRef<string | null>(null)
+  const extraPreviewsRef = useRef<string[]>([])
+  useEffect(() => { previewRef.current = preview }, [preview])
+  useEffect(() => { extraPreviewsRef.current = extraPreviews }, [extraPreviews])
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview)
-      extraPreviews.forEach(url => URL.revokeObjectURL(url))
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current)
+      extraPreviewsRef.current.forEach(url => URL.revokeObjectURL(url))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // เช็ค sessionStorage: ถ้ามีรูปที่ถ่ายมาจาก /sell แล้ว → ใช้เลย ข้ามขั้นตอน capture
