@@ -633,9 +633,17 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
           </button>
         </div>
 
-        <div className="section">
+        <div style={{ padding: '18px 16px 4px' }}>
           {listings.length > 0 && (
-            <div className="section-title" style={{ marginBottom: 12 }}>{listings.length} คนกำลังขายอยู่</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                มีคนลงขาย {listings.length} ราย
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                เรียงตามราคา
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+              </div>
+            </div>
           )}
 
           {listings.length === 0 && (
@@ -699,108 +707,126 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             </div>
           )}
 
-          {/* ป้ายผู้บุกเบิก — ผูกกับ pioneerUserId (คนแรกที่เคยลงเล่มนี้) */}
-          {listings.map(l => {
+          {/* Listings list — "ถูกสุด" badge on cheapest (listings sorted by price asc) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {listings.map((l, idx) => {
             const sellerName = l.users?.display_name
             const isPioneerListing = pioneerUserId && l.seller_id === pioneerUserId
             const avatarUrl = (l.users as any)?.avatar_url
+            const isCheapest = idx === 0 && listings.length > 1
+            const allPhotos = (l.photos || []).filter((p: string) => p)
             return (
-            <div key={l.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              {/* Header: ผู้ขาย + ราคา */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border-light)' }}>
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={sellerName || ''} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>👤</div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Link href={`/seller/${l.seller_id}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>
-                    {sellerName}
-                  </Link>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                    <TrustBadge user={l.users} size="sm" />
-                    {isPioneerListing && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>🏆 ผู้บุกเบิกเล่มนี้</span>}
-                  </div>
+            <div key={l.id} style={{ background: 'white', borderRadius: 14, border: isCheapest ? '1.5px solid #16A34A' : '1px solid #EEF2F7', overflow: 'hidden', position: 'relative' }}>
+              {isCheapest && (
+                <div style={{ position: 'absolute', top: 10, right: 10, padding: '3px 8px', borderRadius: 999, background: '#16A34A', fontSize: 10, fontWeight: 700, color: 'white', letterSpacing: '0.02em', zIndex: 1 }}>
+                  ถูกสุด
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.02em' }}>฿{l.price}</div>
-                  <div style={{ fontSize: 12, color: l.price_includes_shipping ? 'var(--green)' : 'var(--ink3)', fontWeight: 600 }}>{l.price_includes_shipping ? 'ส่งฟรี' : 'ไม่รวมส่ง'}</div>
-                </div>
-              </div>
+              )}
 
-              {/* Body: รูป + สภาพ + notes */}
-              <div style={{ padding: '10px 14px' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  {/* รูปหนังสือ — โชว์ 2 thumb, รูปที่ 2 มี "+N" badge ถ้าเกิน */}
-                  {(() => {
-                    const allPhotos = (l.photos || []).filter((p: string) => p)
-                    if (allPhotos.length === 0) return null
-                    const visible = allPhotos.slice(0, 2)
-                    const extra = allPhotos.length - 2
-                    return (
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        {visible.map((p: string, i: number) => {
-                          const isLastVisible = i === visible.length - 1
-                          const showOverlay = isLastVisible && extra > 0
-                          return (
-                            <div
-                              key={i}
-                              onClick={() => setLightbox({ photos: allPhotos, index: i })}
-                              style={{ width: 52, height: 72, borderRadius: 6, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'zoom-in', position: 'relative', background: 'var(--surface)' }}
-                            >
-                              <img src={p} alt={`รูป ${i + 1}`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              {showOverlay && (
-                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 14, fontWeight: 700, fontFamily: 'Kanit' }}>
-                                  +{extra}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )
-                  })()}
-                  {/* สภาพ + notes */}
+              <div style={{ padding: 14 }}>
+                {/* Row 1: avatar + seller + price */}
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={sellerName || ''} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#DBEAFE', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#1D4ED8' }}>
+                        {(sellerName || '?').slice(0, 1).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <CondBadge cond={l.condition} />
-                    {l.notes && !l.notes.includes('ค่าส่งประมาณ') && (
-                      <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 6, lineHeight: 1.5 }}>
-                        {l.notes}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      <Link href={`/seller/${l.seller_id}`} style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {sellerName}
+                      </Link>
+                      <TrustBadge user={l.users} size="sm" />
+                      {isPioneerListing && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>🏆 ผู้บุกเบิก</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#1D4ED8', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                        ฿{l.price}
                       </div>
-                    )}
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: l.price_includes_shipping ? '#16A34A' : '#64748B' }}>
+                        {l.price_includes_shipping ? 'ส่งฟรี' : 'ไม่รวมส่ง'}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer: ปุ่มติดต่อ */}
-              <button
-                disabled={contactLoading}
-                onClick={async () => {
-                  setCopied(false)
-                  setContactLoading(true)
-                  try {
-                    const [ci] = await Promise.all([
-                      fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({})),
-                      fetch('/api/listings/contact', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
-                      }).catch(() => {}),
-                    ])
-                    setContactPII(ci)
-                    setContactListing(l)
-                  } finally {
-                    setContactLoading(false)
-                  }
-                }}
-                style={{ width: '100%', background: 'var(--primary)', border: 'none', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '11px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, cursor: contactLoading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: contactLoading ? 0.7 : 1 }}
-              >
-                💬 ติดต่อผู้ขาย
-              </button>
+                {/* Row 2: condition + photos count */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                  <CondBadge cond={l.condition} />
+                  {allPhotos.length > 0 && (
+                    <span style={{ fontSize: 11, color: '#64748B' }}>{allPhotos.length} รูป</span>
+                  )}
+                </div>
+
+                {/* Row 3: photos thumbs */}
+                {allPhotos.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
+                    {allPhotos.slice(0, 4).map((p: string, i: number) => {
+                      const isLastVisible = i === 3
+                      const extra = allPhotos.length - 4
+                      const showOverlay = isLastVisible && extra > 0
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => setLightbox({ photos: allPhotos, index: i })}
+                          style={{ width: 64, height: 64, borderRadius: 8, border: '1px solid #EEF2F7', overflow: 'hidden', cursor: 'zoom-in', position: 'relative', background: '#F8FAFC', flexShrink: 0 }}
+                        >
+                          <img src={p} alt={`รูป ${i + 1}`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {showOverlay && (
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 13, fontWeight: 700 }}>
+                              +{extra}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Row 4: notes */}
+                {l.notes && !l.notes.includes('ค่าส่งประมาณ') && (
+                  <div style={{ fontSize: 12.5, color: '#475569', marginTop: 10, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {l.notes}
+                  </div>
+                )}
+
+                {/* Contact button — dark (design spec) */}
+                <button
+                  disabled={contactLoading}
+                  onClick={async () => {
+                    setCopied(false)
+                    setContactLoading(true)
+                    try {
+                      const [ci] = await Promise.all([
+                        fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({})),
+                        fetch('/api/listings/contact', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
+                        }).catch(() => {}),
+                      ])
+                      setContactPII(ci)
+                      setContactListing(l)
+                    } finally {
+                      setContactLoading(false)
+                    }
+                  }}
+                  style={{ marginTop: 10, width: '100%', padding: '10px 12px', background: '#0F172A', color: 'white', border: 'none', borderRadius: 10, fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: contactLoading ? 'wait' : 'pointer', opacity: contactLoading ? 0.7 : 1 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  ติดต่อผู้ขาย
+                </button>
+              </div>
             </div>
-          )})}
+            )
+          })}
+          </div>
         </div>
-        <div style={{ height: 12 }} />
+        <div style={{ height: 20 }} />
       </div>
       <BottomNav />
     </>
