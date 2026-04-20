@@ -304,68 +304,83 @@ export default function SellerPage({ params }: PageProps) {
         </div>
       )}
 
-      <div className="page">
-        <Link href="/" className="back-btn">← กลับ</Link>
-
-        <div style={{ background: 'var(--primary)', padding: '20px 16px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)', flexShrink: 0, overflow: 'hidden' }}>
-            {(seller as any)?.avatar_url ? (
-              <img
-                src={(seller as any).avatar_url}
-                alt={seller?.display_name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-            ) : (
-              '👤'
+      <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+        {/* ─── Profile card (design style — white bg) ─── */}
+        <div style={{ background: 'white', padding: '22px 18px 18px', maxWidth: 500, margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ width: 72, height: 72, borderRadius: 999, background: '#DBEAFE', display: 'grid', placeItems: 'center', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+              {(seller as any)?.avatar_url ? (
+                <img src={(seller as any).avatar_url} alt={seller?.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              ) : (
+                <span style={{ fontFamily: 'Kanit', fontSize: 28, fontWeight: 700, color: '#1D4ED8' }}>
+                  {(seller?.display_name || '?').slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              {(seller as any)?.is_verified && (
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 999, background: '#2563EB', display: 'grid', placeItems: 'center', border: '2px solid white' }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 19, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                {seller?.display_name}
+              </div>
+              {(seller as any)?.is_verified && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: '#DBEAFE', marginTop: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', letterSpacing: '0.02em' }}>ยืนยันตัวตนแล้ว</div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: (seller as any)?.is_verified ? 6 : 6 }}>
+                {!(seller as any)?.is_verified && <TrustBadge user={seller} size="sm" />}
+                {((seller as any)?.is_pioneer || (seller as any)?.pioneer_count > 0) && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>
+                    🏆 ผู้บุกเบิก {(seller as any)?.pioneer_count || ''} เล่ม
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Report button — ซ่อนถ้าดู profile ตัวเอง */}
+            {user?.id !== id && (
+              <button
+                onClick={() => setShowReport(true)}
+                title="รายงานผู้ขาย"
+                style={{ background: '#F1F5F9', border: 'none', borderRadius: 999, width: 36, height: 36, display: 'grid', placeItems: 'center', cursor: 'pointer', color: '#64748B', flexShrink: 0 }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                  <line x1="4" y1="22" x2="4" y2="15" />
+                </svg>
+              </button>
             )}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 4 }}>{seller?.display_name}</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 8, lineHeight: 1.5 }}>
-              ขายไปแล้ว {seller?.sold_count || 0} ครั้ง
+
+          {/* Stats row (design style with dividers) */}
+          <div style={{ display: 'flex', marginTop: 18, background: '#F8FAFC', borderRadius: 14, padding: '12px 4px' }}>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {listings.length}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>กำลังขาย</div>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TrustBadge user={seller} size="md" />
-              {((seller as any)?.is_pioneer || (seller as any)?.pioneer_count > 0) && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white' }}>🏆 ผู้บุกเบิก {(seller as any)?.pioneer_count || ''} เล่ม</span>}
+            <div style={{ width: 1, background: '#E5E7EB' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {seller?.sold_count || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>ขายแล้ว</div>
+            </div>
+            <div style={{ width: 1, background: '#E5E7EB' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {memberSince(seller?.created_at)}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>เข้าร่วม</div>
             </div>
           </div>
-          {/* ซ่อนปุ่มรายงานถ้าดู profile ตัวเอง */}
-          {user?.id !== id && (
-            <button
-              onClick={() => setShowReport(true)}
-              style={{
-                background: 'rgba(255,255,255,.15)',
-                border: '1px solid rgba(255,255,255,.3)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                minHeight: 40,
-                color: 'white',
-                fontFamily: 'Kanit',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-              }}
-              title="รายงานผู้ขาย"
-            >
-              🚨 รายงาน
-            </button>
-          )}
-        </div>
 
-        <div style={{ background: 'var(--surface)', padding: '18px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
-          <div style={{ textAlign: 'center' }}><div className="stat-n">{listings.length}</div><div className="stat-l">กำลังขาย</div></div>
-          <div style={{ textAlign: 'center' }}><div className="stat-n">{seller?.sold_count || 0}</div><div className="stat-l">ขายไปแล้ว</div></div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="stat-n" style={{ fontSize: 18 }}>{memberSince(seller?.created_at)}</div>
-            <div className="stat-l">เข้าร่วมเมื่อ</div>
-          </div>
-        </div>
-
-        {/* ปุ่มแชร์ร้าน */}
-        <div style={{ padding: '12px 16px 0' }}>
+          {/* Share button */}
           <button
             onClick={async () => {
               const url = window.location.href
@@ -374,13 +389,9 @@ export default function SellerPage({ params }: PageProps) {
                 text: `ดูหนังสือมือสองที่ ${seller?.display_name} กำลังขาย ${listings.length} เล่ม`,
                 url,
               }
-              try {
-                if (navigator.share) { await navigator.share(shareData); return }
-              } catch {}
-              try {
-                await navigator.clipboard.writeText(url)
-                show('คัดลอกลิงก์ร้านแล้ว')
-              } catch {
+              try { if (navigator.share) { await navigator.share(shareData); return } } catch {}
+              try { await navigator.clipboard.writeText(url); show('คัดลอกลิงก์ร้านแล้ว') }
+              catch {
                 const ta = document.createElement('textarea')
                 ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0'
                 document.body.appendChild(ta); ta.select()
@@ -389,12 +400,12 @@ export default function SellerPage({ params }: PageProps) {
               }
             }}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12,
-              padding: '11px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14,
-              color: 'var(--primary)', cursor: 'pointer',
+              width: '100%', marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: '#F1F5F9', border: 'none', borderRadius: 12, padding: '11px 16px', minHeight: 44,
+              fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, color: '#334155', cursor: 'pointer',
             }}
           >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
             แชร์ร้านนี้
           </button>
         </div>
