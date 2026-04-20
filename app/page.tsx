@@ -237,7 +237,7 @@ export default function HomePage() {
                   <button
                     type="button" aria-label="ล้างคำค้น"
                     onClick={() => { setQuery(''); setLiveResults([]); setGoogleLiveResults([]) }}
-                    style={{ width: 26, height: 26, borderRadius: '50%', background: '#E5E7EB', border: 'none', color: '#475569', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                    style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: '50%', background: '#E5E7EB', border: 'none', color: '#475569', fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                   >×</button>
                 )}
                 {isLineIAB ? (
@@ -398,7 +398,7 @@ export default function HomePage() {
                   <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', border: '1px solid #EEF2F7', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
                     <div style={{ aspectRatio: '3/4', background: '#F8FAFC', position: 'relative' }}>
                       {l.photos?.[0] ? (
-                        <img src={l.photos[0]} alt={l.books?.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={l.photos[0]} alt={l.books?.title || `ปกหนังสือ ISBN ${l.books?.isbn || ''}`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <BookCover isbn={l.books?.isbn} title={l.books?.title} size={120} />
                       )}
