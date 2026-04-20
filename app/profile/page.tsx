@@ -460,77 +460,101 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="page">
-        <div style={{ background: 'var(--primary)', padding: '24px 16px', display: 'flex', gap: 14, alignItems: 'center' }}>
-          <div
-            onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
-            style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '2px solid rgba(255,255,255,.3)', overflow: 'hidden', flexShrink: 0, cursor: 'pointer', position: 'relative' }}
-            title="คลิกเพื่อเปลี่ยนรูป"
-          >
-            {user.avatar_url ? (
-              <img
-                src={user.avatar_url}
-                alt={user.display_name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-            ) : (
-              '👤'
-            )}
+      <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+        {/* ─── Profile card (design style — white bg) ─── */}
+        <div style={{ background: 'white', padding: '22px 18px 18px', maxWidth: 500, margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div
+              onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+              style={{ width: 68, height: 68, borderRadius: 999, background: '#DBEAFE', display: 'grid', placeItems: 'center', flexShrink: 0, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+              title="คลิกเพื่อเปลี่ยนรูป"
+            >
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              ) : (
+                <span style={{ fontFamily: 'Kanit', fontSize: 26, fontWeight: 700, color: '#1D4ED8' }}>
+                  {(user.display_name || '?').slice(0, 1).toUpperCase()}
+                </span>
+              )}
 
-            {/* Bottom gray strip + "+" ไว้บอกว่าเปลี่ยนรูปได้ */}
-            {!uploadingAvatar && (
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '36%',
-                background: 'rgba(71, 85, 105, 0.85)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: 18,
-                fontWeight: 700,
-                lineHeight: 1,
-                paddingBottom: 2,
-              }}>
-                +
-              </div>
-            )}
+              {/* Verified badge bottom-right (design style) */}
+              {user.is_verified && !uploadingAvatar && (
+                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 999, background: '#2563EB', display: 'grid', placeItems: 'center', border: '2px solid white' }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+              )}
 
-            {uploadingAvatar && (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="spin" style={{ width: 20, height: 20, borderColor: 'white', borderTopColor: 'transparent' }} />
+              {/* Camera overlay hint */}
+              {!uploadingAvatar && (
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '32%', background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700, pointerEvents: 'none' }}>
+                  +
+                </div>
+              )}
+
+              {uploadingAvatar && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="spin" style={{ width: 20, height: 20, borderColor: 'white', borderTopColor: 'transparent' }} />
+                </div>
+              )}
+            </div>
+            <input
+              ref={avatarInputRef} type="file" accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = '' }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                {user.display_name}
               </div>
-            )}
-          </div>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={e => {
-              const f = e.target.files?.[0]
-              if (f) uploadAvatar(f)
-              e.target.value = '' // reset so same file can be selected again
-            }}
-          />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, color: 'white', marginBottom: 3 }}>
-              {user.display_name}
+              {user.is_verified && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: '#DBEAFE', marginTop: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', letterSpacing: '0.02em' }}>ยืนยันตัวตนแล้ว</div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: user.is_verified ? 4 : 6 }}>
+                {!user.is_verified && <TrustBadge user={user} size="sm" />}
+                {(user.is_pioneer || user.pioneer_count > 0) && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }}>
+                    🏆 ผู้บุกเบิก {user.pioneer_count} เล่ม
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+                อยู่ BookMatch {memberSince(user.created_at)}
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', marginBottom: 2 }}>{user.phone}</div>
-            {user.line_id && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 4 }}>Line: {user.line_id}</div>}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TrustBadge user={user} size="md" />
-              {(user.is_pioneer || user.pioneer_count > 0) && <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: 'white', fontSize: 12 }}>🏆 ผู้บุกเบิก {user.pioneer_count} เล่ม</span>}
+            <button
+              onClick={startEdit}
+              style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: '7px 12px', color: '#475569', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0 }}
+            >
+              แก้ไข
+            </button>
+          </div>
+
+          {/* Stats row: กำลังขาย / ขายไปแล้ว / เข้าร่วม (design style with dividers) */}
+          <div style={{ display: 'flex', marginTop: 18, background: '#F8FAFC', borderRadius: 14, padding: '12px 4px' }}>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {active.length}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>กำลังขาย</div>
+            </div>
+            <div style={{ width: 1, background: '#E5E7EB' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {user.sold_count || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>ขายไปแล้ว</div>
+            </div>
+            <div style={{ width: 1, background: '#E5E7EB' }} />
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {memberSince(user.created_at)}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>เข้าร่วม</div>
             </div>
           </div>
-          <button onClick={startEdit} style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '7px 12px', color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-            แก้ไข
-          </button>
         </div>
 
         {/* ปุ่มแชร์ร้าน */}
@@ -573,14 +597,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div style={{ background: 'var(--surface)', padding: '18px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
-          <div style={{ textAlign: 'center' }}><div className="stat-n">{active.length}</div><div className="stat-l">กำลังขาย</div></div>
-          <div style={{ textAlign: 'center' }}><div className="stat-n">{user.sold_count || 0}</div><div className="stat-l">ขายไปแล้ว</div></div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="stat-n" style={{ fontSize: 18 }}>{memberSince(user.created_at)}</div>
-            <div className="stat-l">เข้าร่วมเมื่อ</div>
-          </div>
-        </div>
+        {/* Stats row ย้ายไปอยู่ใน profile card ด้านบนแล้ว */}
 
         {/* Market demand insight — push sellers to /market page */}
         <Link href="/market" style={{ textDecoration: 'none', color: 'inherit', display: 'block', padding: '14px 16px 0' }}>
