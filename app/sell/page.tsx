@@ -147,6 +147,8 @@ function SellPage() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [compressing, setCompressing] = useState(false)
+  // AI cover extract (has_isbn mode): flag กันยิงซ้ำต่อ session เดียวกัน
+  const [aiExtractedIsbn, setAiExtractedIsbn] = useState<string | null>(null)
   // Ref เก็บ latest previews สำหรับ cleanup ตอน unmount (กัน memory leak จาก Object URL)
   const photoPreviewsRef = useRef<string[]>([])
   useEffect(() => { photoPreviewsRef.current = photoPreviews }, [photoPreviews])
@@ -264,12 +266,8 @@ function SellPage() {
         }
       }
     } else {
-      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ
-      // ถ้าเปิด cover scan feature → auto redirect ไปถ่ายปก (เนียนกว่า ไม่ต้องบอกไม่เจอ)
-      if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1') {
-        router.push(`/test/sell-flow/cover?isbn=${encodeURIComponent(q)}`)
-        return
-      }
+      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ → ให้ user ใส่รูปปก
+      // ถ้าเปิด cover scan feature: AI จะอ่านข้อมูลจากรูปปกอัตโนมัติ (ไม่ต้องพิมพ์)
       setNotFoundMode('has_isbn')
       setSellSearch('')
     }
@@ -324,11 +322,54 @@ function SellPage() {
     const remaining = MAX_PHOTOS - photoFiles.length
     const accepted = valid.slice(0, remaining)
     setCompressing(true)
+    const wasFirstUpload = photoFiles.length === 0
     try {
       const compressed = await Promise.all(accepted.map(f => compressImage(f)))
       const previews = compressed.map(f => URL.createObjectURL(f))
       setPhotoFiles(prev => [...prev, ...compressed])
       setPhotoPreviews(prev => [...prev, ...previews])
+
+      // AI extract จากรูปแรก — เฉพาะเมื่อ has_isbn + เปิด feature + ยังไม่เคย extract + title ว่าง
+      // (silent: user แค่อัปรูปเหมือนปกติ → title/author เติมเฉยๆ + toast เล็ก)
+      const shouldAiExtract =
+        wasFirstUpload &&
+        notFoundMode === 'has_isbn' &&
+        !manualTitle &&
+        isbn && aiExtractedIsbn !== isbn &&
+        process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' &&
+        compressed[0]
+      if (shouldAiExtract) {
+        setAiExtractedIsbn(isbn) // mark ทันที กัน double-fire
+        ;(async () => {
+          try {
+            const arr = await compressed[0].arrayBuffer()
+            const bytes = new Uint8Array(arr)
+            let bin = ''
+            for (let i = 0; i < bytes.length; i += 0x8000) {
+              bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
+            }
+            const b64 = btoa(bin)
+            const r = await fetch('/api/test/cover-scan', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ imageBase64: b64, mimeType: 'image/jpeg' }),
+            })
+            const j = await r.json()
+            const parsed = j?.parsed
+            if (parsed?.title) {
+              // merge title+subtitle (heuristic: subtitle > 60 chars = junk ทิ้ง)
+              const sub = (parsed.subtitle || '').trim()
+              const t = (parsed.title || '').trim()
+              const full = (sub && sub.length <= 60) ? `${t} ${sub}` : t
+              setManualTitle(full)
+              if (parsed.authors?.length) setManualAuthor(parsed.authors.join(', '))
+              show('✨ อ่านข้อมูลจากปกให้แล้ว — ตรวจสอบก่อนลงขายได้')
+            }
+          } catch {
+            // เงียบๆ ไม่รบกวน user — เค้ากรอกเองได้
+          }
+        })()
+      }
     } finally {
       setCompressing(false)
     }
@@ -356,6 +397,7 @@ function SellPage() {
     setManualTranslator('')
     setIsbn('')
     setMarketPrice(null)
+    setAiExtractedIsbn(null)
   }
 
   const removePhoto = (index: number) => {
@@ -831,23 +873,12 @@ function SellPage() {
                     </div>
                     <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
                   </div>
-                  {/* ถ่ายหน้าปก shortcut — แสดงเฉพาะเมื่อเปิด feature flag */}
-                  {process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' && (
-                    <a
-                      href={`/test/sell-flow/cover?isbn=${encodeURIComponent(isbn)}`}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                        background: 'var(--primary-light)', border: '1px solid var(--primary)',
-                        borderRadius: 10, marginBottom: 12, textDecoration: 'none',
-                      }}
-                    >
-                      <span style={{ fontSize: 22 }}>📷</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)' }}>ถ่ายหน้าปกให้ AI ช่วยกรอก 🆕</div>
-                        <div style={{ fontSize: 12, color: 'var(--primary-strong)' }}>ไม่ต้องพิมพ์ชื่อ/ผู้แต่งเอง</div>
-                      </div>
-                      <span style={{ fontSize: 18, color: 'var(--primary)' }}>→</span>
-                    </a>
+                  {/* AI hint: เมื่อ user อัปรูปปก จะดึง title/author ให้อัตโนมัติ */}
+                  {process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' && !manualTitle && (
+                    <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>✨</span>
+                      <span>อัปรูปปกแล้วจะอ่านชื่อ/ผู้แต่งให้อัตโนมัติ — แก้ไขได้ทีหลัง</span>
+                    </div>
                   )}
                   <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
                     <div style={{ fontSize: 14, color: '#1E40AF', lineHeight: 1.7 }}>
