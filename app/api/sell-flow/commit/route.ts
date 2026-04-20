@@ -79,10 +79,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Validate book fields (only if creating new)
+  // Validate book fields (only if creating new) — author/publisher ไม่บังคับ (บางเล่มเก่าไม่รู้จริงๆ)
   if (!existing_book_id) {
     if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 })
-    if (!author) return NextResponse.json({ error: 'missing author' }, { status: 400 })
   }
 
   const sb = db()
@@ -118,7 +117,7 @@ export async function POST(req: NextRequest) {
       const { data: newBook, error: bookErr } = await sb.from('books').insert({
         isbn,
         title: fullTitle,
-        author,
+        author: author || null,
         publisher: publisher || null,
         cover_url: photos[0],
         language,

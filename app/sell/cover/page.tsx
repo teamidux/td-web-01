@@ -763,20 +763,24 @@ function SellFlowCoverPageInner() {
                   ✓ {silentMode ? 'ดึงข้อมูลสำเร็จ' : 'อ่านปกสำเร็จ'}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  formSnapshotRef.current = { ...form }
-                  setShowEditForm(true)
-                }}
-                style={{
-                  background: 'none', border: '1px solid var(--border)', borderRadius: 8,
-                  padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600,
-                  color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0,
-                }}
-              >
-                แก้ไข
-              </button>
+              {/* ปุ่ม "แก้ไข" แสดงเฉพาะเมื่อไม่มี ISBN (หนังสือไม่มี barcode — AI ดึง title เท่านั้น)
+                  ถ้ามี ISBN → ข้อมูลน่าเชื่อถือ ไม่ต้องให้ user แก้ (ลด surface แก้ผิด) */}
+              {!form.isbn && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    formSnapshotRef.current = { ...form }
+                    setShowEditForm(true)
+                  }}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                    padding: '8px 12px', minHeight: 36, fontSize: 13, fontWeight: 600,
+                    color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0,
+                  }}
+                >
+                  แก้ไข
+                </button>
+              )}
             </div>
           )}
 
@@ -857,27 +861,16 @@ function SellFlowCoverPageInner() {
               required
             />
             <FormField
-              label="ผู้แต่ง *"
+              label="ผู้แต่ง"
               value={form.authors}
               onChange={v => setForm(s => ({ ...s, authors: v }))}
-              hint="คั่นด้วย comma ถ้ามีหลายคน"
-              required
+              hint="คั่นด้วย comma ถ้ามีหลายคน (ไม่บังคับ)"
             />
             <FormField
               label="สำนักพิมพ์"
               value={form.publisher}
               onChange={v => setForm(s => ({ ...s, publisher: v }))}
-            />
-            <FormField
-              label="พิมพ์ครั้งที่"
-              value={form.edition}
-              onChange={v => setForm(s => ({ ...s, edition: v }))}
-            />
-            <FormField
-              label="ISBN"
-              value={form.isbn}
-              onChange={v => setForm(s => ({ ...s, isbn: v }))}
-              hint="ว่างได้ ถ้าไม่มีบาร์โค้ด"
+              hint="ไม่บังคับ"
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button
