@@ -562,7 +562,15 @@ function SellFlowCoverPageInner() {
             ref={uploadRef} type="file" accept="image/*"
             onChange={e => onPick(e.target.files?.[0] ?? null)} style={{ display: 'none' }}
           />
-          {!silentMode && (
+          {silentMode ? (
+            // Silent mode: ปุ่มเดียว ไม่มี tips/banner — user tap ครั้งเดียว
+            // (browser block programmatic click ถ้าไม่มี user gesture)
+            <div style={{ display: 'grid', gap: 8 }}>
+              <button type="button" onClick={() => cameraRef.current?.click()} style={btn('primary')}>
+                📷 ถ่ายรูปหนังสือ
+              </button>
+            </div>
+          ) : (
             <>
               <div style={tipsBox}>
                 💡 <strong>เคล็ดลับถ่ายปก</strong>
