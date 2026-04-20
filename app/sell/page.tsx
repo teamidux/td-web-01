@@ -897,11 +897,37 @@ function SellPage() {
                 />
               )}
 
-              {/* ── แบ่ง 2 ส่วน: มี Barcode / ไม่มี Barcode ── */}
+              {/* ── Entry: BookmatchSellEntry design (2 big cards + tip) ── */}
               {!fetchedBook && !notFoundMode && (
                 <>
-                  {/* Primary: Barcode card — ชัดว่าเป็นปุ่ม + icon เป็นบาร์โค้ดจริง */}
                   <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                  <input
+                    ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={e => handleCoverPick(e, 'camera')}
+                  />
+                  {showCamera && (
+                    <CameraCaptureModal
+                      onCapture={(file) => { setShowCamera(false); processScanPhoto(file) }}
+                      onClose={() => setShowCamera(false)}
+                    />
+                  )}
+
+                  {/* Hero — ไม่ต้องพิมพ์เอง / เริ่มลงขายเล่มใหม่ */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'rgba(37,99,235,0.08)', marginBottom: 10 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--primary)' }} />
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--primary)', letterSpacing: 0.2 }}>ไม่ต้องพิมพ์เอง</div>
+                    </div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
+                      เริ่มลงขายเล่มใหม่
+                    </div>
+                    <div style={{ fontSize: 13.5, color: '#64748B', marginTop: 6, lineHeight: 1.55 }}>
+                      เลือกวิธีที่เหมาะกับหนังสือของคุณ<br />ระบบกรอกชื่อ ผู้แต่ง ISBN ให้อัตโนมัติ
+                    </div>
+                  </div>
+
+                  {/* Option 1 — Barcode (blue illustration + แนะนำ pill) */}
                   <button
                     type="button"
                     onClick={() => {
@@ -916,80 +942,128 @@ function SellPage() {
                     }}
                     disabled={scanning}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
-                      padding: '20px 18px', cursor: 'pointer', fontFamily: 'Kanit',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 14, textAlign: 'left',
+                      width: '100%', padding: 20, border: 'none', cursor: scanning ? 'wait' : 'pointer',
+                      background: 'white', borderRadius: 20, textAlign: 'left', display: 'block',
+                      boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)',
+                      marginBottom: 12, position: 'relative', overflow: 'hidden',
+                      fontFamily: 'Kanit',
                     }}
                   >
-                    <div style={{
-                      flexShrink: 0, width: 64, height: 50, borderRadius: 10,
-                      background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--primary)',
-                    }}>
-                      <BarcodeSvg />
+                    <div style={{ position: 'absolute', top: 16, right: 16, padding: '4px 9px', borderRadius: 999, background: '#0F172A', fontSize: 10.5, fontWeight: 600, color: 'white', letterSpacing: 0.3, zIndex: 2 }}>
+                      แนะนำ
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'white', marginBottom: 2, lineHeight: 1.3 }}>
-                        หนังสือของคุณมีบาร์โค้ดไหม?
-                      </div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
-                        แตะเพื่อสแกน ISBN
+
+                    {/* Blue illustration area with barcode card */}
+                    <div style={{ height: 128, borderRadius: 14, marginBottom: 16, background: 'linear-gradient(135deg, var(--primary) 0%, #1D4ED8 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                      <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 999, background: 'rgba(255,255,255,0.09)' }} />
+                      <div style={{ position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 999, background: 'rgba(255,255,255,0.07)' }} />
+                      <div style={{ width: 150, height: 76, borderRadius: 10, background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 10px 24px rgba(0,0,0,0.22)', position: 'relative', zIndex: 1 }}>
+                        <svg width="110" height="36" viewBox="0 0 110 36">
+                          {[3,7,11,14,18,22,25,30,34,38,43,47,51,56,60,64,69,73,77,82,86,90,95,99,103].map((x, i) => {
+                            const w = [1.2, 2.4, 1, 2, 1.4, 2.6, 1, 1.8, 2.2, 1, 2, 1.4, 2.4, 1.2, 1, 2.6, 1.4, 2, 1, 1.8, 2.4, 1.2, 2, 1, 1.6][i]
+                            return <rect key={i} x={x} y="0" width={w} height="36" fill="#0F172A" />
+                          })}
+                        </svg>
+                        <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 9.5, color: '#0F172A', letterSpacing: 2 }}>
+                          9 786165 987654
+                        </div>
+                        <div style={{ position: 'absolute', left: 8, right: 8, top: '50%', height: 2, background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.6)', borderRadius: 2 }} />
                       </div>
                     </div>
-                    <div style={{ flexShrink: 0, fontSize: 20, color: 'white', opacity: 0.9 }}>›</div>
+
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                          สแกนบาร์โค้ด
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>
+                          เร็วที่สุด · ได้ข้อมูลครบ ISBN / ปี / สำนักพิมพ์
+                        </div>
+                      </div>
+                      <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--primary)', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      </div>
+                    </div>
                   </button>
 
-                  {showCamera && (
-                    <CameraCaptureModal
-                      onCapture={(file) => { setShowCamera(false); processScanPhoto(file) }}
-                      onClose={() => setShowCamera(false)}
-                    />
-                  )}
-
-                  {/* เส้นแบ่ง */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0 14px' }}>
-                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                    <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>หรือ</span>
-                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  </div>
-
-                  {/* Secondary: Cover scan — ไม่พูดถึง AI (functional benefit: ไม่ต้องพิมพ์) */}
-                  <input
-                    ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
-                    style={{ display: 'none' }}
-                    onChange={e => handleCoverPick(e, 'camera')}
-                  />
-                  <div style={{
-                    background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
-                    padding: 16,
-                  }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>
-                      📖 สำหรับหนังสือไม่มีบาร์โค้ด
+                  {/* Option 2 — Cover photo (yellow illustration + 2 books stack) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!user) { goLogin(); return }
+                      const key = 'bm_seen_capture_guide_cover'
+                      if (typeof window !== 'undefined' && localStorage.getItem(key)) {
+                        coverCaptureRef.current?.click()
+                      } else {
+                        setCaptureGuide('cover')
+                      }
+                    }}
+                    style={{
+                      width: '100%', padding: 20, border: 'none', cursor: 'pointer',
+                      background: 'white', borderRadius: 20, textAlign: 'left', display: 'block',
+                      boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)',
+                      position: 'relative', overflow: 'hidden', fontFamily: 'Kanit',
+                    }}
+                  >
+                    <div style={{ height: 128, borderRadius: 14, marginBottom: 16, background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                      <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 999, background: 'rgba(255,255,255,0.35)' }} />
+                      <div style={{ position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 999, background: 'rgba(180,83,9,0.08)' }} />
+                      <div style={{ position: 'relative', width: 100, height: 84 }}>
+                        <div style={{ position: 'absolute', top: 0, left: 8, width: 58, height: 78, borderRadius: 4, background: '#DC2626', transform: 'rotate(-8deg)', boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }}>
+                          <div style={{ height: 12, background: 'rgba(255,255,255,0.35)', margin: '14px 6px 0' }} />
+                          <div style={{ height: 4, background: 'rgba(255,255,255,0.55)', margin: '6px 10px 0' }} />
+                          <div style={{ height: 4, background: 'rgba(255,255,255,0.55)', margin: '4px 14px 0' }} />
+                        </div>
+                        <div style={{ position: 'absolute', top: 3, left: 38, width: 58, height: 78, borderRadius: 4, background: '#0F172A', transform: 'rotate(6deg)', boxShadow: '0 8px 18px rgba(0,0,0,0.25)', padding: '12px 8px' }}>
+                          <div style={{ height: 3, background: '#FBBF24', width: '50%', marginBottom: 8 }} />
+                          <div style={{ height: 4, background: 'white', marginBottom: 3 }} />
+                          <div style={{ height: 4, background: 'white', width: '80%', marginBottom: 10 }} />
+                          <div style={{ height: 2.5, background: 'rgba(255,255,255,0.5)', width: '60%' }} />
+                          <div style={{ height: 2.5, background: 'rgba(255,255,255,0.5)', width: '40%', marginTop: 3 }} />
+                        </div>
+                        <div style={{ position: 'absolute', top: -6, right: -8, width: 82, height: 92, pointerEvents: 'none' }}>
+                          {([[0,0,'tl'],[1,0,'tr'],[0,1,'bl'],[1,1,'br']] as const).map(([x,y,k]) => (
+                            <div key={k} style={{
+                              position: 'absolute',
+                              ...(x === 0 ? { left: 0 } : { right: 0 }),
+                              ...(y === 0 ? { top: 0 } : { bottom: 0 }),
+                              width: 14, height: 14,
+                              borderTop: y === 0 ? '2.5px solid #0F172A' : 'none',
+                              borderBottom: y === 1 ? '2.5px solid #0F172A' : 'none',
+                              borderLeft: x === 0 ? '2.5px solid #0F172A' : 'none',
+                              borderRight: x === 1 ? '2.5px solid #0F172A' : 'none',
+                              borderRadius: 2,
+                            }} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 12 }}>
-                      ถ่ายหน้าปก — ระบบจะอ่านชื่อและผู้แต่งให้อัตโนมัติ ไม่ต้องพิมพ์
+
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                          ถ่ายหน้าปก
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>
+                          สำหรับหนังสือที่ไม่มีบาร์โค้ด · ระบบอ่านชื่อ-ผู้แต่งให้
+                        </div>
+                      </div>
+                      <div style={{ width: 36, height: 36, borderRadius: 999, background: '#0F172A', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!user) { goLogin(); return }
-                        const key = 'bm_seen_capture_guide_cover'
-                        if (typeof window !== 'undefined' && localStorage.getItem(key)) {
-                          coverCaptureRef.current?.click()
-                        } else {
-                          setCaptureGuide('cover')
-                        }
-                      }}
-                      style={{
-                        width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
-                        background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
-                        fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      📷 ถ่ายหน้าปก
-                    </button>
+                  </button>
+
+                  {/* Tip footer */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, padding: '12px 14px', background: 'rgba(15,23,42,0.04)', borderRadius: 12 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <path d="M9 18h6" />
+                      <path d="M10 22h4" />
+                      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+                    </svg>
+                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
+                      ถ่ายให้ชัด ไม่เบลอ ไม่สะท้อนแสง — ระบบจะอ่านตัวอักษรแม่นขึ้น
+                    </div>
                   </div>
                 </>
               )}
