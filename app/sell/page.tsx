@@ -95,6 +95,40 @@ async function compressImage(file: File, maxKB = 220): Promise<File> {
 
 const MAX_PHOTOS = 5
 
+// Book cover SVG — ใช้ใน pre-capture guide แทน emoji 📕
+function BookCoverSvg({ tilted = false }: { tilted?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 60 84"
+      style={{
+        width: 52,
+        transform: tilted ? 'rotate(12deg)' : 'none',
+        opacity: tilted ? 0.55 : 1,
+        filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))',
+      }}
+    >
+      {/* book body */}
+      <rect x="1" y="1" width="58" height="82" rx="2" fill="white" stroke="#cbd5e1" strokeWidth="0.6" />
+      {/* spine gradient (left edge) */}
+      <rect x="1" y="1" width="3" height="82" rx="1" fill="#e2e8f0" />
+      {/* decorative blobs — top-right */}
+      <circle cx="48" cy="12" r="6" fill="#facc15" opacity="0.75" />
+      <circle cx="54" cy="20" r="4" fill="#a78bfa" opacity="0.7" />
+      {/* title text — black bars */}
+      <rect x="14" y="30" width="32" height="4" rx="1" fill="#1e293b" />
+      <rect x="16" y="38" width="28" height="6" rx="1" fill="#1e293b" />
+      <rect x="20" y="47" width="20" height="3" rx="1" fill="#1e293b" />
+      {/* author line */}
+      <rect x="18" y="64" width="24" height="2" rx="0.5" fill="#64748b" />
+      {/* publisher bar */}
+      <rect x="22" y="74" width="16" height="2" rx="0.5" fill="#94a3b8" />
+      {/* decorative blobs — bottom-left */}
+      <circle cx="10" cy="76" r="5" fill="#facc15" opacity="0.7" />
+      <circle cx="6" cy="70" r="3" fill="#a78bfa" opacity="0.6" />
+    </svg>
+  )
+}
+
 // Barcode SVG — ใช้ใน pre-capture guide แทน emoji
 function BarcodeSvg({ tilted = false }: { tilted?: boolean }) {
   // ลำดับความกว้างของแท่ง (สลับ ดำ/ขาว) แบบ EAN-13 ตัวอย่าง
@@ -745,8 +779,8 @@ function SellPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
               <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <div style={{ height: 48, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {captureGuide === 'barcode' ? <BarcodeSvg /> : <span style={{ fontSize: 36 }}>📕</span>}
+                <div style={{ height: 64, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {captureGuide === 'barcode' ? <BarcodeSvg /> : <BookCoverSvg />}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>✓ แบบนี้ดี</div>
                 <div style={{ fontSize: 11, color: '#166534', marginTop: 2, lineHeight: 1.4 }}>
@@ -754,10 +788,8 @@ function SellPage() {
                 </div>
               </div>
               <div style={{ background: '#fee2e2', border: '2px solid #fca5a5', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <div style={{ height: 48, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {captureGuide === 'barcode'
-                    ? <BarcodeSvg tilted />
-                    : <span style={{ fontSize: 36, opacity: 0.5, transform: 'rotate(15deg)', display: 'inline-block' }}>📕</span>}
+                <div style={{ height: 64, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {captureGuide === 'barcode' ? <BarcodeSvg tilted /> : <BookCoverSvg tilted />}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>✗ แบบนี้ไม่ดี</div>
                 <div style={{ fontSize: 11, color: '#991b1b', marginTop: 2, lineHeight: 1.4 }}>เอียง / มืด / เบลอ / ตัดขอบ</div>
