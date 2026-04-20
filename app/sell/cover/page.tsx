@@ -194,7 +194,7 @@ function SellFlowCoverPageInner() {
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [includesShipping, setIncludesShipping] = useState(false)
-  const [contact, setContact] = useState('')
+  // contact: auto จาก user.phone/line_user_id (ไม่มีช่อง manual)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -387,7 +387,8 @@ function SellFlowCoverPageInner() {
 
     const priceNum = parseFloat(price)
     if (!isFinite(priceNum) || priceNum <= 0) { setErr('กรุณาใส่ราคาที่ถูกต้อง'); return }
-    if (!contact.trim()) { setErr('กรุณาใส่ช่องทางติดต่อ'); return }
+    const autoContact = user?.phone || (user?.line_user_id ? 'LINE' : '')
+    if (!autoContact) { setErr('เพิ่มเบอร์โทรในโปรไฟล์ก่อนลงขาย'); return }
 
     setSubmitting(true); setErr(null); setSaveMsg(null)
     try {
@@ -427,7 +428,7 @@ function SellFlowCoverPageInner() {
           condition: cond,
           price: priceNum,
           price_includes_shipping: includesShipping,
-          contact: contact.trim(),
+          contact: autoContact,
           notes: notes.trim(),
           photos: photoUrls,
         }),
@@ -454,11 +455,12 @@ function SellFlowCoverPageInner() {
     }
   }
 
+  const hasContact = !!(user?.phone || user?.line_user_id)
   const canSubmit =
     form.title.trim().length > 0 &&
     form.authors.trim().length > 0 &&
     parseFloat(price) > 0 &&
-    contact.trim().length > 0
+    hasContact
 
   return (
     <div style={{ padding: 16, paddingBottom: 80 }}>
@@ -811,7 +813,7 @@ function SellFlowCoverPageInner() {
             </div>
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
-              <label className="label">ราคาขาย (บาท)</label>
+              <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span></label>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink3)' }}>฿</span>
                 <input className="input" type="number" inputMode="numeric" min="1"
@@ -841,11 +843,28 @@ function SellFlowCoverPageInner() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="label">ช่องทางติดต่อ</label>
-              <input className="input" type="text" value={contact}
-                onChange={e => setContact(e.target.value)} placeholder="เบอร์โทร / LINE ID" />
-            </div>
+            {/* ช่องทางติดต่อ — auto จากโปรไฟล์ ไม่ต้องกรอก */}
+            {(user?.phone || user?.line_user_id) ? (
+              <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>ช่องทางติดต่อ</div>
+                {user?.phone && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_user_id ? 6 : 0, fontSize: 14 }}>
+                    <span>📞</span>
+                    <span style={{ fontWeight: 600 }}>{user.phone.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
+                  </div>
+                )}
+                {user?.line_user_id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                    <span>💚</span>
+                    <span style={{ fontWeight: 600 }}>LINE</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+                ⚠️ ยังไม่มีช่องทางติดต่อ — <Link href="/profile" style={{ color: '#92400e', fontWeight: 700, textDecoration: 'underline' }}>เพิ่มในโปรไฟล์</Link> ก่อนลงขาย
+              </div>
+            )}
           </section>
 
           {saveMsg && (
@@ -886,7 +905,9 @@ function SellFlowCoverPageInner() {
 
           {!canSubmit && (
             <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 8, textAlign: 'center' }}>
-              กรุณากรอก: ชื่อหนังสือ, ผู้แต่ง, ราคา, ช่องทางติดต่อ
+              {!hasContact
+                ? 'ยังไม่มีช่องทางติดต่อ — เพิ่มในโปรไฟล์ก่อน'
+                : 'กรุณากรอก: ชื่อหนังสือ, ผู้แต่ง, ราคา'}
             </div>
           )}
         </>

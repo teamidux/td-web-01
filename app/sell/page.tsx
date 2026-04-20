@@ -128,6 +128,8 @@ function SellPage() {
   const scanInputRef = useRef<HTMLInputElement | null>(null)
   const coverCaptureRef = useRef<HTMLInputElement | null>(null)
   const coverGalleryRef = useRef<HTMLInputElement | null>(null)
+  // Pre-capture guide modal — แสดงก่อนเปิดกล้อง
+  const [captureGuide, setCaptureGuide] = useState<null | 'barcode' | 'cover'>(null)
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [shipping, setShipping] = useState('buyer')
@@ -694,6 +696,61 @@ function SellPage() {
         </div>
       )}
 
+      {/* Pre-capture guide — แสดงก่อนเปิดกล้อง (barcode หรือ cover) */}
+      {captureGuide && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: 22, maxWidth: 360, width: '100%' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 14, textAlign: 'center' }}>
+              {captureGuide === 'barcode' ? '📷 ถ่ายบาร์โค้ดให้ชัด' : '📖 ถ่ายปกให้ชัด'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+              <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: 10, padding: 10, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 6 }}>{captureGuide === 'barcode' ? '📊' : '📕'}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>✓ แบบนี้ดี</div>
+                <div style={{ fontSize: 11, color: '#166534', marginTop: 2, lineHeight: 1.4 }}>
+                  {captureGuide === 'barcode' ? 'บาร์โค้ดชัด ตรง เต็มกรอบ' : 'ปกเต็มกรอบ ตรง ชัด'}
+                </div>
+              </div>
+              <div style={{ background: '#fee2e2', border: '2px solid #fca5a5', borderRadius: 10, padding: 10, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 6, opacity: 0.5, transform: 'rotate(15deg)', display: 'inline-block' }}>{captureGuide === 'barcode' ? '📊' : '📕'}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>✗ แบบนี้ไม่ดี</div>
+                <div style={{ fontSize: 11, color: '#991b1b', marginTop: 2, lineHeight: 1.4 }}>เอียง / มืด / เบลอ / ตัดขอบ</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 14, textAlign: 'center' }}>
+              💡 ถ่ายตรง ๆ ในที่สว่าง หลีกเลี่ยงแสงสะท้อน
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setCaptureGuide(null)}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, background: 'white', border: '1px solid var(--border)', fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const mode = captureGuide
+                  setCaptureGuide(null)
+                  setTimeout(() => {
+                    if (mode === 'barcode') {
+                      if (isLineIAB) setShowCamera(true)
+                      else scanInputRef.current?.click()
+                    } else {
+                      coverCaptureRef.current?.click()
+                    }
+                  }, 100)
+                }}
+                style={{ flex: 2, padding: '12px', borderRadius: 10, background: 'var(--primary)', border: 'none', fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: 'pointer' }}
+              >
+                เริ่มถ่าย →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pioneer popup — แสดงเมื่อเพิ่มหนังสือใหม่เข้าระบบ */}
       {pioneerBook && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -788,34 +845,22 @@ function SellPage() {
                     ✓ แนะนำ — เร็วและแม่นที่สุด
                   </div>
                   {/* Primary: Barcode — big blue card */}
-                  {isLineIAB ? (
-                    <button
-                      onClick={() => { if (!user) { goLogin(); return }; setShowCamera(true) }}
-                      disabled={scanning}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
-                        padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 12,
-                      }}
-                    >
-                      <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
-                    </button>
-                  ) : (
-                    <label style={{
+                  <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
+                  <button
+                    type="button"
+                    onClick={() => { if (!user) { goLogin(); return }; setCaptureGuide('barcode') }}
+                    disabled={scanning}
+                    style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 16,
                       padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 12,
-                    }}>
-                      <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
-                      <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
-                    </label>
-                  )}
+                    }}
+                  >
+                    <div style={{ fontSize: 44, marginBottom: 10 }}>📷</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 4 }}>สแกนบาร์โค้ด ISBN</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>เร็วที่สุด · ใช้ได้กับหนังสือที่มีบาร์โค้ด</div>
+                  </button>
 
                   {showCamera && (
                     <CameraCaptureModal
@@ -884,7 +929,7 @@ function SellPage() {
                     <div style={{ display: 'grid', gap: 8 }}>
                       <button
                         type="button"
-                        onClick={() => { if (!user) { goLogin(); return }; coverCaptureRef.current?.click() }}
+                        onClick={() => { if (!user) { goLogin(); return }; setCaptureGuide('cover') }}
                         style={{
                           width: '100%', padding: '12px 16px', borderRadius: 10,
                           background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
