@@ -238,20 +238,27 @@ function SellFlowCoverPageInner() {
   }, [])
 
   // เช็ค sessionStorage: ถ้ามีรูปที่ถ่ายมาจาก /sell แล้ว → ใช้เลย ข้ามขั้นตอน capture
+  // หรือ: ถ้ามาจาก barcode redirect (มี ?isbn= แต่ไม่มีรูป) → auto-open camera
   useEffect(() => {
     if (pickedFromStorageRef.current) return
     pickedFromStorageRef.current = true
     try {
       const raw = sessionStorage.getItem('bm_cover_scan')
-      if (!raw) return
-      sessionStorage.removeItem('bm_cover_scan') // ใช้ครั้งเดียว
-      const parsed = JSON.parse(raw) as { data: string; mimeType: string; ts: number }
-      if (!parsed?.data) return
-      // แปลง base64 → File → preview URL
-      const bytes = Uint8Array.from(atob(parsed.data), c => c.charCodeAt(0))
-      const blob = new Blob([bytes], { type: parsed.mimeType || 'image/jpeg' })
-      const file = new File([blob], 'cover.jpg', { type: blob.type })
-      onPick(file) // เรียก flow ปกติ — จะ compress + AI analyze อัตโนมัติ
+      if (raw) {
+        sessionStorage.removeItem('bm_cover_scan') // ใช้ครั้งเดียว
+        const parsed = JSON.parse(raw) as { data: string; mimeType: string; ts: number }
+        if (parsed?.data) {
+          const bytes = Uint8Array.from(atob(parsed.data), c => c.charCodeAt(0))
+          const blob = new Blob([bytes], { type: parsed.mimeType || 'image/jpeg' })
+          const file = new File([blob], 'cover.jpg', { type: blob.type })
+          onPick(file)
+          return
+        }
+      }
+      // ถ้ามาจาก barcode redirect (มี ISBN แต่ไม่มีรูป) → auto-open camera ทันที
+      if (incomingIsbn) {
+        setTimeout(() => cameraRef.current?.click(), 200)
+      }
     } catch {
       // ignore — fallback ปุ่ม capture บน page
     }
@@ -527,6 +534,15 @@ function SellFlowCoverPageInner() {
         <h1 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35, letterSpacing: '-0.02em' }}>
           ลงขายหนังสือ
         </h1>
+        {incomingIsbn && !preview && (
+          <div style={{ marginTop: 10, background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>📷</span>
+            <div>
+              <div style={{ fontWeight: 600 }}>ถ่ายหน้าปกเพื่อเพิ่มเข้าระบบ</div>
+              <div style={{ fontSize: 11, opacity: 0.8 }}>ISBN: {incomingIsbn}</div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ─── Capture section ─── */}
@@ -733,7 +749,8 @@ function SellFlowCoverPageInner() {
           {/* Photos section: cover (ถ่ายแล้ว) + เพิ่มรูปอื่นๆ ได้ถึง 5 */}
           {(selectedBookId || dismissedCandidates || candidates.length === 0) && (
             <section style={card}>
-              <div style={sectionLabel}>📸 รูปหนังสือ ({1 + extraFiles.length}/5)</div>
+              <div style={sectionLabel}>📸 รูปหนังสือของคุณ</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: -4, marginBottom: 8 }}>ใส่เพิ่มได้สูงสุด 5 รูป</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {/* รูปปก (locked) */}
                 {preview && (

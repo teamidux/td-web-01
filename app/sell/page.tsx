@@ -322,8 +322,13 @@ function SellPage() {
         }
       }
     } else {
-      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ → ให้ user ใส่รูปปก
-      // ถ้าเปิด cover scan feature: AI จะอ่านข้อมูลจากรูปปกอัตโนมัติ (ไม่ต้องพิมพ์)
+      // ISBN สแกนได้ แต่ไม่อยู่ใน DB → silent redirect ไป /sell/cover
+      // ไม่ต้องบอก "ไม่เจอ" — เก็บ ISBN แล้วให้ user ถ่ายปกเลย flow ต่อเนื่อง
+      if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1') {
+        router.push(`/sell/cover?isbn=${encodeURIComponent(q)}`)
+        return
+      }
+      // Fallback: ถ้าปิด feature → พฤติกรรมเดิม (has_isbn manual form)
       setNotFoundMode('has_isbn')
       setSellSearch('')
     }
