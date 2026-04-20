@@ -176,6 +176,8 @@ function SellPage() {
   const [notFoundMode, setNotFoundMode] = useState<null | 'has_isbn' | 'no_isbn'>(null)
   // has_isbn: แสดง inline form แก้ไข title/author (เปิดเฉพาะตอน user กด "แก้ไข")
   const [editingBookInfo, setEditingBookInfo] = useState(false)
+  // Snapshot ค่าก่อนเปิด edit — กด ยกเลิก แล้วย้อนได้
+  const editSnapshotRef = useRef<{ title: string; author: string } | null>(null)
   const [fetching, setFetching] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState(false)
@@ -207,6 +209,10 @@ function SellPage() {
   const [compressing, setCompressing] = useState(false)
   // AI cover extract (has_isbn mode): flag กันยิงซ้ำต่อ session เดียวกัน
   const [aiExtractedIsbn, setAiExtractedIsbn] = useState<string | null>(null)
+  // AI status — แสดง card state ต่างกันตามสถานะ
+  const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle')
+  // Retake count — หลังถ่ายซ้ำ 3 ครั้งไม่สำเร็จ → โผล่ escape hatch ให้พิมพ์เอง
+  const [retakeCount, setRetakeCount] = useState(0)
   // Ref เก็บ latest previews สำหรับ cleanup ตอน unmount (กัน memory leak จาก Object URL)
   const photoPreviewsRef = useRef<string[]>([])
   useEffect(() => { photoPreviewsRef.current = photoPreviews }, [photoPreviews])
@@ -359,6 +365,19 @@ function SellPage() {
     processScanPhoto(rawFile)
   }
 
+  // ถ่ายปกใหม่ — ลบรูปแรก + reset AI state + เปิดกล้อง
+  const retakeCover = () => {
+    if (photoFiles.length > 0 && photoPreviews[0]) {
+      URL.revokeObjectURL(photoPreviews[0])
+      setPhotoFiles(prev => prev.slice(1))
+      setPhotoPreviews(prev => prev.slice(1))
+    }
+    setAiStatus('idle')
+    setAiExtractedIsbn(null)
+    setRetakeCount(c => c + 1)
+    cameraInputRef.current?.click()
+  }
+
   const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
@@ -398,6 +417,7 @@ function SellPage() {
         compressed[0]
       if (shouldAiExtract) {
         setAiExtractedIsbn(isbn)
+        setAiStatus('running')
         ;(async () => {
           try {
             const arr = await compressed[0].arrayBuffer()
@@ -414,7 +434,10 @@ function SellPage() {
             })
             const j = await r.json()
             const parsed = j?.parsed
-            if (!parsed) return
+            if (!parsed || !parsed.title) {
+              setAiStatus('failed')
+              return
+            }
             let filled = false
             // Fill ONLY ช่องว่าง (เคารพสิ่งที่ user พิมพ์)
             if (!manualTitle && parsed.title) {
@@ -428,9 +451,14 @@ function SellPage() {
               setManualAuthor(parsed.authors.join(', '))
               filled = true
             }
-            if (filled) show('✨ อ่านข้อมูลจากปกให้แล้ว — ตรวจสอบก่อนลงขายได้')
+            if (filled) {
+              setAiStatus('success')
+              show('✨ อ่านข้อมูลจากปกให้แล้ว — ตรวจสอบก่อนลงขายได้')
+            } else {
+              setAiStatus('failed')
+            }
           } catch {
-            // เงียบๆ ไม่รบกวน user
+            setAiStatus('failed')
           }
         })()
       }
@@ -463,6 +491,8 @@ function SellPage() {
     setMarketPrice(null)
     setAiExtractedIsbn(null)
     setEditingBookInfo(false)
+    setAiStatus('idle')
+    setRetakeCount(0)
   }
 
   const removePhoto = (index: number) => {
@@ -1103,12 +1133,13 @@ function SellPage() {
             </div>
           )}
 
-          {/* has_isbn: green card pattern เหมือน fetchedBook — ใช้ manualTitle/manualAuthor (จาก AI หรือ manual) */}
-          {notFoundMode === 'has_isbn' && !fetchedBook && !editingBookInfo && (
+          {/* has_isbn: 3 states — empty (ยังไม่มีรูป) / success (AI ดึงได้) / failed (AI อ่านไม่ออก) */}
+          {notFoundMode === 'has_isbn' && !fetchedBook && !editingBookInfo && aiStatus !== 'failed' && (
             <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
-              <BookCover isbn={isbn} coverUrl={photoPreviews[0] || null} title={manualTitle || 'หนังสือเล่มใหม่'} size={68} />
+              <BookCover isbn={isbn} coverUrl={photoPreviews[0] || null} title={manualTitle || 'หนังสือ'} size={68} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 {manualTitle ? (
+                  // State 2: AI success — แสดง title/author/badge + ปุ่มแก้เล็กๆ
                   <>
                     <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{manualTitle}</div>
                     {manualAuthor && (
@@ -1116,41 +1147,113 @@ function SellPage() {
                         <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{manualAuthor}
                       </div>
                     )}
+                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>ISBN: {isbn}</div>
                     <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
                   </>
                 ) : (
+                  // State 1: empty (before photo) — ISBN + copy เท่านั้น
                   <>
-                    <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.35, color: '#475569', marginBottom: 4 }}>หนังสือเล่มใหม่</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>ถ่ายรูปหน้าปกด้านล่าง — ระบบจะดึงชื่อให้อัตโนมัติ</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', marginBottom: 6 }}>ISBN: {isbn}</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>ลงรูปปกแล้วชื่อหนังสือจะขึ้น</div>
                   </>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>ISBN: {isbn}</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                <button onClick={() => setEditingBookInfo(true)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', minHeight: 32, fontSize: 12, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit' }}>แก้ไข</button>
-                <button onClick={resetSearch} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', minHeight: 32, fontSize: 12, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit' }}>เปลี่ยน</button>
+              {/* ปุ่มแก้ subtle — แสดงเฉพาะตอน AI success (สำหรับแก้คำตก/ผิด) */}
+              {manualTitle && (
+                <button
+                  onClick={() => {
+                    setEditingBookInfo(true)
+                  }}
+                  title="แก้ไข"
+                  aria-label="แก้ไข"
+                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', minHeight: 32, fontSize: 14, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}
+                >
+                  ✏️
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* State 3: AI failed — "อ่านไม่ชัด ถ่ายใหม่" (ไม่มีให้พิมพ์เอง จนกว่าจะถ่ายซ้ำ 3 ครั้ง) */}
+          {notFoundMode === 'has_isbn' && !fetchedBook && !editingBookInfo && aiStatus === 'failed' && (
+            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderLeft: '4px solid #F59E0B', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
+              <BookCover isbn={isbn} coverUrl={photoPreviews[0] || null} title="" size={68} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>⚠️ อ่านปกไม่ชัด</div>
+                <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.5, marginBottom: 10 }}>
+                  {retakeCount === 0 && 'ลองถ่ายใหม่หามุมที่ชัดกว่านะ'}
+                  {retakeCount === 1 && 'ลองอีกครั้ง — ถ่ายในที่สว่างพอ ไม่เอียง'}
+                  {retakeCount >= 2 && 'ถ้าถ่ายยังไม่ได้ ลองเข้าใกล้ปกหรือปิดแสงสะท้อน'}
+                </div>
+                <div style={{ fontSize: 11, color: '#B45309' }}>ISBN: {isbn}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={retakeCover}
+                    style={{ padding: '8px 14px', background: 'var(--primary)', border: 0, borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: 'pointer', minHeight: 40 }}
+                  >
+                    📷 ถ่ายใหม่
+                  </button>
+                  {/* Escape hatch: หลังถ่ายซ้ำ ≥3 ครั้งยังไม่ได้ → โผล่ "พิมพ์เอง" */}
+                  {retakeCount >= 3 && (
+                    <button
+                      onClick={() => setEditingBookInfo(true)}
+                      style={{ padding: '8px 14px', background: 'none', border: 0, fontFamily: 'Kanit', fontSize: 13, color: '#92400E', textDecoration: 'underline', cursor: 'pointer', minHeight: 40 }}
+                    >
+                      พิมพ์ชื่อเอง
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
-          {/* has_isbn edit mode: inline form (title/author inputs) */}
-          {notFoundMode === 'has_isbn' && !fetchedBook && editingBookInfo && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>ข้อมูลหนังสือ</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>ISBN: {isbn}</div>
+          {/* has_isbn edit mode: inline form (title/author inputs) + cancel/save */}
+          {notFoundMode === 'has_isbn' && !fetchedBook && editingBookInfo && (() => {
+            // Snapshot ครั้งแรกที่เปิด edit — กดยกเลิกย้อนกลับ
+            if (!editSnapshotRef.current) {
+              editSnapshotRef.current = { title: manualTitle, author: manualAuthor }
+            }
+            return (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>ข้อมูลหนังสือ</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>ISBN: {isbn}</div>
+                </div>
+                <div className="form-group">
+                  <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
+                </div>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label className="label">ผู้แต่ง <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
+                  <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling" />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      if (editSnapshotRef.current) {
+                        setManualTitle(editSnapshotRef.current.title)
+                        setManualAuthor(editSnapshotRef.current.author)
+                      }
+                      editSnapshotRef.current = null
+                      setEditingBookInfo(false)
+                    }}
+                    style={{ flex: 1, padding: '10px 12px', minHeight: 44, background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={() => {
+                      editSnapshotRef.current = null
+                      setEditingBookInfo(false)
+                    }}
+                    style={{ flex: 1, padding: '10px 12px', minHeight: 44, background: 'var(--primary)', border: 0, borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: 'pointer' }}
+                  >
+                    เสร็จ
+                  </button>
+                </div>
               </div>
-              <div className="form-group">
-                <label className="label">ชื่อหนังสือ <span style={{ color: 'var(--red)' }}>*</span></label>
-                <input className="input" value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="เช่น แฮร์รี่ พอตเตอร์ กับศิลาอาถรรพ์" autoFocus />
-              </div>
-              <div className="form-group" style={{ marginBottom: 12 }}>
-                <label className="label">ผู้แต่ง <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
-                <input className="input" value={manualAuthor} onChange={e => setManualAuthor(e.target.value)} placeholder="เช่น J.K. Rowling" />
-              </div>
-              <button onClick={() => setEditingBookInfo(false)} style={{ width: '100%', padding: '10px 12px', minHeight: 44, background: 'var(--primary)', border: 0, borderRadius: 10, fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'white', cursor: 'pointer' }}>เสร็จ</button>
-            </div>
-          )}
+            )
+          })()}
 
           {(fetchedBook?.title || notFoundMode === 'has_isbn' || (notFoundMode === 'no_isbn' && manualTitle)) && (
             <>
