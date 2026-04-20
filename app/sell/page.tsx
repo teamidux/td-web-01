@@ -814,55 +814,24 @@ function SellPage() {
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
 
-                  {/* ส่วนล่าง: ไม่มี Barcode → ค้นหา / กรอกเอง */}
+                  {/* ส่วนล่าง: ไม่มี Barcode → ถ่ายหน้าปก AI ช่วยกรอก */}
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px', marginBottom: 12 }}>
                     <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>ไม่มี Barcode / หนังสือเก่า</div>
-
-                    <div className="form-group" style={{ marginBottom: 8 }}>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          className="input"
-                          value={sellSearch}
-                          onChange={e => setSellSearch(e.target.value)}
-                          placeholder="ค้นหาด้วยชื่อหนังสือ..."
-                          style={{ paddingRight: (fetching || sellSearching) ? 44 : 14 }}
-                        />
-                        {(fetching || sellSearching) && (
-                          <span className="spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }} />
-                        )}
-                      </div>
+                    <a
+                      href="/test/sell-flow/cover"
+                      onClick={(e) => { if (!user) { e.preventDefault(); goLogin() } }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        width: '100%', background: 'var(--primary)', border: 'none', borderRadius: 12,
+                        padding: '14px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15,
+                        color: 'white', textDecoration: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      📖 ถ่ายหน้าปก — AI ช่วยกรอก
+                    </a>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
+                      ไม่ต้องพิมพ์ ไม่ต้องรู้ ISBN
                     </div>
-
-                    {/* Search results */}
-                    {sellResults.length > 0 && (
-                      <div style={{ marginBottom: 10, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                        {sellResults.map((b, i) => (
-                          <button key={b.id} onClick={() => selectBook(b)}
-                            style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'white', border: 'none', borderBottom: i < sellResults.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '10px 12px', cursor: 'pointer', fontFamily: 'Kanit', textAlign: 'left', width: '100%' }}>
-                            <BookCover isbn={b.isbn} title={b.title} size={40} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                              {b.author && <div style={{ fontSize: 12, color: '#555', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.author}</div>}
-                            </div>
-                            <span style={{ color: 'var(--primary)', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>เลือก ›</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* ค้นไม่เจอ → อธิบาย + ปุ่มเพิ่มเอง */}
-                    {sellSearch.trim().length >= 2 && !sellSearching && !fetching && sellResults.length === 0 && (
-                      <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '16px', marginTop: 4 }}>
-                        <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 16, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>ไม่พบ "{sellSearch}"</div>
-                        <div style={{ fontSize: 14, color: '#78350F', lineHeight: 1.7, marginBottom: 14 }}>
-                          อาจเป็นหนังสือเก่า สำนักพิมพ์อิสระ หรือยังไม่มีในระบบ
-                        </div>
-                        <button onClick={() => { setNotFoundMode('no_isbn'); setIsbn(bmIsbn); setManualTitle(sellSearch) }}
-                          style={{ width: '100%', background: '#92400E', border: 'none', borderRadius: 10, padding: '13px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15, color: 'white', cursor: 'pointer' }}>
-                          ✏️ เพิ่มหนังสือด้วยตัวเอง
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </>
               )}
