@@ -329,17 +329,16 @@ function SellPage() {
       setPhotoFiles(prev => [...prev, ...compressed])
       setPhotoPreviews(prev => [...prev, ...previews])
 
-      // AI extract จากรูปแรก — เฉพาะเมื่อ has_isbn + เปิด feature + ยังไม่เคย extract + title ว่าง
-      // (silent: user แค่อัปรูปเหมือนปกติ → title/author เติมเฉยๆ + toast เล็ก)
+      // AI extract จากรูปแรก — ทั้ง has_isbn และ no_isbn (silent, fill เฉพาะช่องว่าง)
+      // ถ้า user พิมพ์ title แล้ว → ไม่ทับ (เคารพ input), AI เติมแค่ author/publisher
       const shouldAiExtract =
         wasFirstUpload &&
-        notFoundMode === 'has_isbn' &&
-        !manualTitle &&
+        (notFoundMode === 'has_isbn' || notFoundMode === 'no_isbn') &&
         isbn && aiExtractedIsbn !== isbn &&
         process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' &&
         compressed[0]
       if (shouldAiExtract) {
-        setAiExtractedIsbn(isbn) // mark ทันที กัน double-fire
+        setAiExtractedIsbn(isbn)
         ;(async () => {
           try {
             const arr = await compressed[0].arrayBuffer()
@@ -356,17 +355,23 @@ function SellPage() {
             })
             const j = await r.json()
             const parsed = j?.parsed
-            if (parsed?.title) {
-              // merge title+subtitle (heuristic: subtitle > 60 chars = junk ทิ้ง)
+            if (!parsed) return
+            let filled = false
+            // Fill ONLY ช่องว่าง (เคารพสิ่งที่ user พิมพ์)
+            if (!manualTitle && parsed.title) {
               const sub = (parsed.subtitle || '').trim()
               const t = (parsed.title || '').trim()
               const full = (sub && sub.length <= 60) ? `${t} ${sub}` : t
               setManualTitle(full)
-              if (parsed.authors?.length) setManualAuthor(parsed.authors.join(', '))
-              show('✨ อ่านข้อมูลจากปกให้แล้ว — ตรวจสอบก่อนลงขายได้')
+              filled = true
             }
+            if (!manualAuthor && parsed.authors?.length) {
+              setManualAuthor(parsed.authors.join(', '))
+              filled = true
+            }
+            if (filled) show('✨ อ่านข้อมูลจากปกให้แล้ว — ตรวจสอบก่อนลงขายได้')
           } catch {
-            // เงียบๆ ไม่รบกวน user — เค้ากรอกเองได้
+            // เงียบๆ ไม่รบกวน user
           }
         })()
       }
@@ -920,6 +925,13 @@ function SellPage() {
               {notFoundMode === 'no_isbn' && !fetchedBook && (
                 <>
                   <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 600, padding: 0, marginBottom: 12 }}>← กลับ</button>
+                  {/* AI hint: เมื่อ user อัปรูปปก AI จะอ่านเติมช่องว่างให้ (ไม่ทับที่พิมพ์) */}
+                  {process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' && (
+                    <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>✨</span>
+                      <span>อัปรูปปกแล้วจะช่วยเติมช่องที่ว่างให้อัตโนมัติ</span>
+                    </div>
+                  )}
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
                     <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>เพิ่มหนังสือด้วยตัวเอง</div>
                     <div className="form-group">
