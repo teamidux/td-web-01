@@ -907,70 +907,103 @@ function SellFlowCoverPageInner() {
           <section style={card}>
             <div style={sectionLabel}>💰 รายละเอียดที่ลงขาย</div>
 
+            {/* ─── Condition: 2x2 grid color-coded (sync กับ /sell) ─── */}
             <div className="form-group">
               <label className="label">สภาพหนังสือ</label>
-              <div style={{ display: 'flex', gap: 7 }}>
-                {CONDITIONS.map(c => (
-                  <button
-                    key={c.key} type="button" onClick={() => {
-                      setCond(c.key)
-                      // ถ้า user ยังไม่ได้แก้ notes เอง → auto-fill ตาม template
-                      if (notesAutoFilled) setNotes(NOTE_TEMPLATES[c.key] || '')
-                    }}
-                    style={{
-                      flex: 1, padding: '10px 6px', borderRadius: 10,
-                      border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`,
-                      background: cond === c.key ? 'var(--primary-light)' : 'white',
-                      fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      color: cond === c.key ? 'var(--primary-dark)' : 'var(--ink2)',
-                    }}
-                  >
-                    {c.label}
-                  </button>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {CONDITIONS.map(c => {
+                  const palette = (c.key === 'brand_new' || c.key === 'new')
+                    ? { color: '#166534', bg: '#DCFCE7' }
+                    : c.key === 'good'
+                    ? { color: '#CA8A04', bg: '#FEF9C3' }
+                    : { color: '#B91C1C', bg: '#FEE2E2' }
+                  const active = cond === c.key
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => {
+                        setCond(c.key)
+                        if (notesAutoFilled) setNotes(NOTE_TEMPLATES[c.key] || '')
+                      }}
+                      style={{
+                        padding: '12px 12px', borderRadius: 12, cursor: 'pointer',
+                        background: active ? palette.bg : 'white',
+                        border: active ? `1.5px solid ${palette.color}` : '1px solid #E5E7EB',
+                        fontFamily: 'Kanit', fontSize: 13.5, fontWeight: 700,
+                        color: active ? palette.color : '#475569',
+                        textAlign: 'left',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{c.label}</span>
+                      {active && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={palette.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
+              <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 8, lineHeight: 1.4 }}>
                 {CONDITIONS.find(c => c.key === cond)?.desc}
               </div>
             </div>
 
+            {/* ─── Notes: card + char count (sync กับ /sell) ─── */}
             <div className="form-group">
               <label className="label">หมายเหตุเพิ่มเติม <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
-              <textarea
-                className="input" value={notes} onChange={e => { setNotes(e.target.value); setNotesAutoFilled(false) }}
-                placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ"
-                rows={2} style={{ resize: 'none', lineHeight: 1.6 }}
-              />
-            </div>
-
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
-              <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span></label>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink3)' }}>฿</span>
-                <input className="input" type="number" inputMode="numeric" min="1"
-                  value={price} onChange={e => setPrice(e.target.value)} placeholder="150" />
+              <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', padding: 14 }}>
+                <textarea
+                  value={notes}
+                  onChange={e => { setNotes(e.target.value.slice(0, 300)); setNotesAutoFilled(false) }}
+                  placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ / หน้า 45 มีรอยน้ำเล็กน้อย"
+                  rows={3}
+                  style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', fontFamily: 'Kanit', fontSize: 14, color: '#0F172A', lineHeight: 1.5 }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6, borderTop: '1px solid #F1F5F9', marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: '#94A3B8' }}>{notes.length}/300</div>
+                </div>
               </div>
             </div>
 
+            {/* ─── Price: big bordered input (sync กับ /sell) ─── */}
+            <div className="form-group">
+              <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span></label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', borderRadius: 12, padding: '12px 16px', border: `1.5px solid ${price ? 'var(--primary)' : '#E5E7EB'}`, boxShadow: price ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#64748B' }}>฿</div>
+                <input
+                  type="number" inputMode="numeric" min="1"
+                  value={price} onChange={e => setPrice(e.target.value)}
+                  placeholder="150"
+                  style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'Kanit', fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', minWidth: 0, background: 'transparent' }}
+                />
+              </div>
+            </div>
+
+            {/* ─── Shipping: toggle cards with subtitle (sync กับ /sell) ─── */}
             <div className="form-group">
               <label className="label">ค่าส่ง</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
-                  { val: false, label: 'ไม่รวมค่าส่ง' },
-                  { val: true,  label: 'ส่งฟรี' },
-                ].map(opt => (
-                  <button key={String(opt.val)} type="button" onClick={() => setIncludesShipping(opt.val)}
-                    style={{
-                      flex: 1, padding: '10px 8px', borderRadius: 10,
-                      border: `1.5px solid ${includesShipping === opt.val ? 'var(--primary)' : 'var(--border)'}`,
-                      background: includesShipping === opt.val ? 'var(--primary-light)' : 'white',
-                      fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                      color: includesShipping === opt.val ? 'var(--primary-dark)' : 'var(--ink2)',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                  { val: true,  label: 'ส่งฟรี', sub: 'ราคานี้รวมค่าส่งแล้ว' },
+                  { val: false, label: '+ ค่าส่ง', sub: 'คิดค่าส่งแยก' },
+                ].map(opt => {
+                  const active = includesShipping === opt.val
+                  return (
+                    <button
+                      key={String(opt.val)} type="button" onClick={() => setIncludesShipping(opt.val)}
+                      style={{
+                        flex: 1, padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
+                        background: active ? '#EEF2FF' : 'white',
+                        border: active ? '1.5px solid #2563EB' : '1px solid #E5E7EB',
+                        borderRadius: 12, fontFamily: 'Kanit',
+                      }}
+                    >
+                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#1D4ED8' : '#0F172A' }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: active ? '#4338CA' : '#64748B', marginTop: 2 }}>{opt.sub}</div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
