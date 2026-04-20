@@ -90,8 +90,9 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     db.from('listings').select('seller_id, created_at').in('seller_id', userIds),
     db.from('reports').select('reported_user_id').in('reported_user_id', userIds),
-    // ทั้งตาราง users (เอาแค่ phone, line_id) — หา duplicate ฝั่ง server
-    db.from('users').select('phone, line_id').is('deleted_at', null),
+    // ทั้งตาราง users (phone, line_id) — หา duplicate ฝั่ง server
+    // TODO: migrate → SQL GROUP BY ถ้า user เกิน 10K (efficient กว่าโหลดทั้งหมด)
+    db.from('users').select('phone, line_id').is('deleted_at', null).limit(10000),
   ])
 
   const dupPhoneSet = new Set<string>()
