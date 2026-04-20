@@ -1269,61 +1269,137 @@ function SellPage() {
                 )}
               </div>
 
+              {/* ─── Condition: 2x2 grid color-coded (design spec) ─── */}
               <div className="form-group">
                 <label className="label">สภาพหนังสือ</label>
-                <div style={{ display: 'flex', gap: 7 }}>
-                  {CONDITIONS.map(c => (
-                    <button key={c.key} onClick={() => setCond(c.key)} style={{ flex: 1, padding: '10px 6px', border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 10, background: cond === c.key ? 'var(--primary-light)' : 'white', fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: cond === c.key ? 'var(--primary-dark)' : 'var(--ink2)' }}>
-                      {c.label}
-                    </button>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {CONDITIONS.map(c => {
+                    // color map per condition: new/brand_new = green, good = yellow, fair = red
+                    const palette = (c.key === 'brand_new' || c.key === 'new')
+                      ? { color: '#166534', bg: '#DCFCE7' }
+                      : c.key === 'good'
+                      ? { color: '#CA8A04', bg: '#FEF9C3' }
+                      : { color: '#B91C1C', bg: '#FEE2E2' }
+                    const active = cond === c.key
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => setCond(c.key)}
+                        style={{
+                          padding: '12px 12px', borderRadius: 12, cursor: 'pointer',
+                          background: active ? palette.bg : 'white',
+                          border: active ? `1.5px solid ${palette.color}` : '1px solid #E5E7EB',
+                          fontFamily: 'Kanit', fontSize: 13.5, fontWeight: 700,
+                          color: active ? palette.color : '#475569',
+                          textAlign: 'left',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>{c.label}</span>
+                        {active && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={palette.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>
+                <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 8, lineHeight: 1.4 }}>
                   {CONDITIONS.find(c => c.key === cond)?.desc}
                 </div>
               </div>
 
+              {/* ─── Notes: with char count ─── */}
               <div className="form-group">
                 <label className="label">หมายเหตุเพิ่มเติม <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
-                <textarea
-                  className="input"
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ / หน้า 45 มีรอยน้ำเล็กน้อย"
-                  rows={2}
-                  style={{ resize: 'none', lineHeight: 1.6 }}
-                />
-              </div>
-
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 13 }}>
-                {marketPrice && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>ราคากลางในระบบ</div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>฿{marketPrice.min}–฿{marketPrice.max}</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink3)' }}>แนะนำ ฿{marketPrice.avg}</div>
-                    </div>
+                <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', padding: 14 }}>
+                  <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value.slice(0, 300))}
+                    placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ / หน้า 45 มีรอยน้ำเล็กน้อย"
+                    rows={3}
+                    style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', fontFamily: 'Kanit', fontSize: 14, color: '#0F172A', lineHeight: 1.5 }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6, borderTop: '1px solid #F1F5F9', marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: '#94A3B8' }}>{notes.length}/300</div>
                   </div>
-                )}
-                <label className="label">ราคาขาย (บาท)</label>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink3)' }}>฿</span>
-                  <input className="input" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="150" />
                 </div>
               </div>
 
+              {/* ─── Price: big input + quick buttons + "ราคาดี" badge (ถ้าในช่วง market) ─── */}
+              <div className="form-group">
+                <label className="label">ราคาขาย (บาท)
+                  {marketPrice && (
+                    <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
+                      ราคาในระบบ ฿{marketPrice.min}–฿{marketPrice.max} · เฉลี่ย ฿{marketPrice.avg}
+                    </span>
+                  )}
+                </label>
+                {(() => {
+                  const priceNum = parseFloat(price) || 0
+                  const isGoodPrice = marketPrice && priceNum > 0 && priceNum >= marketPrice.min && priceNum <= marketPrice.max
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', borderRadius: 12, padding: '12px 16px', border: `1.5px solid ${price ? 'var(--primary)' : '#E5E7EB'}`, boxShadow: price ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none' }}>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: '#64748B' }}>฿</div>
+                        <input
+                          type="number" inputMode="numeric"
+                          value={price} onChange={e => setPrice(e.target.value)}
+                          placeholder="150"
+                          style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'Kanit', fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', minWidth: 0, background: 'transparent' }}
+                        />
+                        {isGoodPrice && (
+                          <div style={{ padding: '5px 10px', borderRadius: 999, background: '#DCFCE7', fontSize: 11, fontWeight: 700, color: '#166534' }}>
+                            ราคาดี
+                          </div>
+                        )}
+                      </div>
+                      {/* Quick price suggestions — ใช้ marketPrice min/avg/max ถ้ามี */}
+                      {marketPrice && (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          {[marketPrice.min, marketPrice.avg, marketPrice.max].filter((p, i, arr) => arr.indexOf(p) === i).map(p => (
+                            <button
+                              key={p} type="button" onClick={() => setPrice(String(p))}
+                              style={{
+                                flex: 1, padding: '8px 0', border: 'none',
+                                background: price === String(p) ? '#0F172A' : '#F1F5F9',
+                                color: price === String(p) ? 'white' : '#475569',
+                                borderRadius: 10, fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                              }}
+                            >
+                              ฿{p}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+
+              {/* ─── Shipping: toggle cards with subtitle ─── */}
               <div className="form-group">
                 <label className="label">ค่าส่ง</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
-                    { val: 'buyer', label: 'ไม่รวมค่าส่ง' },
-                    { val: 'free', label: 'ส่งฟรี' },
-                  ].map(opt => (
-                    <button key={opt.val} type="button" onClick={() => setShipping(opt.val)}
-                      style={{ flex: 1, padding: '10px 8px', border: `1.5px solid ${shipping === opt.val ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 10, background: shipping === opt.val ? 'var(--primary-light)' : 'white', fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, cursor: 'pointer', color: shipping === opt.val ? 'var(--primary-dark)' : 'var(--ink2)' }}>
-                      {opt.label}
-                    </button>
-                  ))}
+                    { val: 'free', label: 'ส่งฟรี', sub: 'ราคานี้รวมค่าส่งแล้ว' },
+                    { val: 'buyer', label: '+ ค่าส่ง', sub: 'คิดค่าส่งแยก' },
+                  ].map(opt => {
+                    const active = shipping === opt.val
+                    return (
+                      <button
+                        key={opt.val} type="button" onClick={() => setShipping(opt.val)}
+                        style={{
+                          flex: 1, padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
+                          background: active ? '#EEF2FF' : 'white',
+                          border: active ? '1.5px solid #2563EB' : '1px solid #E5E7EB',
+                          borderRadius: 12, fontFamily: 'Kanit',
+                        }}
+                      >
+                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#1D4ED8' : '#0F172A' }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: active ? '#4338CA' : '#64748B', marginTop: 2 }}>{opt.sub}</div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
