@@ -95,6 +95,24 @@ async function compressImage(file: File, maxKB = 220): Promise<File> {
 
 const MAX_PHOTOS = 5
 
+// Barcode SVG — ใช้ใน pre-capture guide แทน emoji
+function BarcodeSvg({ tilted = false }: { tilted?: boolean }) {
+  // ลำดับความกว้างของแท่ง (สลับ ดำ/ขาว) แบบ EAN-13 ตัวอย่าง
+  const bars = [2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 2, 1, 1, 3, 1, 2, 1, 3, 1, 2, 1, 3, 1, 2]
+  let x = 2
+  const rects: React.ReactElement[] = []
+  bars.forEach((w, i) => {
+    if (i % 2 === 0) rects.push(<rect key={i} x={x} y={0} width={w} height={28} fill="currentColor" />)
+    x += w
+  })
+  return (
+    <svg viewBox="0 0 80 36" style={{ width: 64, transform: tilted ? 'rotate(10deg)' : 'none', opacity: tilted ? 0.55 : 1 }}>
+      {rects}
+      <text x="40" y="34" fontSize="4" textAnchor="middle" fill="currentColor" fontFamily="monospace">9786163887542</text>
+    </svg>
+  )
+}
+
 export default function SellPageWrapper() {
   return (
     <Suspense fallback={
@@ -705,14 +723,20 @@ function SellPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
               <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 6 }}>{captureGuide === 'barcode' ? '📊' : '📕'}</div>
+                <div style={{ height: 48, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {captureGuide === 'barcode' ? <BarcodeSvg /> : <span style={{ fontSize: 36 }}>📕</span>}
+                </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>✓ แบบนี้ดี</div>
                 <div style={{ fontSize: 11, color: '#166534', marginTop: 2, lineHeight: 1.4 }}>
                   {captureGuide === 'barcode' ? 'บาร์โค้ดชัด ตรง เต็มกรอบ' : 'ปกเต็มกรอบ ตรง ชัด'}
                 </div>
               </div>
               <div style={{ background: '#fee2e2', border: '2px solid #fca5a5', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 6, opacity: 0.5, transform: 'rotate(15deg)', display: 'inline-block' }}>{captureGuide === 'barcode' ? '📊' : '📕'}</div>
+                <div style={{ height: 48, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {captureGuide === 'barcode'
+                    ? <BarcodeSvg tilted />
+                    : <span style={{ fontSize: 36, opacity: 0.5, transform: 'rotate(15deg)', display: 'inline-block' }}>📕</span>}
+                </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>✗ แบบนี้ไม่ดี</div>
                 <div style={{ fontSize: 11, color: '#991b1b', marginTop: 2, lineHeight: 1.4 }}>เอียง / มืด / เบลอ / ตัดขอบ</div>
               </div>
