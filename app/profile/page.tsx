@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, Listing } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, MultiLoginButton } from '@/components/ui'
+import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, MultiLoginButton, ConfirmModal } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 import { formatMemberSince } from '@/lib/format'
 import { compressAvatarImage } from '@/lib/image'
@@ -295,31 +295,25 @@ export default function ProfilePage() {
       {showIdentityWizard && <IdentityVerifyWizard onClose={() => setShowIdentityWizard(false)} onDone={() => show('ส่งเอกสารเรียบร้อย รอตรวจสอบ ✓')} />}
 
       {confirmSoldId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 8 }}>ยืนยันการขาย</div>
-            <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.6 }}>
-              หนังสือเล่มนี้ขายไปแล้วใช่ไหม?<br />
-              <span style={{ fontSize: 13, color: 'var(--ink3)' }}>เปิดคืนได้ภายใน 24 ชั่วโมง</span>
-            </div>
-            <button className="btn" style={{ background: '#DC2626', marginBottom: 8 }} onClick={() => markSold(confirmSoldId)}>✓ ขายไปแล้ว</button>
-            <button className="btn btn-ghost" onClick={() => setConfirmSoldId(null)}>ยกเลิก</button>
-          </div>
-        </div>
+        <ConfirmModal
+          title="ยืนยันการขาย"
+          message="หนังสือเล่มนี้ขายไปแล้วใช่ไหม? (เปิดคืนได้ภายใน 24 ชั่วโมง)"
+          confirmLabel="✓ ขายไปแล้ว"
+          variant="danger"
+          onConfirm={() => markSold(confirmSoldId)}
+          onCancel={() => setConfirmSoldId(null)}
+        />
       )}
 
       {confirmDeleteId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, marginBottom: 8 }}>ลบประกาศ</div>
-            <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.6 }}>
-              ต้องการลบประกาศนี้ใช่ไหม?<br />
-              <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ลบแล้วไม่สามารถกู้คืนได้</span>
-            </div>
-            <button className="btn" style={{ background: 'var(--red)', marginBottom: 8 }} onClick={() => deleteListing(confirmDeleteId)}>🗑️ ลบประกาศ</button>
-            <button className="btn btn-ghost" onClick={() => setConfirmDeleteId(null)}>ยกเลิก</button>
-          </div>
-        </div>
+        <ConfirmModal
+          title="ลบประกาศ"
+          message="ต้องการลบประกาศนี้ใช่ไหม? (ลบแล้วไม่สามารถกู้คืนได้)"
+          confirmLabel="🗑️ ลบประกาศ"
+          variant="danger"
+          onConfirm={() => deleteListing(confirmDeleteId)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
 
       {/* Confirm re-auth dialog ก่อนเปลี่ยน LINE ID */}

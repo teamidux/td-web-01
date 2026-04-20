@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
-// กัน direct API access จากภายนอก (scraper, curl, bot)
-// request จากเว็บเรา (browser) จะมี Origin/Referer header อัตโนมัติ
-// request จาก script ภายนอกจะไม่มี → block
+// กัน direct API access + scraping catalog pages
+// 1) API routes: ต้องมี Origin/Referer จาก domain เรา (กัน curl/bot ภายนอก)
+// 2) Book/search pages: rate limit ต่อ IP (กัน scraper ดึง catalog)
 
 const ALLOWED_ORIGINS = [
   'https://bookmatch.app',
@@ -11,7 +12,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3001',
 ]
 
-// API routes ที่ต้องป้องกัน (public data)
 const PROTECTED_PATTERNS = [
   '/api/listings',
   '/api/search',
@@ -20,7 +20,6 @@ const PROTECTED_PATTERNS = [
   '/api/books/view',
 ]
 
-// API routes ที่ต้อง allow จากภายนอก (OAuth callback, webhook)
 const EXEMPT_PATTERNS = [
   '/api/auth/',
   '/api/line/',
@@ -28,39 +27,76 @@ const EXEMPT_PATTERNS = [
   '/api/cron/',
 ]
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
+// Well-known search engine crawlers — allow ผ่านโดยไม่ rate limit
+// (เราอยาก Google/Bing crawl เยอะๆ เพื่อ SEO)
+const SEARCH_BOT_UA_REGEX = /googlebot|bingbot|duckduckbot|yandexbot|baiduspider|applebot|facebookexternalhit|twitterbot|linkedinbot/i
 
-  // เฉพาะ /api/* routes
-  if (!pathname.startsWith('/api/')) return NextResponse.next()
+// Known aggressive scrapers / AI crawlers — block เลย (ตรงกับ robots.txt)
+const BLOCKED_UA_REGEX = /gptbot|claude-web|claudebot|ccbot|anthropic-ai|chatgpt-user|perplexitybot|scrapy|python-requests|httpx|curl\//i
 
-  // Exempt routes (OAuth, webhook)
-  if (EXEMPT_PATTERNS.some(p => pathname.startsWith(p))) return NextResponse.next()
-
-  // เช็คว่าเป็น protected route ไหม
-  if (!PROTECTED_PATTERNS.some(p => pathname.startsWith(p))) return NextResponse.next()
-
-  // GET requests เท่านั้นที่ต้องเช็ค (POST มี auth อยู่แล้ว)
-  if (req.method !== 'GET') return NextResponse.next()
+function apiGuard(req: NextRequest, pathname: string): NextResponse | null {
+  if (EXEMPT_PATTERNS.some(p => pathname.startsWith(p))) return null
+  if (!PROTECTED_PATTERNS.some(p => pathname.startsWith(p))) return null
+  if (req.method !== 'GET') return null
 
   const origin = req.headers.get('origin') || ''
   const referer = req.headers.get('referer') || ''
-
-  // ถ้ามี Origin หรือ Referer จาก domain เรา → ผ่าน
   const isAllowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o) || referer.startsWith(o))
-  if (isAllowed) return NextResponse.next()
+  if (isAllowed) return null
 
-  // Server-side fetch (Next.js SSR) ไม่มี Origin — เช็ค user-agent
   const ua = (req.headers.get('user-agent') || '').toLowerCase()
-  if (ua.includes('next.js') || ua.includes('node-fetch') || ua.includes('undici')) return NextResponse.next()
+  if (ua.includes('next.js') || ua.includes('node-fetch') || ua.includes('undici')) return null
 
-  // ไม่มี Origin + ไม่ใช่ SSR → น่าจะเป็น scraper/curl
-  // ยังให้ผ่านแต่ใส่ header บอกว่าถูก flag (ไม่ hard block เพราะอาจ false positive)
   const res = NextResponse.next()
   res.headers.set('X-BM-Flagged', '1')
   return res
 }
 
+function pageGuard(req: NextRequest, pathname: string): NextResponse | null {
+  // Protect book detail + search pages จาก scraping
+  if (!pathname.startsWith('/book/') && !pathname.startsWith('/search')) return null
+  if (req.method !== 'GET') return null
+
+  const ua = req.headers.get('user-agent') || ''
+
+  // Block aggressive scraper UAs ทันที
+  if (BLOCKED_UA_REGEX.test(ua)) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  // Allow search engine bots (need to index)
+  if (SEARCH_BOT_UA_REGEX.test(ua)) return null
+
+  // Rate limit ต่อ IP — 60 requests/min (สูงพอสำหรับคนดูหนังสือปกติ
+  // คน browse เยอะๆก็ไม่เกิน; scraper ที่ดึง 50K เล่มจะเจอ)
+  const ip = getClientIp(req)
+  if (!checkRateLimit(`pg:${ip}`, 60, 60_000)) {
+    return new NextResponse('Too Many Requests', {
+      status: 429,
+      headers: { 'Retry-After': '60' },
+    })
+  }
+  return null
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+
+  // Guard 1: API routes (existing)
+  if (pathname.startsWith('/api/')) {
+    const apiRes = apiGuard(req, pathname)
+    if (apiRes) return apiRes
+    return NextResponse.next()
+  }
+
+  // Guard 2: Catalog pages (new — scraping protection)
+  const pageRes = pageGuard(req, pathname)
+  if (pageRes) return pageRes
+
+  return NextResponse.next()
+}
+
+// Match API + catalog pages (book detail + search)
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/book/:path*', '/search/:path*'],
 }
