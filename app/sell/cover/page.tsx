@@ -194,7 +194,7 @@ function SellFlowCoverPageInner() {
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [includesShipping, setIncludesShipping] = useState(false)
-  // contact: auto จาก user.phone/line_user_id (ไม่มีช่อง manual)
+  // contact: auto จาก user.phone/line_id (ไม่มีช่อง manual)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -218,6 +218,15 @@ function SellFlowCoverPageInner() {
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
   const pickedFromStorageRef = useRef(false)
+
+  // Cleanup object URLs ตอน unmount (กัน memory leak ถ้า user ออกระหว่างกลาง)
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+      extraPreviews.forEach(url => URL.revokeObjectURL(url))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // เช็ค sessionStorage: ถ้ามีรูปที่ถ่ายมาจาก /sell แล้ว → ใช้เลย ข้ามขั้นตอน capture
   useEffect(() => {
@@ -301,7 +310,11 @@ function SellFlowCoverPageInner() {
   async function onPick(file: File | null) {
     if (!file) return
     resetAll()
-    setPreview(URL.createObjectURL(file))
+    // cleanup preview เก่า (กัน memory leak)
+    setPreview(prev => {
+      if (prev) URL.revokeObjectURL(prev)
+      return URL.createObjectURL(file)
+    })
     try {
       const b = await fileToBase64(file)
       setBase64(b)
@@ -418,7 +431,7 @@ function SellFlowCoverPageInner() {
 
     // Guard: บังคับเบอร์โทรก่อน (เหมือน /sell เดิม)
     const phone = user?.phone || savedPhoneRef.current
-    if (!phone && !user?.line_user_id) {
+    if (!phone && !user?.line_id) {
       setGuardPhoneInput(''); setPhoneGuardError('')
       setShowPhoneGuard(true)
       return
@@ -426,7 +439,7 @@ function SellFlowCoverPageInner() {
 
     const priceNum = parseFloat(price)
     if (!isFinite(priceNum) || priceNum <= 0) { setErr('กรุณาใส่ราคาที่ถูกต้อง'); return }
-    const autoContact = phone || (user?.line_user_id ? 'LINE' : '')
+    const autoContact = phone || (user?.line_id ? 'LINE' : '')
 
     setSubmitting(true); setErr(null); setSaveMsg(null)
     try {
@@ -881,19 +894,19 @@ function SellFlowCoverPageInner() {
             </div>
 
             {/* ช่องทางติดต่อ — auto จากโปรไฟล์ ถ้าไม่มี phone guard จะเด้งตอน submit */}
-            {(user?.phone || user?.line_user_id) && (
+            {(user?.phone || user?.line_id) && (
               <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '12px 14px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>ช่องทางติดต่อ</div>
                 {user?.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_user_id ? 6 : 0, fontSize: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_id ? 6 : 0, fontSize: 14 }}>
                     <span>📞</span>
                     <span style={{ fontWeight: 600 }}>{user.phone.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
                   </div>
                 )}
-                {user?.line_user_id && (
+                {user?.line_id && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                     <span>💚</span>
-                    <span style={{ fontWeight: 600 }}>LINE</span>
+                    <span style={{ fontWeight: 600 }}>{user.line_id}</span>
                   </div>
                 )}
               </div>

@@ -434,6 +434,28 @@ function SellPage() {
     setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  // ถ่ายปก/เลือก gallery → compress → base64 → sessionStorage → /sell/cover
+  const handleCoverPick = async (e: React.ChangeEvent<HTMLInputElement>, _src: 'camera' | 'gallery') => {
+    const f = e.target.files?.[0]; if (!f) return
+    if (!user) { goLogin(); return }
+    try {
+      const compressed = await compressImage(f)
+      const buf = await compressed.arrayBuffer()
+      const bytes = new Uint8Array(buf)
+      let bin = ''
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
+      }
+      sessionStorage.setItem('bm_cover_scan', JSON.stringify({
+        data: btoa(bin), mimeType: 'image/jpeg', ts: Date.now(),
+      }))
+      e.target.value = '' // reset กัน pick เดิมไม่ trigger onChange
+      router.push('/sell/cover')
+    } catch {
+      show('อ่านรูปไม่ได้ ลองใหม่อีกที')
+    }
+  }
+
   const submit = async () => {
     if (!user) { goLogin(); return }
 
@@ -918,38 +940,12 @@ function SellPage() {
                   <input
                     ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
                     style={{ display: 'none' }}
-                    onChange={async (e) => {
-                      const f = e.target.files?.[0]; if (!f) return
-                      if (!user) { goLogin(); return }
-                      const buf = await f.arrayBuffer()
-                      const bytes = new Uint8Array(buf)
-                      let bin = ''
-                      for (let i = 0; i < bytes.length; i += 0x8000) {
-                        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
-                      }
-                      sessionStorage.setItem('bm_cover_scan', JSON.stringify({
-                        data: btoa(bin), mimeType: f.type || 'image/jpeg', ts: Date.now(),
-                      }))
-                      router.push('/sell/cover')
-                    }}
+                    onChange={e => handleCoverPick(e, 'camera')}
                   />
                   <input
                     ref={coverGalleryRef} type="file" accept="image/*"
                     style={{ display: 'none' }}
-                    onChange={async (e) => {
-                      const f = e.target.files?.[0]; if (!f) return
-                      if (!user) { goLogin(); return }
-                      const buf = await f.arrayBuffer()
-                      const bytes = new Uint8Array(buf)
-                      let bin = ''
-                      for (let i = 0; i < bytes.length; i += 0x8000) {
-                        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
-                      }
-                      sessionStorage.setItem('bm_cover_scan', JSON.stringify({
-                        data: btoa(bin), mimeType: f.type || 'image/jpeg', ts: Date.now(),
-                      }))
-                      router.push('/sell/cover')
-                    }}
+                    onChange={e => handleCoverPick(e, 'gallery')}
                   />
                   <div style={{
                     background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
