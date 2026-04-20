@@ -6,6 +6,7 @@ import { supabase, Listing } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, MultiLoginButton } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
+import { formatMemberSince } from '@/lib/format'
 
 export default function ProfilePage() {
   const { user, loading: authLoading, logout, updateUser, syncUser, loginWithLine } = useAuth()
@@ -45,16 +46,8 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  // เข้าร่วมเมื่อ — แสดงเป็นข้อความสั้นๆ
-  const memberSince = (createdAt?: string): string => {
-    if (!createdAt) return '—'
-    const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
-    if (days < 1) return 'วันนี้'
-    if (days < 7) return `${days} วัน`
-    if (days < 30) return `${Math.floor(days / 7)} สัปดาห์`
-    if (days < 365) return `${Math.floor(days / 30)} เดือน`
-    return `${Math.floor(days / 365)} ปี`
-  }
+  // Alias เก่า → ใช้ lib/format
+  const memberSince = formatMemberSince
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)

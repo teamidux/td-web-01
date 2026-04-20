@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { supabase, Listing, User } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, CondBadge, SkeletonList, useToast, Toast, TrustBadge } from '@/components/ui'
+import { isValidPhone, formatPhone, formatMemberSince } from '@/lib/format'
 
 interface PageProps {
   params: { id: string }
@@ -37,14 +38,12 @@ export default function SellerPage({ params }: PageProps) {
   const { msg, show } = useToast()
 
   // contact ของแต่ละ listing — ถ้าเป็นเบอร์โทรเปิด tel: ได้, ถ้าไม่ใช่ใช้คัดลอก
-  const isPhone = (s?: string) => !!s && /^(\+?66|0)[0-9\s\-]{7,12}$/.test(s.trim())
   const [sellerPII, setSellerPII] = useState<{ line_id: string | null; phone: string | null } | null>(null)
   const sellerLineId = sellerPII?.line_id?.trim() || ''
   const sellerPhone = sellerPII?.phone?.trim() || ''
   const contactValue = contactListing?.contact?.trim() || ''
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
-  const showSellerPhone = sellerPhone && !(isPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
-  const formatPhone = (p: string) => { const d = p.replace(/\D/g, ''); return d.length === 10 ? `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}` : p }
+  const showSellerPhone = sellerPhone && !(isValidPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
 
   const submitReport = async () => {
     if (!user) {
@@ -84,16 +83,6 @@ export default function SellerPage({ params }: PageProps) {
     }
   }
 
-  // แปลงวันที่เข้าร่วมเป็นข้อความสั้นๆ
-  const memberSince = (createdAt?: string): string => {
-    if (!createdAt) return '—'
-    const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
-    if (days < 1) return 'วันนี้'
-    if (days < 7) return `${days} วัน`
-    if (days < 30) return `${Math.floor(days / 7)} สัปดาห์`
-    if (days < 365) return `${Math.floor(days / 30)} เดือน`
-    return `${Math.floor(days / 365)} ปี`
-  }
 
   useEffect(() => {
     const load = async () => {
@@ -260,12 +249,12 @@ export default function SellerPage({ params }: PageProps) {
             </div>
 
             {/* เบอร์โทร — จาก contact field หรือ profile */}
-            {(isPhone(contactValue) || showSellerPhone) && (
+            {(isValidPhone(contactValue) || showSellerPhone) && (
               <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>📞 เบอร์โทร</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>{formatPhone(isPhone(contactValue) ? contactValue : sellerPhone)}</div>
-                  <a href={`tel:${(isPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{formatPhone(isValidPhone(contactValue) ? contactValue : sellerPhone)}</div>
+                  <a href={`tel:${(isValidPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
                     โทรเลย
                   </a>
                 </div>
@@ -374,7 +363,7 @@ export default function SellerPage({ params }: PageProps) {
             <div style={{ width: 1, background: '#E5E7EB' }} />
             <div style={{ flex: 1, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                {memberSince(seller?.created_at)}
+                {formatMemberSince(seller?.created_at)}
               </div>
               <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>เข้าร่วม</div>
             </div>
