@@ -483,8 +483,32 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         )
       })()}
 
-      {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {lightbox && (() => {
+        const nextPhoto = () => setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : null)
+        const prevPhoto = () => setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length } : null)
+        // Touch swipe state — track start position + threshold 50px
+        const SWIPE_THRESHOLD = 50
+        let touchStartX = 0
+        let touchStartY = 0
+        const onTouchStart = (e: React.TouchEvent) => {
+          touchStartX = e.touches[0].clientX
+          touchStartY = e.touches[0].clientY
+        }
+        const onTouchEnd = (e: React.TouchEvent) => {
+          const dx = e.changedTouches[0].clientX - touchStartX
+          const dy = e.changedTouches[0].clientY - touchStartY
+          // ignore vertical swipes (scroll intent)
+          if (Math.abs(dy) > Math.abs(dx)) return
+          if (Math.abs(dx) < SWIPE_THRESHOLD) return
+          if (dx < 0) nextPhoto(); else prevPhoto()
+        }
+        return (
+        <div
+          onClick={() => setLightbox(null)}
+          onTouchStart={lightbox.photos.length > 1 ? onTouchStart : undefined}
+          onTouchEnd={lightbox.photos.length > 1 ? onTouchEnd : undefined}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'pan-y' }}
+        >
           <button
             onClick={() => setLightbox(null)}
             aria-label="ปิด"
@@ -496,7 +520,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
             onClick={e => e.stopPropagation()}
             src={lightbox.photos[lightbox.index]}
             alt={`รูป ${lightbox.index + 1}`}
-            style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 10, objectFit: 'contain' }}
+            style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 10, objectFit: 'contain', userSelect: 'none' }}
+            draggable={false}
           />
           {lightbox.photos.length > 1 && (
             <>
@@ -533,10 +558,15 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               <div style={{ position: 'absolute', top: 24, left: 20, color: 'white', fontSize: 14, fontFamily: 'Kanit', fontWeight: 600, background: 'rgba(0,0,0,.4)', padding: '4px 10px', borderRadius: 12 }}>
                 {lightbox.index + 1} / {lightbox.photos.length}
               </div>
+              {/* Swipe hint — แสดงครั้งแรกที่เปิด lightbox */}
+              <div style={{ position: 'absolute', top: 24, right: 80, color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Kanit' }}>
+                ← ปัดเพื่อเปลี่ยนรูป →
+              </div>
             </>
           )}
         </div>
-      )}
+        )
+      })()}
 
       <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
         {/* ─── Book header: cover + info + price summary ─── */}
