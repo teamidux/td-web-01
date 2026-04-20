@@ -54,30 +54,9 @@ export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
 
 export function Nav() {
   const { user, loading } = useAuth()
-  return (
-    <nav className="nav">
-      <Link href="/" className="nav-logo">Book<span>Match</span></Link>
-      {/* ปุ่มลงขายบน Nav — เอาออกแล้ว user ใช้ FAB/BottomNav แทน
-          ถ้ายังไม่ login โชว์เฉพาะปุ่ม login */}
-      {!loading && !user && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/sell">
-            <button className="btn btn-sm" style={{ width: 'auto', minWidth: 90 }}>
-              เข้าสู่ระบบ
-            </button>
-          </Link>
-        </div>
-      )}
-    </nav>
-  )
-}
-
-export function BottomNav() {
-  const pathname = usePathname()
-  const { user } = useAuth()
   const [unread, setUnread] = useState(0)
 
-  // Poll unread count ทุก 60 วิ + เมื่อ tab กลับมา visible
+  // Poll unread notifications — ย้ายมาจาก BottomNav
   useEffect(() => {
     if (!user) return
     const fetchUnread = () => {
@@ -95,9 +74,55 @@ export function BottomNav() {
     }
   }, [user])
 
+  return (
+    <nav className="nav">
+      <Link href="/" className="nav-logo">Book<span>Match</span></Link>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {!loading && user && (
+          <Link
+            href="/notifications"
+            aria-label="แจ้งเตือน"
+            style={{
+              width: 36, height: 36, borderRadius: 999, background: '#F1F5F9',
+              display: 'grid', placeItems: 'center', position: 'relative',
+              color: '#334155', textDecoration: 'none',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            {unread > 0 && (
+              <span style={{
+                position: 'absolute', top: 5, right: 6, minWidth: 14, height: 14,
+                padding: '0 4px', borderRadius: 999, background: '#EF4444', color: 'white',
+                fontSize: 9, fontWeight: 800, lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid #F1F5F9',
+              }}>
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+          </Link>
+        )}
+        {!loading && !user && (
+          <Link href="/sell">
+            <button className="btn btn-sm" style={{ width: 'auto', minWidth: 90 }}>
+              เข้าสู่ระบบ
+            </button>
+          </Link>
+        )}
+      </div>
+    </nav>
+  )
+}
+
+export function BottomNav() {
+  const pathname = usePathname()
+
+  // แจ้งเตือนย้ายไป top nav แล้ว
   const tabs = [
     { href: '/', icon: '🏠', label: 'หน้าแรก' },
-    { href: '/notifications', icon: '🔔', label: 'แจ้งเตือน', badge: unread },
     { href: '/profile', icon: '👤', label: 'โปรไฟล์' },
   ]
   const sellActive = pathname === '/sell'
@@ -111,19 +136,7 @@ export function BottomNav() {
             href={t.href}
             className={`bnav-item ${pathname === t.href ? 'active' : ''}`}
           >
-            <span style={{ position: 'relative', display: 'inline-block' }}>
-              {t.icon}
-              {(t as any).badge > 0 && (
-                <span style={{
-                  position: 'absolute', top: -4, right: -8,
-                  background: '#EF4444', color: 'white',
-                  fontSize: 10, fontWeight: 800, lineHeight: 1,
-                  minWidth: 16, height: 16, borderRadius: 8,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '0 4px', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
-                }}>{(t as any).badge > 99 ? '99+' : (t as any).badge}</span>
-              )}
-            </span>
+            <span>{t.icon}</span>
             <span>{t.label}</span>
           </Link>
         ))}
