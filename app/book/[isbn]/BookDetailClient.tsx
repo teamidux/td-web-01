@@ -466,57 +466,172 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         </div>
       )}
 
-      <div className="page">
-        <button onClick={goBack} className="back-btn" style={{ background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit', cursor: 'pointer' }}>← กลับ</button>
+      <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+        {/* ─── Top bar: back / ISBN / share ─── */}
+        <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', background: 'white', borderBottom: '1px solid #F1F5F9' }}>
+          <button
+            onClick={goBack}
+            aria-label="กลับ"
+            style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F1F5F9', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          </button>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#64748B', letterSpacing: '-0.005em' }}>
+            ISBN {isbn}
+          </div>
+          <button
+            onClick={() => {
+              const url = window.location.href
+              if (navigator.share) {
+                navigator.share({ title: book.title, url }).catch(() => {})
+              } else {
+                navigator.clipboard.writeText(url).then(() => show('คัดลอกลิงก์แล้ว'))
+              }
+            }}
+            aria-label="แชร์"
+            style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F1F5F9', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
+        </div>
 
-        <div style={{ background: 'var(--primary)', padding: '18px 16px', display: 'flex', gap: 14 }}>
-          <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={84} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: '-0.01em', marginBottom: 6 }}>{book.title}</div>
-            {book.author && (
-              <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,.92)', lineHeight: 1.5, marginBottom: 2 }}>
-                <span style={{ opacity: 0.7 }}>ผู้เขียน </span>{book.author}
+        {/* ─── Book header: cover + info + price summary ─── */}
+        <div style={{ padding: '18px 18px 16px', background: 'white' }}>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <div style={{ width: 108, aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(15,23,42,0.12)', flexShrink: 0 }}>
+              <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={108} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+                {book.title}
               </div>
-            )}
-            {book.translator && (
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,.85)', lineHeight: 1.5, marginBottom: 2 }}>
-                <span style={{ opacity: 0.7 }}>แปลโดย </span>{book.translator}
+              {book.author && (
+                <div style={{ fontSize: 13, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
+                  {book.author}
+                </div>
+              )}
+              {book.translator && (
+                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                  แปลโดย {book.translator}
+                </div>
+              )}
+              {(book.publisher || book.language) && (
+                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                  {book.publisher}{book.publisher && book.language ? ' · ' : ''}{book.language === 'th' ? 'ไทย' : book.language === 'en' ? 'อังกฤษ' : book.language}
+                </div>
+              )}
+
+              {/* Price summary card */}
+              {prices.length > 0 && (
+                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: 'linear-gradient(135deg, #EEF2FF 0%, #DBEAFE 100%)', border: '1px solid #C7D2FE' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, color: '#4338CA', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    ราคาในระบบ
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#1D4ED8', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                      ฿{minP}
+                    </div>
+                    {minP !== maxP && (
+                      <div style={{ fontSize: 12, color: '#4338CA', fontWeight: 500 }}>
+                        ถึง ฿{maxP}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#4338CA', marginTop: 2 }}>
+                    เฉลี่ย ฿{avgP}{lastSold && ` · ขายล่าสุด ฿${lastSold.price}`}
+                  </div>
+                </div>
+              )}
+
+              {/* ชื่อไม่ถูกต้อง? — subtle text link */}
+              <button
+                onClick={() => {
+                  const correct = prompt(`ชื่อหนังสือปัจจุบัน: "${book.title}"\n\nกรอกชื่อที่ถูกต้อง:`)
+                  if (!correct?.trim()) return
+                  fetch('/api/books/report-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookId: book.id, isbn, currentTitle: book.title, suggestedTitle: correct.trim() }),
+                  }).then(() => show('ส่งแล้ว ขอบคุณที่ช่วยแก้ไข!')).catch(() => show('ส่งไม่สำเร็จ'))
+                }}
+                style={{ background: 'none', border: 'none', fontSize: 11, color: '#94A3B8', cursor: 'pointer', padding: '6px 0 0', fontFamily: 'Kanit', textAlign: 'left', textDecoration: 'underline' }}
+              >
+                ชื่อไม่ถูกต้อง?
+              </button>
+            </div>
+          </div>
+
+          {/* Quick stats row: ตามหา / ลงขาย / เข้าดู */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <div style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                <div style={{ fontSize: 10.5, color: '#92400E', fontWeight: 600, letterSpacing: '0.02em' }}>ตามหา</div>
               </div>
-            )}
-            <div style={{ fontSize: 13, color: '#BFDBFE', fontWeight: 600, letterSpacing: '0.02em', marginTop: 4, marginBottom: 4 }}>ISBN: {isbn}</div>
-            <button
-              onClick={() => {
-                const correct = prompt(`ชื่อหนังสือปัจจุบัน: "${book.title}"\n\nกรอกชื่อที่ถูกต้อง:`)
-                if (!correct?.trim()) return
-                fetch('/api/books/report-name', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ bookId: book.id, isbn, currentTitle: book.title, suggestedTitle: correct.trim() }),
-                }).then(() => show('ส่งแล้ว ขอบคุณที่ช่วยแก้ไข!')).catch(() => show('ส่งไม่สำเร็จ'))
-              }}
-              style={{ background: 'none', border: 'none', fontSize: 12, color: 'rgba(255,255,255,.5)', cursor: 'pointer', padding: 0, fontFamily: 'Kanit', marginBottom: 8 }}
-            >
-              ชื่อไม่ถูกต้อง?
-            </button>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={toggleWanted} style={{ background: isWanted ? 'white' : 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '10px 14px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 600, fontSize: 13, color: isWanted ? 'var(--primary)' : 'white', cursor: 'pointer' }}>
-                {isWanted ? '✕ เลิกตามหา' : '🔔 ตามหาเล่มนี้'}
-              </button>
-              <button onClick={goSell} style={{ background: '#16A34A', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,.3)' }}>
-                💰 ขายเล่มนี้
-              </button>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginTop: 1, lineHeight: 1 }}>{book.wanted_count || 0} คน</div>
+            </div>
+            <div style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><circle cx="7" cy="7" r="1.5" fill="#16A34A" stroke="none" /></svg>
+                <div style={{ fontSize: 10.5, color: '#166534', fontWeight: 600, letterSpacing: '0.02em' }}>ลงขาย</div>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginTop: 1, lineHeight: 1 }}>{listings.length} ราย</div>
+            </div>
+            <div style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: '#F8FAFC', border: '1px solid #EEF2F7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                <div style={{ fontSize: 10.5, color: '#475569', fontWeight: 600, letterSpacing: '0.02em' }}>เข้าดู</div>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginTop: 1, lineHeight: 1 }}>{((book as any).view_count || 0).toLocaleString()}</div>
             </div>
           </div>
         </div>
 
-        {prices.length > 0 && (
-          <div style={{ background: 'var(--surface)', padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{minP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>ต่ำสุด</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{avgP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>กลาง</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">฿{maxP}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>สูงสุด</div></div>
-            <div style={{ textAlign: 'center' }}><div className="price">{book.wanted_count || 0}</div><div style={{ fontSize: 13, color: 'var(--ink3)' }}>คนตามหา</div></div>
-          </div>
-        )}
+        {/* ─── Wanted toggle card (yellow when active) ─── */}
+        <div style={{ padding: '12px 16px 4px' }}>
+          <button
+            type="button"
+            onClick={toggleWanted}
+            disabled={wantedBusy}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', borderRadius: 14,
+              background: isWanted ? '#FEF9C3' : 'white',
+              border: isWanted ? '1px solid #FDE68A' : '1px solid #E5E7EB',
+              cursor: wantedBusy ? 'wait' : 'pointer', fontFamily: 'Kanit', textAlign: 'left',
+              opacity: wantedBusy ? 0.7 : 1,
+            }}
+          >
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: isWanted ? '#FBBF24' : '#F1F5F9', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isWanted ? 'white' : '#64748B'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+                {isWanted ? 'กำลังตามหาอยู่' : 'กดตามหาเล่มนี้'}
+              </div>
+              <div style={{ fontSize: 11.5, color: isWanted ? '#92400E' : '#64748B', marginTop: 2, lineHeight: 1.4 }}>
+                {isWanted ? 'เดี๋ยวมีคนลง จะส่ง LINE ไปให้เลย' : 'มีคนลง เราส่งแจ้งเตือนผ่าน LINE ให้'}
+              </div>
+            </div>
+            <div style={{ width: 38, height: 22, borderRadius: 999, position: 'relative', background: isWanted ? 'var(--primary)' : '#E5E7EB', flexShrink: 0, transition: 'background 0.2s' }}>
+              <div style={{ position: 'absolute', top: 2, left: isWanted ? 18 : 2, width: 18, height: 18, borderRadius: 999, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
+            </div>
+          </button>
+        </div>
+
+        {/* ─── "ขายเล่มนี้" secondary CTA ─── */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <button
+            onClick={goSell}
+            style={{ width: '100%', background: '#16A34A', border: 'none', borderRadius: 12, padding: '12px 16px', minHeight: 48, color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(22,163,74,.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            💰 ฉันมีเล่มนี้ — ลงขายเลย
+          </button>
+        </div>
 
         <div className="section">
           {listings.length > 0 && (
