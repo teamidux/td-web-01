@@ -60,8 +60,29 @@ export default function AdminBooksPage() {
   const [creating, setCreating] = useState<Partial<Book> | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const createFileInputRef = useRef<HTMLInputElement>(null)
+
+  const deleteBook = async (b: Book) => {
+    const warning = (b.active_listings_count > 0 || b.wanted_count > 0)
+      ? `\n\n⚠️ หนังสือนี้มี ${b.active_listings_count} listing และ ${b.wanted_count} คนตามหา — ลบแล้วจะหายหมด`
+      : ''
+    if (!confirm(`ลบหนังสือ "${b.title}"?${warning}\n\nทำแล้ว undo ไม่ได้`)) return
+    setDeletingId(b.id)
+    try {
+      const res = await fetch('/api/tomga/books', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: b.id }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { alert('ลบไม่สำเร็จ: ' + (d.error || 'unknown')); return }
+      setBooks(prev => prev.filter(x => x.id !== b.id))
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const pickCover = async (file: File) => {
     if (!editing) return
@@ -218,12 +239,21 @@ export default function AdminBooksPage() {
                   ISBN: {b.isbn} · {b.active_listings_count} ลงขาย · {b.wanted_count} ตามหา
                 </div>
               </div>
-              <button
-                onClick={() => setEditing(b)}
-                style={{ background: 'white', border: '1px solid #E2E8F0', color: '#2563EB', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}
-              >
-                ✏️ แก้ไข
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                <button
+                  onClick={() => setEditing(b)}
+                  style={{ background: 'white', border: '1px solid #E2E8F0', color: '#2563EB', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Kanit', minHeight: 32 }}
+                >
+                  ✏️ แก้ไข
+                </button>
+                <button
+                  onClick={() => deleteBook(b)}
+                  disabled={deletingId === b.id}
+                  style={{ background: 'white', border: '1px solid #FECACA', color: '#DC2626', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: deletingId === b.id ? 'wait' : 'pointer', fontFamily: 'Kanit', minHeight: 32, opacity: deletingId === b.id ? 0.5 : 1 }}
+                >
+                  {deletingId === b.id ? '...' : '🗑️ ลบ'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

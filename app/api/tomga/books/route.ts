@@ -97,6 +97,39 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, book: newBook })
 }
 
+// DELETE — ลบหนังสือ (+ cascade ลบ listings/wanted ตาม FK)
+export async function DELETE(req: NextRequest) {
+  const adminId = await currentAdmin()
+  if (!adminId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const { id } = await req.json()
+  if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
+
+  const db = sb()
+
+  // ดึงข้อมูลก่อนลบเพื่อ log audit (รู้ว่า ISBN/title อะไรหาย)
+  const { data: book } = await db.from('books').select('isbn, title, active_listings_count, wanted_count').eq('id', id).maybeSingle()
+  if (!book) return NextResponse.json({ error: 'book not found' }, { status: 404 })
+
+  const { error } = await db.from('books').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  logAdminAction({
+    adminId,
+    action: 'delete_book',
+    targetType: 'book',
+    targetId: id,
+    metadata: {
+      isbn: book.isbn,
+      title: book.title,
+      listings: book.active_listings_count,
+      wanted: book.wanted_count,
+    },
+  })
+
+  return NextResponse.json({ ok: true })
+}
+
 // PUT — update book fields
 export async function PUT(req: NextRequest) {
   const adminId = await currentAdmin()
