@@ -13,6 +13,14 @@ const CONDITIONS = [
   { key: 'fair', label: '📖 พอใช้', desc: 'มีรอยชัดเจน แต่เนื้อหาครบถ้วน' },
 ]
 
+// Note templates — auto-fill ใน "หมายเหตุ" ตาม condition (sync กับ /sell/cover)
+const NOTE_TEMPLATES: Record<string, string> = {
+  brand_new: 'หนังสือมือหนึ่งจากร้าน/สำนักพิมพ์ ยังไม่แกะ/ไม่ผ่านการใช้งาน',
+  new: 'หนังสือสภาพใหม่มาก อ่านน้อยหรือไม่ได้อ่าน ไม่มีตำหนิ',
+  good: 'มีรอยตามการใช้งานเล็กน้อย เนื้อหาครบถ้วน อ่านได้ปกติ',
+  fair: 'มีรอยชัดเจนตามการใช้งาน (รายละเอียดตามภาพ) แต่เนื้อหาครบถ้วน',
+}
+
 // วาด bitmap/image ลง canvas — ถ้าเป็นแนวนอน (landscape) หมุน 90° ให้เป็นแนวตั้ง
 // เพราะหนังสือ ~95% เป็นแนวตั้ง — user อัปรูปแนวนอนมา = ถ่ายผิดแนว ส่วนใหญ่
 function drawRotatedIfLandscape(source: CanvasImageSource, sw: number, sh: number): HTMLCanvasElement {
@@ -203,6 +211,8 @@ function SellPage() {
   const [manualAuthor, setManualAuthor] = useState('')
   const [manualTranslator, setManualTranslator] = useState('')
   const [notes, setNotes] = useState('')
+  // track ว่า notes ถูก user แก้หรือยัง — ถ้ายัง → auto-fill เมื่อเปลี่ยน condition
+  const [notesAutoFilled, setNotesAutoFilled] = useState(true)
   const [bmIsbn] = useState(() => 'BM-' + Math.random().toString(36).toUpperCase().slice(2, 7))
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
@@ -1358,7 +1368,11 @@ function SellPage() {
                     return (
                       <button
                         key={c.key}
-                        onClick={() => setCond(c.key)}
+                        onClick={() => {
+                          setCond(c.key)
+                          // ถ้า notes ยังเป็น auto-fill → เปลี่ยนเป็น template ของ condition ใหม่
+                          if (notesAutoFilled) setNotes(NOTE_TEMPLATES[c.key] || '')
+                        }}
                         style={{
                           padding: '12px 12px', borderRadius: 12, cursor: 'pointer',
                           background: active ? palette.bg : 'white',
@@ -1377,9 +1391,7 @@ function SellPage() {
                     )
                   })}
                 </div>
-                <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 8, lineHeight: 1.4 }}>
-                  {CONDITIONS.find(c => c.key === cond)?.desc}
-                </div>
+                {/* desc ตัดออก — แสดงใน notes แทน */}
               </div>
 
               {/* ─── Notes: with char count ─── */}
@@ -1388,7 +1400,7 @@ function SellPage() {
                 <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', padding: 14 }}>
                   <textarea
                     value={notes}
-                    onChange={e => setNotes(e.target.value.slice(0, 300))}
+                    onChange={e => { setNotes(e.target.value.slice(0, 300)); setNotesAutoFilled(false) }}
                     placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ / หน้า 45 มีรอยน้ำเล็กน้อย"
                     rows={3}
                     style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', fontFamily: 'Kanit', fontSize: 14, color: '#0F172A', lineHeight: 1.5 }}

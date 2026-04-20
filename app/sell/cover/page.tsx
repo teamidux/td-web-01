@@ -952,9 +952,7 @@ function SellFlowCoverPageInner() {
                   )
                 })}
               </div>
-              <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 8, lineHeight: 1.4 }}>
-                {CONDITIONS.find(c => c.key === cond)?.desc}
-              </div>
+              {/* desc ตัดออก — แสดงใน notes แทน (NOTE_TEMPLATES auto-fill) */}
             </div>
 
             {/* ─── Notes: card + char count (sync กับ /sell) ─── */}
