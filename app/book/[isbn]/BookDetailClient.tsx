@@ -342,74 +342,146 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         </div>
       )}
 
-      {contactListing && (
-        <div onClick={() => { setContactListing(null); setContactPII(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '24px 20px 40px', width: '100%', maxWidth: 480, margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 18 }}>ข้อมูลผู้ขาย</div>
-              <button onClick={() => { setContactListing(null); setContactPII(null) }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink3)', lineHeight: 1 }}>✕</button>
+      {contactListing && (() => {
+        const sellerName = contactListing.users?.display_name || '—'
+        const avatarUrl = (contactListing.users as any)?.avatar_url
+        const initial = sellerName.slice(0, 1).toUpperCase()
+        return (
+        <div onClick={() => { setContactListing(null); setContactPII(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '10px 20px 28px', maxHeight: '92vh', overflowY: 'auto' }}>
+            {/* Drag handle */}
+            <div style={{ width: 40, height: 4, borderRadius: 999, background: '#CBD5E1', margin: '0 auto 14px' }} />
+
+            {/* Seller header */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid #F1F5F9' }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={sellerName} style={{ width: 44, height: 44, borderRadius: 999, objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: 44, height: 44, borderRadius: 999, background: '#DBEAFE', display: 'grid', placeItems: 'center' }}>
+                  <span style={{ fontSize: 17, fontWeight: 700, color: '#1D4ED8' }}>{initial}</span>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{sellerName}</div>
+                  {contactListing.users?.is_verified && (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                  ฿{contactListing.price} · {contactListing.price_includes_shipping ? 'ส่งฟรี' : 'ไม่รวมส่ง'}
+                </div>
+              </div>
+              <button
+                onClick={() => { setContactListing(null); setContactPII(null) }}
+                aria-label="ปิด"
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94A3B8', lineHeight: 1, padding: 4 }}
+              >
+                ✕
+              </button>
             </div>
 
-            <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 4 }}>ผู้ขาย</div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{contactListing.users?.display_name || '—'}</div>
-              {contactListing.users?.is_verified && <span className="badge badge-blue" style={{ marginTop: 4, display: 'inline-block' }}>✓ Verified</span>}
+            {/* Disclaimer */}
+            <div style={{ padding: '14px 0 4px', fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+              ติดต่อผู้ขายด้วยตัวเองตามช่องทางด้านล่าง BookMatch ไม่รับฝากชำระเงิน
             </div>
 
-            {/* LINE cards — แสดงทุก LINE ID (deduplicated) */}
+            {/* LINE cards — keep multi-LINE support */}
             {allLines.map((line, i) => line && (
-              <div key={line.raw} style={{ background: '#F0FFF4', border: '1px solid #BBF7D0', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💚 LINE {allLines.length > 1 ? `(${i + 1})` : ''}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all', color: '#15803D' }}>{line.display}</div>
-                  <button onClick={() => navigator.clipboard.writeText(line.raw).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flexShrink: 0, background: 'white', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 14px', color: '#15803D', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              <div key={line.raw} style={{ marginTop: 10 }}>
+                {allLines.length > 1 && (
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4, fontWeight: 600 }}>LINE ({i + 1})</div>
+                )}
+                <a
+                  href={line.addUrl} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    width: '100%', padding: '14px 16px', background: '#06C755', color: 'white',
+                    border: 'none', borderRadius: 12, fontFamily: 'Kanit', fontSize: 15, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    textDecoration: 'none', boxShadow: '0 2px 6px rgba(6,199,85,.25)',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 5.85 2 10.6c0 2.77 1.56 5.22 3.98 6.82v3.32c0 .32.35.51.62.34l3.77-2.4c.53.07 1.07.12 1.63.12 5.52 0 10-3.85 10-8.6S17.52 2 12 2z" /></svg>
+                  ส่ง LINE หาผู้ขาย
+                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, padding: '0 4px' }}>
+                  <div style={{ flex: 1, fontSize: 13, color: '#64748B', wordBreak: 'break-all' }}>ID: {line.display}</div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(line.raw).then(() => show('คัดลอก LINE ID แล้ว'))}
+                    style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Kanit', padding: '2px 8px' }}
+                  >
                     คัดลอก
                   </button>
                 </div>
-                <a href={line.addUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: '#06C755', border: 'none', borderRadius: 10, padding: '12px 16px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 2px 6px rgba(6,199,85,.25)' }}>
-                  💚 เพิ่มเพื่อนใน LINE
+              </div>
+            ))}
+
+            {/* Phone cards — keep multi-phone support */}
+            {allPhones.map((ph, i) => (
+              <div key={ph} style={{ marginTop: 10 }}>
+                {allPhones.length > 1 && (
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4, fontWeight: 600 }}>เบอร์โทร ({i + 1})</div>
+                )}
+                <a
+                  href={`tel:${ph}`}
+                  style={{
+                    width: '100%', padding: '12px 16px', background: '#F1F5F9', color: '#0F172A',
+                    border: 'none', borderRadius: 12, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                  โทร {ph.length === 10 ? `${ph.slice(0,3)}-${ph.slice(3,6)}-${ph.slice(6)}` : ph}
                 </a>
               </div>
             ))}
 
-            {/* Phone cards — แสดงทุกเบอร์โทร (deduplicated) */}
-            {allPhones.map((ph, i) => (
-              <div key={ph} style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>📞 เบอร์โทร {allPhones.length > 1 ? `(${i + 1})` : ''}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{ph.length === 10 ? `${ph.slice(0,3)}-${ph.slice(3,6)}-${ph.slice(6)}` : ph}</div>
-                  <a href={`tel:${ph}`} style={{ flexShrink: 0, background: 'var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'white', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                    โทรเลย
-                  </a>
-                </div>
-              </div>
-            ))}
-
-            {/* Fallback — contact field ไม่ใช่ทั้ง LINE/เบอร์ (เช่น ข้อความทั่วไป) */}
+            {/* Fallback — other contact info */}
             {allLines.length === 0 && allPhones.length === 0 && contactListing?.contact && (
-              <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 6 }}>💬 ช่องทางติดต่อ</div>
+              <div style={{ marginTop: 10, background: '#F1F5F9', borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>ช่องทางติดต่อ</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-all' }}>{contactListing.contact}</div>
-                  <button onClick={() => navigator.clipboard.writeText(contactListing.contact).then(() => show('คัดลอกแล้ว'))} style={{ flexShrink: 0, background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '8px 14px', color: 'var(--primary)', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, wordBreak: 'break-all', color: '#0F172A' }}>{contactListing.contact}</div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(contactListing.contact).then(() => show('คัดลอกแล้ว'))}
+                    style={{ flexShrink: 0, background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 12px', color: '#2563EB', fontFamily: 'Kanit', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                  >
                     คัดลอก
                   </button>
                 </div>
               </div>
             )}
 
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 8 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
-              <button
-                onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
-                style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 10, padding: '11px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 14, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
-              >
-                {copied ? '✓ คัดลอกลิงก์แล้ว' : '🔗 คัดลอกลิงก์หนังสือนี้'}
-              </button>
-            </div>
+            {/* Copy link — help seller know which book */}
+            <button
+              onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
+              style={{
+                width: '100%', padding: '12px 16px', marginTop: 14,
+                background: copied ? '#DCFCE7' : '#F1F5F9',
+                color: copied ? '#166534' : '#0F172A',
+                border: copied ? '1px solid #86EFAC' : 'none', borderRadius: 12,
+                fontFamily: 'Kanit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                transition: 'all .2s',
+              }}
+            >
+              {copied ? '✓ คัดลอกลิงก์แล้ว — ส่งให้ผู้ขาย' : '🔗 คัดลอกลิงก์หนังสือเล่มนี้'}
+            </button>
+
+            <button
+              onClick={() => { setContactListing(null); setContactPII(null) }}
+              style={{
+                width: '100%', padding: '12px 16px', marginTop: 6,
+                background: 'transparent', color: '#94A3B8', border: 'none',
+                fontFamily: 'Kanit', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              ปิด
+            </button>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -467,38 +539,6 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       )}
 
       <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
-        {/* ─── Top bar: back / ISBN / share ─── */}
-        <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', background: 'white', borderBottom: '1px solid #F1F5F9' }}>
-          <button
-            onClick={goBack}
-            aria-label="กลับ"
-            style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F1F5F9', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-          </button>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#64748B', letterSpacing: '-0.005em' }}>
-            ISBN {isbn}
-          </div>
-          <button
-            onClick={() => {
-              const url = window.location.href
-              if (navigator.share) {
-                navigator.share({ title: book.title, url }).catch(() => {})
-              } else {
-                navigator.clipboard.writeText(url).then(() => show('คัดลอกลิงก์แล้ว'))
-              }
-            }}
-            aria-label="แชร์"
-            style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F1F5F9', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-          </button>
-        </div>
-
         {/* ─── Book header: cover + info + price summary ─── */}
         <div style={{ padding: '18px 18px 16px', background: 'white' }}>
           <div style={{ display: 'flex', gap: 14 }}>
