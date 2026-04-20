@@ -143,168 +143,165 @@ function SearchPage() {
     setSearched(true)
   }
 
+  // Combined + filtered + sorted results (logic เดิม)
+  const combined = (() => {
+    let c = [...results, ...(googleResults as any[])]
+    if (onlyWithListings) c = c.filter((b: any) => (b.active_listings_count || 0) > 0)
+    if (sortBy === 'price_low') {
+      c.sort((a: any, b: any) => (a.min_price ?? Infinity) - (b.min_price ?? Infinity))
+    } else if (sortBy === 'price_high') {
+      c.sort((a: any, b: any) => (b.min_price ?? -1) - (a.min_price ?? -1))
+    } else if (sortBy === 'popular') {
+      c.sort((a: any, b: any) => (b.wanted_count || 0) - (a.wanted_count || 0))
+    }
+    return c
+  })()
+
   return (
     <>
       <Nav />
-      <div className="page">
-        <div style={{ padding: '16px 0 8px' }}>
-          <div className="search-row" style={{ maxWidth: 440, margin: '0 auto 0' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                className="search-input"
-                style={{ width: '100%', paddingRight: query ? 36 : undefined }}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="ค้นหาชื่อหนังสือ..."
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                autoFocus
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={clearQuery}
-                  aria-label="ล้างคำค้นหา"
-                  style={{
-                    position: 'absolute',
-                    right: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    border: 'none',
-                    background: 'var(--ink3)',
-                    color: '#fff',
-                    fontSize: 14,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0,
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <button className="btn-search" onClick={handleSubmit}>ค้นหา</button>
+      <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+        {/* ─── Search bar header (design style) ─── */}
+        <div style={{ padding: '10px 14px', background: 'white', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: 10, alignItems: 'center', maxWidth: 480, margin: '0 auto' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: '#F1F5F9', borderRadius: 999, padding: '8px 14px' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              placeholder="ค้นหาชื่อหนังสือ..."
+              autoFocus
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'Kanit', fontSize: 14, color: '#0F172A', minWidth: 0 }}
+            />
+            {query && (
+              <button
+                type="button" onClick={clearQuery} aria-label="ล้างคำค้นหา"
+                style={{ width: 18, height: 18, borderRadius: 999, border: 'none', background: '#CBD5E1', color: 'white', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+              >×</button>
+            )}
           </div>
+          <button
+            onClick={handleSubmit}
+            style={{ padding: '8px 14px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: 999, fontFamily: 'Kanit', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+          >
+            ค้นหา
+          </button>
         </div>
 
-        <div className="section">
+        {/* ─── Filter chips row ─── */}
+        {!loading && combined.length > 0 && (
+          <div style={{ padding: '10px 14px', background: 'white', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: 6, overflowX: 'auto', maxWidth: 480, margin: '0 auto' }}>
+            {[
+              { id: 'all' as const, label: 'ทั้งหมด', active: !onlyWithListings },
+              { id: 'withSellers' as const, label: 'มีคนขาย', active: onlyWithListings },
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setOnlyWithListings(f.id === 'withSellers')}
+                style={{
+                  padding: '6px 12px', borderRadius: 999, flexShrink: 0, cursor: 'pointer',
+                  background: f.active ? '#0F172A' : '#F1F5F9',
+                  color: f.active ? 'white' : '#475569',
+                  border: 'none', fontFamily: 'Kanit', fontSize: 12.5, fontWeight: 600,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ─── Results count + sort ─── */}
+        {!loading && combined.length > 0 && (
+          <div style={{ padding: '14px 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, maxWidth: 480, margin: '0 auto' }}>
+            <div style={{ fontSize: 13, color: '#64748B', flex: 1, minWidth: 0 }}>
+              พบ <span style={{ color: '#0F172A', fontWeight: 700 }}>{combined.length}</span> เล่ม
+              {query && <> สำหรับ "<span style={{ color: '#0F172A', fontWeight: 600 }}>{query}</span>"</>}
+              {expanding && <span style={{ marginLeft: 8, color: '#94A3B8' }}>· กำลังค้นเพิ่ม...</span>}
+            </div>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              style={{ background: 'transparent', border: 'none', fontSize: 12, fontWeight: 500, color: '#64748B', fontFamily: 'Kanit', cursor: 'pointer', outline: 'none', flexShrink: 0 }}
+            >
+              <option value="relevance">เรียง: ตรงใจ</option>
+              <option value="price_low">ราคาต่ำ → สูง</option>
+              <option value="price_high">ราคาสูง → ต่ำ</option>
+              <option value="popular">ยอดนิยม</option>
+            </select>
+          </div>
+        )}
+
+        {/* ─── Results list ─── */}
+        <div style={{ padding: '0 16px 24px', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 480, margin: '0 auto' }}>
           {loading && <SkeletonList count={4} />}
 
-          {!loading && results.length === 0 && googleResults.length === 0 && searched && query.trim() && (
-            <div className="empty">
-              <div className="empty-icon">🔍</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+          {!loading && combined.length === 0 && searched && query.trim() && (
+            <div style={{ background: 'white', borderRadius: 14, padding: '40px 20px', textAlign: 'center', border: '1px solid #EEF2F7' }}>
+              <div style={{ fontSize: 42, marginBottom: 12 }}>🔍</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
                 ไม่พบหนังสือ "{query}"
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 16, maxWidth: 320, margin: '0 auto 16px' }}>
+              <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
                 ลองพิมพ์ชื่อให้ครบ ใช้ ISBN หรือสแกน barcode
               </div>
             </div>
           )}
 
-          {!loading && (results.length + googleResults.length) > 0 && (
-            <>
-              <div style={{ padding: '4px 0 10px', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '0.02em' }}>
-                พบ {results.length + googleResults.length} เล่ม
-                {expanding && <span style={{ marginLeft: 8, color: 'var(--ink3)', fontWeight: 500 }}>· กำลังค้นเพิ่ม...</span>}
-              </div>
-
-              {/* Filter + sort bar */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                <button
-                  onClick={() => setOnlyWithListings(v => !v)}
-                  style={{
-                    background: onlyWithListings ? 'var(--primary)' : 'white',
-                    color: onlyWithListings ? 'white' : 'var(--ink2)',
-                    border: `1px solid ${onlyWithListings ? 'var(--primary)' : 'var(--border)'}`,
-                    borderRadius: 20,
-                    padding: '7px 14px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'Kanit',
-                  }}
-                >
-                  {onlyWithListings ? '✓ ' : ''}เฉพาะมีคนขาย
-                </button>
-
-                <select
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value as any)}
-                  style={{
-                    background: 'white',
-                    border: '1px solid var(--border)',
-                    borderRadius: 20,
-                    padding: '7px 12px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    fontFamily: 'Kanit',
-                    color: 'var(--ink2)',
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="relevance">เกี่ยวข้องสุด</option>
-                  <option value="price_low">ราคาต่ำ → สูง</option>
-                  <option value="price_high">ราคาสูง → ต่ำ</option>
-                  <option value="popular">ยอดนิยม</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          {/* รวม with listings + no listings เป็น list เดียว + filter + sort */}
-          {(() => {
-            let combined = [...results, ...(googleResults as any[])]
-            if (onlyWithListings) {
-              combined = combined.filter((b: any) => (b.active_listings_count || 0) > 0)
-            }
-            if (sortBy === 'price_low') {
-              combined.sort((a: any, b: any) => {
-                const ap = a.min_price ?? Infinity
-                const bp = b.min_price ?? Infinity
-                return ap - bp
-              })
-            } else if (sortBy === 'price_high') {
-              combined.sort((a: any, b: any) => {
-                const ap = a.min_price ?? -1
-                const bp = b.min_price ?? -1
-                return bp - ap
-              })
-            } else if (sortBy === 'popular') {
-              combined.sort((a: any, b: any) => (b.wanted_count || 0) - (a.wanted_count || 0))
-            }
-            // relevance = คง order เดิม (API ส่งตามความเกี่ยวข้อง)
-            return combined
-          })().map((b: any) => {
+          {!loading && combined.map((b: any) => {
             const hasListing = (b.active_listings_count || 0) > 0
+            const isHot = (b.wanted_count || 0) >= 5 // มาแรง = คนตามหา ≥ 5
             return (
               <Link key={b.isbn} href={`/book/${b.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="card">
-                  <div className="book-card">
-                    <BookCover isbn={b.isbn} title={b.title} size={60} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-                      <div className="book-author">{b.author}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'monospace', marginTop: 2, letterSpacing: 0.3 }}>
-                        ISBN {b.isbn}
+                <div style={{ background: 'white', borderRadius: 14, padding: 12, display: 'flex', gap: 12, border: '1px solid #EEF2F7', position: 'relative' }}>
+                  <div style={{ width: 58, aspectRatio: '3/4', borderRadius: 6, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(15,23,42,0.08)', background: '#F8FAFC' }}>
+                    <BookCover isbn={b.isbn} title={b.title} size={58} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <div style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.35, letterSpacing: '-0.005em' }}>
+                        {b.title}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                        {hasListing && b.min_price ? (
-                          <>
-                            <span className="price">฿{b.min_price}</span>
-                            <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{b.active_listings_count} คนขาย</span>
-                          </>
-                        ) : (
-                          <span style={{ fontSize: 13, color: 'var(--ink3)' }}>ยังไม่มีคนขาย</span>
-                        )}
-                        {b.wanted_count > 0 && <span className="badge badge-blue">🔔 {b.wanted_count} คนตามหา</span>}
+                      {isHot && (
+                        <div style={{ padding: '2px 7px', borderRadius: 999, background: '#FEE2E2', fontSize: 10, fontWeight: 700, color: '#DC2626', flexShrink: 0 }}>
+                          มาแรง
+                        </div>
+                      )}
+                    </div>
+                    {b.author && (
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
+                        {b.author}
                       </div>
+                    )}
+                    <div style={{ fontSize: 10, color: '#CBD5E1', fontFamily: 'monospace', marginTop: 2, letterSpacing: 0.3 }}>
+                      ISBN {b.isbn}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                      {hasListing && b.min_price ? (
+                        <>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: '#1D4ED8', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                            ฿{b.min_price}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: '#64748B' }}>
+                            · {b.active_listings_count} ราย
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: 12.5, color: '#94A3B8', fontStyle: 'italic' }}>
+                          ยังไม่มีคนขาย
+                        </div>
+                      )}
+                      {(b.wanted_count || 0) > 0 && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#B45309' }}>
+                            {b.wanted_count} ตามหา
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -312,7 +309,6 @@ function SearchPage() {
             )
           })}
         </div>
-        <div style={{ height: 12 }} />
       </div>
       <BottomNav />
     </>
