@@ -180,16 +180,19 @@ export default function HomePage() {
         </div>
       )}
       <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
-        {/* ─── Hero: blue gradient + combined search/scan ─── */}
+        {/* ─── Hero: blue gradient + combined search/scan ───
+            Note: ไม่ใส่ overflow:hidden บน outer — กัน clip dropdown search
+            ใส่ blobs ใน wrapper ของตัวเองเพื่อ clip เฉพาะ blobs + zIndex: 1 ให้ search อยู่สูงกว่า */}
         <div style={{
           position: 'relative',
           background: 'linear-gradient(170deg, var(--primary) 0%, #1D4ED8 100%)',
           padding: '22px 18px 26px',
           color: 'white',
-          overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: 999, background: 'radial-gradient(circle, rgba(250,204,21,0.25), transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -80, left: -40, width: 200, height: 200, borderRadius: 999, background: 'radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: 999, background: 'radial-gradient(circle, rgba(250,204,21,0.25), transparent 70%)' }} />
+            <div style={{ position: 'absolute', bottom: -80, left: -40, width: 200, height: 200, borderRadius: 999, background: 'radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)' }} />
+          </div>
 
           <div style={{ position: 'relative', maxWidth: 440, margin: '0 auto' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.16)', backdropFilter: 'blur(6px)', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.95)', marginBottom: 14 }}>
