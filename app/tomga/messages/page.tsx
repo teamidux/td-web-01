@@ -10,18 +10,30 @@ const REASON_LABELS: Record<string, string> = {
   other: 'อื่นๆ',
 }
 
+const FEEDBACK_KIND_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  complaint: { label: '⚠️ ร้องเรียน', color: '#DC2626', bg: '#FEF2F2' },
+  bug: { label: '🐛 บั๊ก', color: '#B45309', bg: '#FEF3C7' },
+  suggestion: { label: '💡 ข้อเสนอแนะ', color: '#0369A1', bg: '#E0F2FE' },
+  general: { label: '💬 อื่นๆ', color: '#475569', bg: '#F1F5F9' },
+}
+
 export default function AdminMessagesPage() {
   const { user, loading: authLoading } = useAuth()
-  const [tab, setTab] = useState<'messages' | 'reports'>('messages')
+  const [tab, setTab] = useState<'messages' | 'reports' | 'feedback'>('feedback')
   const [messages, setMessages] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
+  const [feedback, setFeedback] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
     fetch('/api/tomga/messages')
       .then(r => r.json())
-      .then(d => { setMessages(d.messages || []); setReports(d.reports || []) })
+      .then(d => {
+        setMessages(d.messages || [])
+        setReports(d.reports || [])
+        setFeedback(d.feedback || [])
+      })
       .finally(() => setLoading(false))
   }, [user])
 
@@ -46,6 +58,7 @@ export default function AdminMessagesPage() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
           {[
+            { key: 'feedback' as const, label: `📝 ข้อเสนอแนะ (${feedback.length})` },
             { key: 'messages' as const, label: `💬 ข้อความ (${messages.length})` },
             { key: 'reports' as const, label: `🚨 รายงาน (${reports.length})` },
           ].map(t => (
@@ -85,6 +98,35 @@ export default function AdminMessagesPage() {
                   <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.message}</div>
                 </div>
               ))}
+            </div>
+          )
+        )}
+
+        {/* Feedback (แจ้งปัญหา/ข้อเสนอแนะ จาก footer form) */}
+        {!loading && tab === 'feedback' && (
+          feedback.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94A3B8' }}>ยังไม่มีข้อเสนอแนะ</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {feedback.map((f: any) => {
+                const kindMeta = FEEDBACK_KIND_LABELS[f.kind] || FEEDBACK_KIND_LABELS.general
+                return (
+                  <div key={f.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ background: kindMeta.bg, color: kindMeta.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        {kindMeta.label}
+                      </span>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{timeSince(f.created_at)}</div>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: 8 }}>{f.message}</div>
+                    <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      {f.user?.display_name && <span>👤 {f.user.display_name}</span>}
+                      {f.contact && <span>📧 {f.contact}</span>}
+                      {!f.user_id && !f.contact && <span style={{ fontStyle: 'italic' }}>ไม่ระบุผู้ส่ง</span>}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )
         )}

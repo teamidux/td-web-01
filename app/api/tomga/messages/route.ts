@@ -15,10 +15,15 @@ export async function GET() {
   if (!user || !isAdmin(user.id)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const sb = db()
-  const [{ data: messages }, { data: reports }] = await Promise.all([
+  const [{ data: messages }, { data: reports }, { data: feedback }] = await Promise.all([
     sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(50),
     sb.from('reports').select('*, reporter:reporter_user_id(display_name), reported:reported_user_id(display_name)').order('created_at', { ascending: false }).limit(50),
+    sb.from('feedback').select('*, user:user_id(display_name)').order('created_at', { ascending: false }).limit(50),
   ])
 
-  return NextResponse.json({ messages: messages || [], reports: reports || [] })
+  return NextResponse.json({
+    messages: messages || [],
+    reports: reports || [],
+    feedback: feedback || [],
+  })
 }

@@ -237,8 +237,6 @@ function SellPage() {
   const [noIsbnSearchDone, setNoIsbnSearchDone] = useState(false)
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
-  const galleryInputRef = useRef<HTMLInputElement | null>(null)
-  const [showPhotoPicker, setShowPhotoPicker] = useState(false)
 
   // Debounced search: ISBN → fetchBook / title → DB search
   useEffect(() => {
@@ -341,6 +339,8 @@ function SellPage() {
 
   const processScanPhoto = async (rawFile: File) => {
     setScanning(true)
+    // force paint overlay ก่อนเริ่ม heavy scan (กัน perceived hang 5-7s)
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
     try {
       const result = await scanBarcode(rawFile)
       if (result.isbn) {
@@ -352,6 +352,10 @@ function SellPage() {
       } else {
         setScanError(true)
       }
+    } catch (err) {
+      // กัน unhandled error ที่ทำให้ overlay ค้าง (user ต้อง reload page)
+      console.error('[scan] error:', err)
+      setScanError(true)
     } finally {
       setScanning(false)
     }
@@ -360,8 +364,9 @@ function SellPage() {
   const scanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) { goLogin(); return }
     const rawFile = e.target.files?.[0]
-    if (!rawFile) return
+    // reset value ก่อน — กัน iOS bug: pick ไฟล์เดิม 2 ครั้ง onChange ไม่ fire
     e.target.value = ''
+    if (!rawFile) return
     processScanPhoto(rawFile)
   }
 
@@ -507,8 +512,12 @@ function SellPage() {
     const f = e.target.files?.[0]; if (!f) return
     if (!user) { goLogin(); return }
     // แสดง loading ทันที — compressImage บนมือถือใช้เวลา 1-2s
-    // ถ้าไม่ set state ก่อน user จะรู้สึก "ค้าง"
+    // ต้องรอ double RAF เพื่อบังคับให้ browser paint overlay ก่อนจะรัน heavy work
+    // (ถ้าไม่ยิ่ง React batch render + compress block main thread = user รู้สึกค้าง 5-7s)
     setCompressing(true)
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+    // reset input value ทันที กัน onChange ไม่ fire ถ้า user pick ไฟล์เดิม (iOS bug)
+    e.target.value = ''
     try {
       const compressed = await compressImage(f)
       const buf = await compressed.arrayBuffer()
@@ -520,7 +529,6 @@ function SellPage() {
       sessionStorage.setItem('bm_cover_scan', JSON.stringify({
         data: btoa(bin), mimeType: 'image/jpeg', ts: Date.now(),
       }))
-      e.target.value = '' // reset กัน pick เดิมไม่ trigger onChange
       router.push('/sell/cover')
     } catch {
       setCompressing(false)
@@ -723,92 +731,6 @@ function SellPage() {
               onClick={() => { setShowPhoneGuard(false); setGuardPhoneInput(''); setPhoneGuardError('') }}
               className="btn btn-ghost"
               disabled={savingPhone}
-            >
-              ยกเลิก
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Photo picker sheet — เลือกกล้อง/คลังภาพ */}
-      {showPhotoPicker && (
-        <div
-          onClick={() => setShowPhotoPicker(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: 'white', borderRadius: '18px 18px 0 0', padding: '20px 20px 24px', width: '100%', maxWidth: 480, margin: '0 auto' }}
-          >
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 17, fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>
-              เพิ่มรูป
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', textAlign: 'center', marginBottom: 16 }}>
-              ถ่ายจากกล้อง หรือเลือกจากคลังภาพ
-            </div>
-
-            <button
-              type="button"
-              onClick={() => { setShowPhotoPicker(false); cameraInputRef.current?.click() }}
-              style={{
-                width: '100%',
-                background: 'var(--primary)',
-                border: 'none',
-                borderRadius: 12,
-                padding: '14px',
-                color: 'white',
-                fontFamily: 'Kanit',
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: 'pointer',
-                marginBottom: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-              }}
-            >
-              📷 ถ่ายรูปด้วยกล้อง
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setShowPhotoPicker(false); galleryInputRef.current?.click() }}
-              style={{
-                width: '100%',
-                background: 'white',
-                border: '1.5px solid var(--border)',
-                borderRadius: 12,
-                padding: '14px',
-                color: 'var(--ink)',
-                fontFamily: 'Kanit',
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: 'pointer',
-                marginBottom: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-              }}
-            >
-              🖼️ เลือกจากคลังภาพ
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPhotoPicker(false)}
-              style={{
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                padding: '12px',
-                color: 'var(--ink3)',
-                fontFamily: 'Kanit',
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
             >
               ยกเลิก
             </button>
@@ -1264,21 +1186,13 @@ function SellPage() {
                   </span>
                 </label>
 
-                {/* กล้อง — ถ่ายทีละรูป (capture=environment เรียกกล้องหลัง) */}
+                {/* กล้อง camera-only — ถ่ายทีละรูป กันรูปจาก internet + screenshot
+                    ถ้าผู้ใช้อยู่ใน LINE IAB เราจะ redirect ไป external browser (ดู LineIabBanner) */}
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
                   ref={cameraInputRef}
-                  onChange={handleAddPhotos}
-                  style={{ display: 'none' }}
-                />
-                {/* คลังภาพ — เลือกหลายรูปพร้อมกันได้ */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  ref={galleryInputRef}
                   onChange={handleAddPhotos}
                   style={{ display: 'none' }}
                 />
@@ -1303,13 +1217,13 @@ function SellPage() {
                     </div>
                   ))}
 
-                  {/* ปุ่มเพิ่มรูป → เปิด sheet เลือกกล้อง/คลัง */}
+                  {/* ปุ่มเพิ่มรูป → เปิดกล้องตรงๆ (camera-only กันรูปจาก internet) */}
                   {photoFiles.length < MAX_PHOTOS && (
                     <button
                       type="button"
                       onClick={() => {
                         if (!user) { goLogin(); return }
-                        setShowPhotoPicker(true)
+                        cameraInputRef.current?.click()
                       }}
                       disabled={compressing}
                       style={{

@@ -15,6 +15,7 @@ export function useCapture(): 'environment' | undefined {
   return cap
 }
 
+
 // resize รูปก่อนส่ง barcode scan — แก้ปัญหา iPhone (EXIF rotation + ภาพใหญ่เกิน / HEIC)
 export function resizeForScan(file: File, maxPx = 1920): Promise<File> {
   return new Promise(resolve => {
