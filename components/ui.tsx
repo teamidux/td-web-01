@@ -744,6 +744,57 @@ export function MultiLoginButton({
   )
 }
 
+// LoadingOverlay — full-screen loading sheet (ใช้ตอนรอ API โหลด/บันทึก)
+// เพิ่ม spin + message ใน card ขาวตรงกลาง บน overlay ดำโปร่งใส
+export function LoadingOverlay({ message = 'กำลังโหลด...', sub }: { message?: string; sub?: string }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: 'white', borderRadius: 18, padding: '32px 28px', textAlign: 'center', maxWidth: 300, width: '100%' }}>
+        <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
+        <div style={{ fontFamily: 'Kanit', fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{message}</div>
+        {sub && <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+// ConfirmModal — dialog ยืนยันก่อน action destructive (ลบ, ยกเลิก, ฯลฯ)
+// ใช้ตอน destructive action ที่ undo ไม่ได้
+export function ConfirmModal({
+  title, message, confirmLabel = 'ยืนยัน', cancelLabel = 'ยกเลิก',
+  variant = 'primary', onConfirm, onCancel,
+}: {
+  title: string
+  message?: string
+  confirmLabel?: string
+  cancelLabel?: string
+  variant?: 'primary' | 'danger'
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const confirmBg = variant === 'danger' ? '#DC2626' : 'var(--primary)'
+  return (
+    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, fontFamily: 'Kanit' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: message ? 8 : 18, color: 'var(--ink)' }}>{title}</div>
+        {message && <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 20, lineHeight: 1.6 }}>{message}</div>}
+        <button
+          onClick={onConfirm}
+          style={{ width: '100%', padding: '12px 16px', minHeight: 48, background: confirmBg, color: 'white', border: 'none', borderRadius: 12, fontFamily: 'Kanit', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}
+        >
+          {confirmLabel}
+        </button>
+        <button
+          onClick={onCancel}
+          style={{ width: '100%', padding: '12px 16px', minHeight: 44, background: 'white', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 12, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function Toast({ msg }: { msg: string | null }) {
   if (!msg) return null
   return <div className="toast">{msg}</div>

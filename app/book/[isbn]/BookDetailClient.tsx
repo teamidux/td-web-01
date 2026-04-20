@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase, Book, Listing, CONDITIONS } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, CondBadge, useToast, Toast, SkeletonList, TrustBadge } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, useToast, Toast, SkeletonList, TrustBadge, LoadingOverlay } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 
 export default function BookDetailClient({ isbn, initialBook }: { isbn: string; initialBook?: Partial<Book> | null }) {
@@ -304,25 +304,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
       <Toast msg={msg} />
 
       {/* Contact loading overlay — กันคนงงตอนกด "ติดต่อผู้ขาย" แล้วเงียบ */}
-      {contactLoading && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 18, padding: '32px 28px', textAlign: 'center', maxWidth: 300, width: '100%' }}>
-            <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700 }}>กำลังโหลดข้อมูลติดต่อ...</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>รอสักครู่</div>
-          </div>
-        </div>
-      )}
+      {contactLoading && <LoadingOverlay message="กำลังโหลดข้อมูลติดต่อ..." sub="รอสักครู่" />}
 
       {/* Wanted busy overlay — ตามหา/ลบตามหา */}
-      {wantedBusy && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 18, padding: '32px 28px', textAlign: 'center', maxWidth: 300, width: '100%' }}>
-            <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700 }}>กำลังบันทึก...</div>
-          </div>
-        </div>
-      )}
+      {wantedBusy && <LoadingOverlay message="กำลังบันทึก..." />}
 
       {showWantedForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }} onClick={() => setShowWantedForm(false)}>

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, Listing, User } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { Nav, BottomNav, BookCover, CondBadge, SkeletonList, useToast, Toast, TrustBadge } from '@/components/ui'
+import { Nav, BottomNav, BookCover, CondBadge, SkeletonList, useToast, Toast, TrustBadge, LoadingOverlay } from '@/components/ui'
 import { isValidPhone, formatPhone, formatMemberSince } from '@/lib/format'
 
 interface PageProps {
@@ -131,14 +131,7 @@ export default function SellerPage({ params }: PageProps) {
       <Nav />
       <Toast msg={msg} />
 
-      {contactLoading && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: 18, padding: '36px 24px', textAlign: 'center' }}>
-            <span className="spin" style={{ width: 28, height: 28, marginBottom: 12 }} />
-            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700 }}>กำลังโหลดข้อมูลติดต่อ...</div>
-          </div>
-        </div>
-      )}
+      {contactLoading && <LoadingOverlay message="กำลังโหลดข้อมูลติดต่อ..." />}
 
       {showReport && (
         <div onClick={() => setShowReport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
