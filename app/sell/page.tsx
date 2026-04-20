@@ -1135,43 +1135,45 @@ function SellPage() {
 
           {/* has_isbn: 3 states — empty (ยังไม่มีรูป) / success (AI ดึงได้) / failed (AI อ่านไม่ออก) */}
           {notFoundMode === 'has_isbn' && !fetchedBook && !editingBookInfo && aiStatus !== 'failed' && (
-            <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
-              <BookCover isbn={isbn} coverUrl={photoPreviews[0] || null} title={manualTitle || 'หนังสือ'} size={68} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {manualTitle ? (
-                  // State 2: AI success — แสดง title/author/badge + ปุ่มแก้เล็กๆ
-                  <>
-                    <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{manualTitle}</div>
-                    {manualAuthor && (
-                      <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
-                        <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{manualAuthor}
-                      </div>
-                    )}
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>ISBN: {isbn}</div>
-                    <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
-                  </>
-                ) : (
-                  // State 1: empty (before photo) — ISBN + copy เท่านั้น
-                  <>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#121212', marginBottom: 6 }}>ISBN: {isbn}</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.5 }}>ลงรูปปกแล้วชื่อหนังสือจะขึ้น</div>
-                  </>
-                )}
-              </div>
-              {/* ปุ่มแก้ subtle — แสดงเฉพาะตอน AI success (สำหรับแก้คำตก/ผิด) */}
-              {manualTitle && (
+            manualTitle ? (
+              // State 2: AI success — green card (confirmed) + ปุ่มแก้เล็กๆ
+              <div style={{ background: 'var(--green-bg)', border: '1px solid #BBF7D0', borderLeft: '4px solid var(--green)', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
+                <BookCover isbn={isbn} coverUrl={photoPreviews[0] || null} title={manualTitle} size={68} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: '#121212', letterSpacing: '-0.01em', marginBottom: 4 }}>{manualTitle}</div>
+                  {manualAuthor && (
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#555555', lineHeight: 1.5, marginBottom: 2 }}>
+                      <span style={{ color: 'var(--ink3)' }}>ผู้เขียน </span>{manualAuthor}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>ISBN: {isbn}</div>
+                  <span style={{ fontSize: 13, background: '#E8F5E9', color: '#2E7D32', padding: '4px 10px', borderRadius: 9999, fontWeight: 700, display: 'inline-block', marginTop: 8, letterSpacing: '0.02em' }}>✓ ดึงข้อมูลสำเร็จ</span>
+                </div>
                 <button
-                  onClick={() => {
-                    setEditingBookInfo(true)
-                  }}
-                  title="แก้ไข"
-                  aria-label="แก้ไข"
+                  onClick={() => setEditingBookInfo(true)}
+                  title="แก้ไข" aria-label="แก้ไข"
                   style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', minHeight: 32, fontSize: 14, color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}
                 >
                   ✏️
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              // State 1: empty — neutral card (ไม่เขียว เพราะยังไม่สมบูรณ์)
+              <div style={{ background: '#F8FAFC', border: '1px solid var(--border)', borderRadius: 14, padding: 14, display: 'flex', gap: 14, marginBottom: 16, alignItems: 'center' }}>
+                <BookCover isbn={isbn} coverUrl={null} title="" size={68} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 700, marginBottom: 4 }}>
+                    ✓ สแกน ISBN แล้ว
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>
+                    {isbn}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
+                    ถ่ายรูปปกได้เลย
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
           {/* State 3: AI failed — "อ่านไม่ชัด ถ่ายใหม่" (ไม่มีให้พิมพ์เอง จนกว่าจะถ่ายซ้ำ 3 ครั้ง) */}
