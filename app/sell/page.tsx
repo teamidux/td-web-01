@@ -621,7 +621,7 @@ function SellPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ book_id: bookId, seller_id: user.id, price: parseFloat(price), isbn: currentIsbn }),
-      }).catch(() => {})
+      }).catch(e => console.warn('[sell] notify-match failed:', e))
 
       setSubmitSuccess(true)
       sessionStorage.setItem(`bm_viewed_${currentIsbn}`, '1')

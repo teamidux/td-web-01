@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
           old_phone: `[name] ${sessionUser.display_name || ''}`,
           new_phone: `[name] ${newName}`,
         })
-      } catch {}
+      } catch (e) { console.error('[user/update] audit log (name) failed:', e) }
     }
     allowed.display_name = newName
   }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
             old_phone: oldPhone,
             new_phone: cleaned,
           })
-        } catch {} // ไม่ block ถ้า log fail
+        } catch (e) { console.error('[user/update] audit log (phone) failed:', e) }
       }
       allowed.phone = cleaned
     } else if (data.phone.trim() === '') {

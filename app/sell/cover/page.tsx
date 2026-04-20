@@ -224,6 +224,8 @@ function SellFlowCoverPageInner() {
   const [showEditForm, setShowEditForm] = useState(false)
   // Snapshot ค่า form ก่อนกดแก้ไข → กด "ยกเลิก" แล้วย้อนกลับได้
   const formSnapshotRef = useRef<FormData | null>(null)
+  // Timeout ของ router.push หลัง submit — clear ตอน unmount กัน push หลัง unmount
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Extra photos (เพิ่มเติมจากรูปปกที่สแกน) — max 4 extra (+1 cover = 5 total)
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [extraPreviews, setExtraPreviews] = useState<string[]>([])
@@ -243,6 +245,8 @@ function SellFlowCoverPageInner() {
     return () => {
       if (previewRef.current) URL.revokeObjectURL(previewRef.current)
       extraPreviewsRef.current.forEach(url => URL.revokeObjectURL(url))
+      // Clear redirect timer กัน router.push หลัง unmount
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
     }
   }, [])
 
@@ -520,7 +524,7 @@ function SellFlowCoverPageInner() {
         })
       } else {
         setSaveMsg('✅ ลงขายสำเร็จ — กำลังพาไปหน้าหนังสือ...')
-        setTimeout(() => {
+        redirectTimerRef.current = setTimeout(() => {
           router.push(`/book/${encodeURIComponent(j.isbn || form.isbn || j.book_id)}`)
         }, 1200)
       }
