@@ -816,7 +816,7 @@ function SellFlowCoverPageInner() {
                 {extraFiles.length < 4 && (
                   <>
                     <input
-                      ref={extraInputRef} type="file" accept="image/*" multiple
+                      ref={extraInputRef} type="file" accept="image/*" capture="environment"
                       style={{ display: 'none' }}
                       onChange={async e => {
                         const files = Array.from(e.target.files || [])
