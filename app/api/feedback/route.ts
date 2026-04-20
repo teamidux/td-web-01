@@ -45,17 +45,29 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Rate limit — 3 ครั้ง/ชม./IP (กัน auto-click / spam bot)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const { count } = await sb.from('feedback')
-      .select('*', { count: 'exact', head: true })
-      .eq('ip_hash', ipHash)
-      .gte('created_at', oneHourAgo)
-    if ((count || 0) >= 3) {
-      return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
-    }
-
     const user = await getSessionUser()
+
+    // Rate limit 2 ชั้น:
+    //   - ถ้า login: 3 ครั้ง/ชม./user (attacker สลับ IP ไม่ช่วย)
+    //   - ไม่ login: 3 ครั้ง/ชม./IP (เดิม — anon)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    if (user) {
+      const { count: userCount } = await sb.from('feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', oneHourAgo)
+      if ((userCount || 0) >= 3) {
+        return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+      }
+    } else {
+      const { count: ipCount } = await sb.from('feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('ip_hash', ipHash)
+        .gte('created_at', oneHourAgo)
+      if ((ipCount || 0) >= 3) {
+        return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+      }
+    }
     const { error } = await sb.from('feedback').insert({
       kind,
       message,

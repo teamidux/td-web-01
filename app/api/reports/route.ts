@@ -32,15 +32,26 @@ export async function POST(req: NextRequest) {
 
     // Rate limit: ไม่ให้ user คนเดียว spam รายงานคนเดิมเกิน 1 ครั้ง/วัน
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { count } = await supabase
+    const { count: dupCount } = await supabase
       .from('reports')
       .select('*', { count: 'exact', head: true })
       .eq('reporter_user_id', reporterUserId)
       .eq('reported_user_id', reportedUserId)
       .gte('created_at', oneDayAgo)
 
-    if ((count || 0) > 0) {
+    if ((dupCount || 0) > 0) {
       return NextResponse.json({ error: 'already reported recently' }, { status: 429 })
+    }
+
+    // Global cap: reporter ส่งรวมทั้งหมดไม่เกิน 10 reports/วัน (กัน harass หลายคน)
+    const { count: totalCount } = await supabase
+      .from('reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('reporter_user_id', reporterUserId)
+      .gte('created_at', oneDayAgo)
+
+    if ((totalCount || 0) >= 10) {
+      return NextResponse.json({ error: 'daily_report_limit', message: 'รายงานเกิน 10 ครั้ง/วัน' }, { status: 429 })
     }
 
     const { error } = await supabase.from('reports').insert({

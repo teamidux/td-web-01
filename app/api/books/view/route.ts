@@ -16,7 +16,9 @@ function admin() {
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit: 60 req/min/IP — กัน spam book creation
+    // Rate limit 2 ชั้น — กัน inflate view_count
+    //   per-IP: 60/min (เผื่อ legit NAT เหมือนกันหลายคน)
+    //   per-book+IP: 3/hour (same IP ดูเล่มเดียวกันซ้ำ = ไม่นับ)
     const ip = getClientIp(req)
     if (!checkRateLimit(`book-view:${ip}`, 60, 60_000)) {
       return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
@@ -25,6 +27,13 @@ export async function POST(req: NextRequest) {
     const { isbn, title, author, cover_url, publisher, language, category, list_price } = await req.json()
     if (!isbn || !/^(978|979)\d{10}$/.test(isbn)) {
       return NextResponse.json({ error: 'invalid isbn' }, { status: 400 })
+    }
+
+    // Per-book+IP limit — กัน 1 attacker loop view ซ้ำเล่มเดียวกัน 60 ครั้ง/นาที
+    // Client-side มี sessionStorage throttle แล้ว แต่ server ก็ต้อง enforce
+    if (!checkRateLimit(`book-view:${ip}:${isbn}`, 3, 60 * 60_000)) {
+      // silent success — ไม่ return error ให้ attacker รู้ว่าโดน throttle
+      return NextResponse.json({ ok: true, throttled: true })
     }
 
     const sb = admin()
