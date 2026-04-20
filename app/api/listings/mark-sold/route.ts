@@ -32,13 +32,6 @@ export async function POST(req: NextRequest) {
 
   if (!listing) return NextResponse.json({ error: 'listing not found' }, { status: 404 })
 
-  const { data: sellerRow } = await sb
-    .from('users')
-    .select('sold_count')
-    .eq('id', sellerId)
-    .single()
-  const currentCount: number = sellerRow?.sold_count || 0
-
   if (action === 'sold') {
     if (listing.status === 'sold') return NextResponse.json({ ok: true })
 
@@ -47,8 +40,9 @@ export async function POST(req: NextRequest) {
     const days_to_sell = Math.floor((now.getTime() - createdAt.getTime()) / 86400000)
 
     await sb.from('listings').update({ status: 'sold', sold_at: now.toISOString(), days_to_sell }).eq('id', listingId)
-    await sb.from('users').update({ sold_count: currentCount + 1 }).eq('id', sellerId)
-    return NextResponse.json({ ok: true, sold_count: currentCount + 1 })
+    // Atomic increment — กัน lost update ถ้ามี concurrent mark-sold (race condition)
+    const { data: newCount } = await sb.rpc('adjust_sold_count', { p_user_id: sellerId, p_delta: 1 })
+    return NextResponse.json({ ok: true, sold_count: newCount })
   }
 
   if (action === 'reactivate') {
@@ -59,8 +53,9 @@ export async function POST(req: NextRequest) {
     if (listing.status !== 'sold') return NextResponse.json({ ok: true })
 
     await sb.from('listings').update({ status: 'active', sold_at: null }).eq('id', listingId)
-    await sb.from('users').update({ sold_count: Math.max(0, currentCount - 1) }).eq('id', sellerId)
-    return NextResponse.json({ ok: true, sold_count: Math.max(0, currentCount - 1) })
+    // Atomic decrement — RPC มี greatest(0, ...) ป้องกัน sold_count ติดลบ
+    const { data: newCount } = await sb.rpc('adjust_sold_count', { p_user_id: sellerId, p_delta: -1 })
+    return NextResponse.json({ ok: true, sold_count: newCount })
   }
 
   if (action === 'remove') {
