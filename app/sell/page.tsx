@@ -1039,21 +1039,8 @@ function SellPage() {
               {/* ── มี Barcode แต่ไม่อยู่ในระบบ ── */}
               {notFoundMode === 'has_isbn' && !fetchedBook && (
                 <>
-                  <div style={{ background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>🔖</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#713F12' }}>สแกนได้ ISBN แต่ยังไม่มีในระบบ</div>
-                      {isbn && <div style={{ fontSize: 13, color: '#92400E', marginTop: 2 }}>ISBN: {isbn}</div>}
-                    </div>
-                    <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 13, color: '#92400E', cursor: 'pointer', fontFamily: 'Kanit', flexShrink: 0 }}>← กลับ</button>
-                  </div>
-                  {/* AI hint: เมื่อ user อัปรูปปก จะดึง title/author ให้อัตโนมัติ */}
-                  {process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1' && !manualTitle && (
-                    <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>✨</span>
-                      <span>อัปรูปปกแล้วจะอ่านชื่อ/ผู้แต่งให้อัตโนมัติ — แก้ไขได้ทีหลัง</span>
-                    </div>
-                  )}
+                  {/* ปุ่ม back แบบเงียบๆ (ไม่ต้องมี banner บอก "ไม่เจอ") */}
+                  <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 600, padding: 0, marginBottom: 12 }}>← กลับ</button>
                   <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
                     <div style={{ fontSize: 14, color: '#1E40AF', lineHeight: 1.7 }}>
                       หนังสือบางเล่มอาจเป็นสำนักพิมพ์อิสระ, หนังสือเก่า, หรือไม่ได้ขึ้นทะเบียน ISBN — กรอกข้อมูลด้านล่างเพื่อเพิ่มเข้าระบบได้เลย 🙏
