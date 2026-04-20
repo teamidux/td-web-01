@@ -77,10 +77,10 @@ export default function WantedPage() {
     <>
       <Nav />
       <Toast msg={msg} />
-      <div className="page">
-        <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, marginBottom: 4 }}>รายการที่คุณตามหา</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>เราจะแจ้งเตือนเมื่อมีคนลงขายหนังสือที่คุณต้องการ</div>
+      <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+        <div style={{ padding: '16px 16px 0', maxWidth: 500, margin: '0 auto' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 4 }}>เล่มที่ตามหา</div>
+          <div style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>เราจะแจ้งเตือนเมื่อมีคนลงขายหนังสือที่คุณต้องการ</div>
 
           {/* LINE OA Add CTA — แสดงถ้า user ยังไม่ add @Bookmatch เป็นเพื่อน */}
           {!(user as any)?.line_oa_friend_at && (
@@ -158,37 +158,72 @@ export default function WantedPage() {
           {loading && <SkeletonList count={3} />}
 
           {!loading && items.length === 0 && (
-            <div className="empty">
-              <div className="empty-icon">🔔</div>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>ยังไม่มีรายการ</div>
-              <div style={{ fontSize: 13, marginBottom: 20 }}>ค้นหาหนังสือที่อยากได้แล้วกด "ต้องการเล่มนี้"</div>
+            <div style={{ background: 'white', borderRadius: 14, padding: '40px 20px', textAlign: 'center', border: '1px solid #EEF2F7' }}>
+              <div style={{ fontSize: 42, marginBottom: 12 }}>🔔</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>ยังไม่มีรายการ</div>
+              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20 }}>ค้นหาหนังสือที่อยากได้แล้วกด "ต้องการเล่มนี้"</div>
               <Link href="/"><button className="btn" style={{ maxWidth: 200, margin: '0 auto', display: 'block' }}>ค้นหาหนังสือ</button></Link>
             </div>
           )}
 
-          {items.map(w => {
-            const hasStock = (w.books?.active_listings_count || 0) > 0
-            return (
-              <div key={w.id} className="card" style={{ position: 'relative' }}>
-                <Link href={`/book/${w.books?.isbn || w.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <BookCover isbn={w.books?.isbn || w.isbn} title={w.books?.title} size={60} />
+          {/* Section header + alert channel label */}
+          {!loading && items.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.005em' }}>
+                กำลังตามหา ({items.length})
+              </div>
+              <div style={{ fontSize: 12, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                แจ้งผ่าน LINE
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12 }}>
+            {items.map(w => {
+              const hasStock = (w.books?.active_listings_count || 0) > 0
+              const daysAgo = w.created_at ? Math.floor((Date.now() - new Date(w.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0
+              return (
+                <div key={w.id} style={{ background: 'white', borderRadius: 12, padding: 12, display: 'flex', gap: 12, alignItems: 'center', border: '1px solid #EEF2F7', position: 'relative' }}>
+                  <Link href={`/book/${w.books?.isbn || w.isbn}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    <div style={{ width: 44, aspectRatio: '3/4', borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#F8FAFC' }}>
+                      <BookCover isbn={w.books?.isbn || w.isbn} title={w.books?.title} size={56} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="book-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.books?.title}</div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {w.max_price && <span style={{ fontSize: 13, color: 'var(--ink3)' }}>สูงสุด <strong style={{ color: 'var(--primary)' }}>฿{w.max_price}</strong></span>}
-                        {hasStock
-                          ? <span className="badge badge-green">✓ มีคนขาย {w.books?.active_listings_count} ราย</span>
-                          : <span className="badge" style={{ background: '#FFF8E1', color: '#E65100' }}>รอคอยอยู่</span>
-                        }
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {w.books?.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                        {daysAgo > 0 ? `ตามมา ${daysAgo} วัน` : 'เพิ่งเพิ่ม'}
+                        {w.max_price && <> · สูงสุด ฿{w.max_price}</>}
+                      </div>
+                      <div style={{ marginTop: 4 }}>
+                        {hasStock ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: '#DCFCE7' }}>
+                            <div style={{ width: 5, height: 5, borderRadius: 999, background: '#16A34A' }} />
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: '#166534' }}>
+                              มี {w.books?.active_listings_count} ราย
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: '#94A3B8', fontStyle: 'italic' }}>
+                            ยังไม่มีคนลง
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </Link>
-                <button onClick={() => remove(w.id)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 16, cursor: 'pointer', padding: 4 }}>✕</button>
-              </div>
-            )
-          })}
+                  </Link>
+                  <button
+                    onClick={() => remove(w.id)}
+                    aria-label="ลบออกจากรายการตามหา"
+                    style={{ background: '#F1F5F9', border: 'none', borderRadius: 999, width: 28, height: 28, display: 'grid', placeItems: 'center', cursor: 'pointer', color: '#64748B', flexShrink: 0, fontSize: 14, fontWeight: 700 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
         <div style={{ height: 12 }} />
       </div>
