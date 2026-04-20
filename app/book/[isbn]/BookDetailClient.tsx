@@ -838,17 +838,23 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <button
                   disabled={contactLoading}
                   onClick={async () => {
+                    // Require login — กัน anonymous scrape contact PII
+                    if (!user) {
+                      loginWithLine(typeof window !== 'undefined' ? window.location.pathname : `/book/${isbn}`)
+                      return
+                    }
                     setCopied(false)
                     setContactLoading(true)
                     try {
-                      const [ci] = await Promise.all([
-                        fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({})),
+                      const [ciRes] = await Promise.all([
+                        fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`),
                         fetch('/api/listings/contact', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ listing_id: l.id, book_id: book?.id, seller_id: l.seller_id }),
                         }).catch(() => {}),
                       ])
+                      const ci = ciRes.ok ? await ciRes.json().catch(() => ({})) : {}
                       setContactPII(ci)
                       setContactListing(l)
                     } finally {

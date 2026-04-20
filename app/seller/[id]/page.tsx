@@ -466,9 +466,15 @@ export default function SellerPage({ params }: PageProps) {
             }).map(l => {
               return (
                 <div key={l.id} onClick={async () => {
+                  // Require login — กัน anonymous scrape contact PII
+                  if (!user) {
+                    loginWithLine(typeof window !== 'undefined' ? window.location.pathname : `/seller/${id}`)
+                    return
+                  }
                   setCopied(false)
                   setContactLoading(true)
-                  const ci = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`).then(r => r.json()).catch(() => ({}))
+                  const r = await fetch(`/api/listings/contact-info?seller_id=${l.seller_id}&listing_id=${l.id}`)
+                  const ci = r.ok ? await r.json().catch(() => ({})) : {}
                   setSellerPII(ci)
                   setContactListing(l)
                   setContactLoading(false)

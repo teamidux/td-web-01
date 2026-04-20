@@ -69,7 +69,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (q) {
-    query = query.or(`display_name.ilike.%${q}%,phone.ilike.%${q}%,line_id.ilike.%${q}%`)
+    // Escape ILIKE wildcards เพื่อกัน SQL-like injection
+    const esc = q.replace(/[%_\\]/g, m => '\\' + m)
+    query = query.or(`display_name.ilike.%${esc}%,phone.ilike.%${esc}%,line_id.ilike.%${esc}%`)
   }
 
   const { data: users, error } = await query

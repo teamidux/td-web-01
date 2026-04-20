@@ -40,7 +40,9 @@ export async function GET(req: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (q) {
-    query = query.or(`title.ilike.%${q}%,author.ilike.%${q}%,isbn.ilike.%${q}%`)
+    // Escape ILIKE wildcards เพื่อกัน SQL-like injection — user ใส่ %,_ ไม่ทำให้ query รั่ว
+    const esc = q.replace(/[%_\\]/g, m => '\\' + m)
+    query = query.or(`title.ilike.%${esc}%,author.ilike.%${esc}%,isbn.ilike.%${esc}%`)
   }
 
   const { data: books, error } = await query
