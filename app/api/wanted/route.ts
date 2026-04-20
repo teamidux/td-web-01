@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -17,6 +18,12 @@ function db() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  // Rate limit — กัน toggle spam (add/delete/add/delete loop) ที่ inflate wanted_count
+  // 30 toggle actions / 10 min / user → human ปกติไม่ถึง, bot โดน
+  if (!checkRateLimit(`wanted:${user.id}`, 30, 10 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
 
   const { book_id, isbn, max_price } = await req.json()
   if (!book_id || !isbn) return NextResponse.json({ error: 'missing fields' }, { status: 400 })
@@ -58,6 +65,11 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  // Rate limit (shared key กับ POST) — กัน toggle spam inflate count
+  if (!checkRateLimit(`wanted:${user.id}`, 30, 10 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
 
   const { book_id, wanted_id } = await req.json()
 
