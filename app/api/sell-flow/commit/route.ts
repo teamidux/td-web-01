@@ -34,10 +34,15 @@ export async function POST(req: NextRequest) {
   }
   let user = await getSessionUser()
   // Dev-only bypass: บน localhost LINE OAuth callback ใช้ไม่ได้ → fall back admin user
-  // กัน prod โดย require NODE_ENV=development + ADMIN_USER_IDS set
+  // Defense in depth: require NODE_ENV=development + ADMIN_USER_IDS + host = localhost
+  // (ถ้า NODE_ENV หลุด prod ก็ยัง block เพราะ host ไม่ตรง)
   if (!user && process.env.NODE_ENV === 'development' && process.env.ADMIN_USER_IDS) {
-    const adminId = process.env.ADMIN_USER_IDS.split(',')[0]?.trim()
-    if (adminId) user = { id: adminId }
+    const host = req.headers.get('host') || ''
+    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)
+    if (isLocalhost) {
+      const adminId = process.env.ADMIN_USER_IDS.split(',')[0]?.trim()
+      if (adminId) user = { id: adminId }
+    }
   }
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
@@ -147,7 +152,8 @@ export async function POST(req: NextRequest) {
 
   // Pioneer: ผู้บุกเบิกหนังสือใหม่เข้าระบบ → +1 pioneer count
   if (isNewBook) {
-    try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) } catch {}
+    try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) }
+    catch (e) { console.error('[commit] pioneer_count failed:', e) }
   }
 
   const { data: bookRow } = await sb.from('books').select('isbn, title, cover_url').eq('id', bookId!).maybeSingle()

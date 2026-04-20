@@ -1484,7 +1484,7 @@ function SellPage() {
                   {user?.phone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_id ? 6 : 0 }}>
                       <span style={{ fontSize: 14 }}>📞</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.phone.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{user.phone?.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
                       {user?.phone_verified_at && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>ยืนยันแล้ว</span>}
                     </div>
                   )}

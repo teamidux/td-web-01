@@ -1014,7 +1014,7 @@ function SellFlowCoverPageInner() {
                 {user?.phone && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: user?.line_id ? 6 : 0, fontSize: 14 }}>
                     <span>📞</span>
-                    <span style={{ fontWeight: 600 }}>{user.phone.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
+                    <span style={{ fontWeight: 600 }}>{user.phone?.length === 10 ? `${user.phone.slice(0,3)}-${user.phone.slice(3,6)}-${user.phone.slice(6)}` : user.phone}</span>
                   </div>
                 )}
                 {user?.line_id && (

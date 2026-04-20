@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
 
   // 4. ถ้าเป็นหนังสือใหม่ → update pioneer_count ให้ user
   if (isNewBook) {
-    try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) } catch {}
+    try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) }
+    catch (e) { console.error('[listings/create] pioneer_count failed:', e) }
   }
 
   return NextResponse.json({ ok: true, book_id: bookId, isbn, is_new_book: isNewBook })
