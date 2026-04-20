@@ -127,6 +127,7 @@ function SellPage() {
   const [scanError, setScanError] = useState(false)
   const scanInputRef = useRef<HTMLInputElement | null>(null)
   const coverCaptureRef = useRef<HTMLInputElement | null>(null)
+  const coverGalleryRef = useRef<HTMLInputElement | null>(null)
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [shipping, setShipping] = useState('buyer')
@@ -783,6 +784,9 @@ function SellPage() {
               {!fetchedBook && !notFoundMode && (
                 <>
                   {/* ส่วนบน: มี Barcode → สแกนเลย */}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)', marginBottom: 8, textAlign: 'center' }}>
+                    ✓ แนะนำ — เร็วและแม่นที่สุด
+                  </div>
                   {/* Primary: Barcode — big blue card */}
                   {isLineIAB ? (
                     <button
@@ -827,7 +831,7 @@ function SellPage() {
                     <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   </div>
 
-                  {/* Secondary: Cover scan — big white card w/ blue border */}
+                  {/* Secondary: Cover scan — downrank visually (less prominent than barcode) */}
                   <input
                     ref={coverCaptureRef} type="file" accept="image/*" capture="environment"
                     style={{ display: 'none' }}
@@ -846,26 +850,63 @@ function SellPage() {
                       router.push('/sell/cover')
                     }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => { if (!user) { goLogin(); return }; coverCaptureRef.current?.click() }}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      width: '100%', background: 'white', border: '2px solid var(--primary)', borderRadius: 16,
-                      padding: '28px 16px', cursor: 'pointer', fontFamily: 'Kanit',
-                      position: 'relative', marginBottom: 12,
+                  <input
+                    ref={coverGalleryRef} type="file" accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]; if (!f) return
+                      if (!user) { goLogin(); return }
+                      const buf = await f.arrayBuffer()
+                      const bytes = new Uint8Array(buf)
+                      let bin = ''
+                      for (let i = 0; i < bytes.length; i += 0x8000) {
+                        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
+                      }
+                      sessionStorage.setItem('bm_cover_scan', JSON.stringify({
+                        data: btoa(bin), mimeType: f.type || 'image/jpeg', ts: Date.now(),
+                      }))
+                      router.push('/sell/cover')
                     }}
-                  >
-                    <span style={{ position: 'absolute', top: 10, right: 10, background: 'var(--accent)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 999 }}>
+                  />
+                  <div style={{
+                    background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
+                    padding: 18, position: 'relative',
+                  }}>
+                    <span style={{ position: 'absolute', top: 12, right: 12, background: 'var(--accent)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 999 }}>
                       🆕 ใหม่
                     </span>
-                    <div style={{ fontSize: 44, marginBottom: 10 }}>📖</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>ค้นหาด้วยหน้าปก</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>สำหรับหนังสือเก่า ไม่มีบาร์โค้ด</div>
-                  </button>
-
-                  <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6 }}>
-                    💡 <strong>ทิป:</strong> สแกนบาร์โค้ดแล้วไม่เจอ จะเปิดให้ถ่ายหน้าปกต่อให้อัตโนมัติ
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>
+                      📖 ไม่มี barcode?
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 14 }}>
+                      ใช้ตัวเลือกนี้เฉพาะหนังสือเก่า/หนังสือหายาก AI จะช่วยอ่านปกให้
+                    </div>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => { if (!user) { goLogin(); return }; coverCaptureRef.current?.click() }}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 10,
+                          background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
+                          fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        📷 ถ่ายหน้าปก
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { if (!user) { goLogin(); return }; coverGalleryRef.current?.click() }}
+                        style={{
+                          width: '100%', padding: '12px 16px', borderRadius: 10,
+                          background: 'white', border: '1px solid var(--border)',
+                          fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🖼️ เลือกจากคลังรูป
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

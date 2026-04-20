@@ -146,10 +146,19 @@ export async function POST(req: NextRequest) {
   })
   if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
 
+  // Pioneer: ผู้บุกเบิกหนังสือใหม่เข้าระบบ → +1 pioneer count
+  if (isNewBook) {
+    try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) } catch {}
+  }
+
+  const { data: bookRow } = await sb.from('books').select('isbn, title, cover_url').eq('id', bookId!).maybeSingle()
+
   return NextResponse.json({
     ok: true,
     book_id: bookId,
-    isbn: (await sb.from('books').select('isbn').eq('id', bookId!).maybeSingle()).data?.isbn || null,
+    isbn: bookRow?.isbn || null,
+    title: bookRow?.title || null,
+    cover_url: bookRow?.cover_url || null,
     is_new_book: isNewBook,
     source: SOURCE_TAG,
   })

@@ -198,6 +198,8 @@ function SellFlowCoverPageInner() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  // Pioneer: popup ตอนเพิ่มหนังสือใหม่เข้าระบบ
+  const [pioneerBook, setPioneerBook] = useState<{ title: string; isbn: string; coverUrl: string } | null>(null)
   // user กด "ไม่ใช่" บน candidate question → ซ่อนไป (ไม่ถามอีก)
   const [dismissedCandidates, setDismissedCandidates] = useState(false)
   // เปิด form แก้ไขข้อมูลหนังสือ (default ซ่อน — green card แสดงพอ)
@@ -432,10 +434,19 @@ function SellFlowCoverPageInner() {
       })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      setSaveMsg('✅ ลงขายสำเร็จ — กำลังพาไปหน้าหนังสือ...')
-      setTimeout(() => {
-        router.push(`/book/${encodeURIComponent(j.isbn || form.isbn || j.book_id)}`)
-      }, 1200)
+      // Pioneer: ถ้าเป็นหนังสือใหม่ → แสดง popup ก่อน redirect
+      if (j.is_new_book) {
+        setPioneerBook({
+          title: j.title || form.title,
+          isbn: j.isbn || form.isbn || '',
+          coverUrl: j.cover_url || (preview || ''),
+        })
+      } else {
+        setSaveMsg('✅ ลงขายสำเร็จ — กำลังพาไปหน้าหนังสือ...')
+        setTimeout(() => {
+          router.push(`/book/${encodeURIComponent(j.isbn || form.isbn || j.book_id)}`)
+        }, 1200)
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'save_failed')
     } finally {
@@ -879,6 +890,44 @@ function SellFlowCoverPageInner() {
             </div>
           )}
         </>
+      )}
+
+      {/* Pioneer popup — ผู้บุกเบิกหนังสือใหม่ */}
+      {pioneerBook && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 20, padding: '32px 24px', maxWidth: 340, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, color: '#92400E', marginBottom: 10 }}>
+              คุณคือผู้บุกเบิก!
+            </div>
+            {pioneerBook.coverUrl && (
+              <div style={{ width: 80, height: 110, margin: '0 auto 12px', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,.15)' }}>
+                <img src={pioneerBook.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )}
+            <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7, marginBottom: 6 }}>
+              <b>&quot;{pioneerBook.title}&quot;</b>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 16 }}>
+              ถูกเพิ่มเข้า BookMatch เป็นครั้งแรกโดยคุณ
+            </div>
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: '#92400E', lineHeight: 1.6, textAlign: 'left' }}>
+              • ประกาศของคุณจะติดป้าย 🏆 ผู้บุกเบิก<br/>
+              • listing ขึ้นอันดับแรกของเล่มนี้<br/>
+              • รูปที่อัปโหลดจะเป็นปกประจำเล่ม
+            </div>
+            <button
+              className="btn"
+              onClick={() => {
+                const isbn = pioneerBook.isbn
+                setPioneerBook(null)
+                router.push(`/book/${encodeURIComponent(isbn)}`)
+              }}
+            >
+              ดูหนังสือของฉัน
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
