@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { extractFromCover, ALLOWED_MODELS } from '@/lib/cover-vision'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSessionUser } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -71,6 +73,18 @@ export async function POST(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
     return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
   }
+  // Auth required — กัน bot spam (AI cost ~฿0.003/call)
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // Rate limit ต่อ user — 20 scans/hour (เผื่อ user ถ่ายไม่ผ่าน ถ่ายซ้ำ)
+  if (!checkRateLimit(`sellscan:${user.id}`, 20, 60 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited', message: 'สแกนเกิน 20 ครั้ง/ชม. รอสักครู่' }, { status: 429 })
+  }
+  // IP-level limit ชั้นสอง กัน account farming
+  if (!checkRateLimit(`sellscan-ip:${getClientIp(req)}`, 60, 60 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
+
   let body: { imageBase64?: string; mimeType?: string; model?: string; isbn?: string }
   try {
     body = await req.json()

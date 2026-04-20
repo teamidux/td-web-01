@@ -2,6 +2,8 @@
 // ใช้สำหรับหน้า /test/cover-scan เท่านั้น
 import { NextRequest, NextResponse } from 'next/server'
 import { extractFromCover, ALLOWED_MODELS } from '@/lib/cover-vision'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSessionUser } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,6 +12,17 @@ export const maxDuration = 30
 export async function POST(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN !== '1') {
     return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
+  }
+  // Auth required — ป้องกัน bot spam Gemini call (~฿0.003/call burn money)
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // Rate limit ต่อ user — 10 scans/hour (สูงพอสำหรับ user ลงขายปกติ)
+  if (!checkRateLimit(`scan:${user.id}`, 10, 60 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
+  // IP-level limit ชั้นสอง กัน account farming
+  if (!checkRateLimit(`scan-ip:${getClientIp(req)}`, 30, 60 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
   }
   let body: { imageBase64?: string; mimeType?: string; model?: string }
   try {

@@ -46,6 +46,10 @@ export async function sendSMS(phone: string, message: string): Promise<{ ok: boo
   }
 }
 
+// Cryptographically secure OTP — กัน predict / bruteforce
+// Math.random() ไม่ปลอดภัย (predictable LCG algorithm)
+// ใช้ crypto.randomInt จาก Node crypto — CSPRNG
 export function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  const { randomInt } = require('crypto') as typeof import('crypto')
+  return randomInt(100000, 1000000).toString()
 }
