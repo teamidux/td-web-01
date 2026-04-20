@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, PhoneVerifyModal, useToast, Toast, TrustMission, TrustBadge, IdentityVerifyWizard, MultiLoginButton } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 import { formatMemberSince } from '@/lib/format'
+import { compressAvatarImage } from '@/lib/image'
 
 export default function ProfilePage() {
   const { user, loading: authLoading, logout, updateUser, syncUser, loginWithLine } = useAuth()
@@ -53,32 +54,8 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Compress + resize image → max 400×400, <100KB
-  const compressAvatar = (file: File): Promise<File> => {
-    return new Promise(resolve => {
-      const img = new Image()
-      const url = URL.createObjectURL(file)
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        const canvas = document.createElement('canvas')
-        const MAX = 400
-        let { width, height } = img
-        // Crop to square center
-        const minSide = Math.min(width, height)
-        const sx = (width - minSide) / 2
-        const sy = (height - minSide) / 2
-        canvas.width = MAX
-        canvas.height = MAX
-        canvas.getContext('2d')!.drawImage(img, sx, sy, minSide, minSide, 0, 0, MAX, MAX)
-        canvas.toBlob(blob => {
-          canvas.width = 0; canvas.height = 0 // free GPU memory
-          if (!blob) { resolve(file); return }
-          resolve(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }))
-        }, 'image/jpeg', 0.8)
-      }
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-      img.src = url
-    })
-  }
+  // compress avatar ใช้จาก lib/image (400×400 square crop, 100KB)
+  const compressAvatar = compressAvatarImage
 
   const uploadAvatar = async (file: File) => {
     if (!user) return

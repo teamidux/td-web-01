@@ -1,41 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-
-// Resize book cover: max 800px (รองรับ retina), jpg quality ปรับอัตโนมัติจน ≤ 300KB
-function compressCover(file: File, maxKB = 300): Promise<File> {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const canvas = document.createElement('canvas')
-      let { width, height } = img
-      const MAX = 800
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-        else { width = Math.round(width * MAX / height); height = MAX }
-      }
-      canvas.width = width
-      canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      const tryQ = (q: number) => {
-        canvas.toBlob(blob => {
-          if (!blob) { canvas.width = 0; canvas.height = 0; resolve(file); return }
-          if (blob.size <= maxKB * 1024 || q <= 0.1) {
-            canvas.width = 0; canvas.height = 0
-            resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
-          } else {
-            tryQ(Math.round((q - 0.1) * 10) / 10)
-          }
-        }, 'image/jpeg', q)
-      }
-      tryQ(0.85)
-    }
-    img.onerror = () => resolve(file)
-    img.src = url
-  })
-}
+import { compressCoverUpload as compressCover } from '@/lib/image'
 
 type Book = {
   id: string
