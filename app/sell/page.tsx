@@ -733,6 +733,10 @@ function SellPage() {
                 onClick={() => {
                   const mode = captureGuide
                   setCaptureGuide(null)
+                  // Mark seen — ครั้งต่อไปข้าม guide ไปเลย
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem(`bm_seen_capture_guide_${mode}`, '1')
+                  }
                   setTimeout(() => {
                     if (mode === 'barcode') {
                       if (isLineIAB) setShowCamera(true)
@@ -848,7 +852,17 @@ function SellPage() {
                   <input ref={scanInputRef} type="file" accept="image/*" capture={capture} onChange={scanFromPhoto} style={{ display: 'none' }} disabled={scanning} />
                   <button
                     type="button"
-                    onClick={() => { if (!user) { goLogin(); return }; setCaptureGuide('barcode') }}
+                    onClick={() => {
+                      if (!user) { goLogin(); return }
+                      // Show guide only if not seen before
+                      const key = 'bm_seen_capture_guide_barcode'
+                      if (typeof window !== 'undefined' && localStorage.getItem(key)) {
+                        if (isLineIAB) setShowCamera(true)
+                        else scanInputRef.current?.click()
+                      } else {
+                        setCaptureGuide('barcode')
+                      }
+                    }}
                     disabled={scanning}
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -929,7 +943,15 @@ function SellPage() {
                     <div style={{ display: 'grid', gap: 8 }}>
                       <button
                         type="button"
-                        onClick={() => { if (!user) { goLogin(); return }; setCaptureGuide('cover') }}
+                        onClick={() => {
+                          if (!user) { goLogin(); return }
+                          const key = 'bm_seen_capture_guide_cover'
+                          if (typeof window !== 'undefined' && localStorage.getItem(key)) {
+                            coverCaptureRef.current?.click()
+                          } else {
+                            setCaptureGuide('cover')
+                          }
+                        }}
                         style={{
                           width: '100%', padding: '12px 16px', borderRadius: 10,
                           background: 'var(--primary-light)', border: '1.5px solid var(--primary)',

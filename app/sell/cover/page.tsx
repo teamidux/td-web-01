@@ -180,7 +180,7 @@ function SellFlowCoverPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const incomingIsbn = searchParams.get('isbn') || ''
-  const { user, loading: authLoading, loginWithLine } = useAuth()
+  const { user, loading: authLoading, loginWithLine, reloadUser } = useAuth()
   const [preview, setPreview] = useState<string | null>(null)
   const [base64, setBase64] = useState<{ data: string; mimeType: string } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -200,6 +200,12 @@ function SellFlowCoverPageInner() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   // Pioneer: popup ตอนเพิ่มหนังสือใหม่เข้าระบบ
   const [pioneerBook, setPioneerBook] = useState<{ title: string; isbn: string; coverUrl: string } | null>(null)
+  // Phone guard — บังคับเบอร์โทรก่อนลงขาย (match pattern กับ /sell เดิม)
+  const [showPhoneGuard, setShowPhoneGuard] = useState(false)
+  const [guardPhoneInput, setGuardPhoneInput] = useState('')
+  const [phoneGuardError, setPhoneGuardError] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+  const savedPhoneRef = useRef('')
   // user กด "ไม่ใช่" บน candidate question → ซ่อนไป (ไม่ถามอีก)
   const [dismissedCandidates, setDismissedCandidates] = useState(false)
   // เปิด form แก้ไขข้อมูลหนังสือ (default ซ่อน — green card แสดงพอ)
@@ -381,14 +387,46 @@ function SellFlowCoverPageInner() {
   const authBypass = !user && isDev
   const effectiveUser = user || (authBypass ? { id: 'dev' } : null)
 
+  // Save phone จาก guard → reload user → retry submit อัตโนมัติ
+  async function savePhoneAndContinue() {
+    if (!user) return
+    const cleaned = guardPhoneInput.replace(/\D/g, '')
+    if (!/^0\d{9}$/.test(cleaned)) { setPhoneGuardError('กรุณากรอกเบอร์โทร 10 หลัก ขึ้นต้น 0'); return }
+    setSavingPhone(true); setPhoneGuardError('')
+    try {
+      const res = await fetch('/api/user/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, data: { phone: cleaned } }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setPhoneGuardError(d.message || 'บันทึกไม่สำเร็จ ลองใหม่'); return }
+      savedPhoneRef.current = cleaned
+      await reloadUser()
+      setShowPhoneGuard(false)
+      setTimeout(() => submitListing(), 150)
+    } catch {
+      setPhoneGuardError('เกิดข้อผิดพลาด ลองใหม่')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
+
   async function submitListing() {
     if (!effectiveUser) { setErr('กรุณา login ก่อนลงขาย'); return }
     if (!base64) { setErr('ไม่พบภาพปก'); return }
 
+    // Guard: บังคับเบอร์โทรก่อน (เหมือน /sell เดิม)
+    const phone = user?.phone || savedPhoneRef.current
+    if (!phone && !user?.line_user_id) {
+      setGuardPhoneInput(''); setPhoneGuardError('')
+      setShowPhoneGuard(true)
+      return
+    }
+
     const priceNum = parseFloat(price)
     if (!isFinite(priceNum) || priceNum <= 0) { setErr('กรุณาใส่ราคาที่ถูกต้อง'); return }
-    const autoContact = user?.phone || (user?.line_user_id ? 'LINE' : '')
-    if (!autoContact) { setErr('เพิ่มเบอร์โทรในโปรไฟล์ก่อนลงขาย'); return }
+    const autoContact = phone || (user?.line_user_id ? 'LINE' : '')
 
     setSubmitting(true); setErr(null); setSaveMsg(null)
     try {
@@ -455,12 +493,11 @@ function SellFlowCoverPageInner() {
     }
   }
 
-  const hasContact = !!(user?.phone || user?.line_user_id)
+  // canSubmit: ไม่ block ที่ contact — ถ้าไม่มี guard modal จะเด้งตอนกดลงขาย
   const canSubmit =
     form.title.trim().length > 0 &&
     form.authors.trim().length > 0 &&
-    parseFloat(price) > 0 &&
-    hasContact
+    parseFloat(price) > 0
 
   return (
     <div style={{ padding: 16, paddingBottom: 80 }}>
@@ -843,8 +880,8 @@ function SellFlowCoverPageInner() {
               </div>
             </div>
 
-            {/* ช่องทางติดต่อ — auto จากโปรไฟล์ ไม่ต้องกรอก */}
-            {(user?.phone || user?.line_user_id) ? (
+            {/* ช่องทางติดต่อ — auto จากโปรไฟล์ ถ้าไม่มี phone guard จะเด้งตอน submit */}
+            {(user?.phone || user?.line_user_id) && (
               <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '12px 14px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginBottom: 8 }}>ช่องทางติดต่อ</div>
                 {user?.phone && (
@@ -859,10 +896,6 @@ function SellFlowCoverPageInner() {
                     <span style={{ fontWeight: 600 }}>LINE</span>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-                ⚠️ ยังไม่มีช่องทางติดต่อ — <Link href="/profile" style={{ color: '#92400e', fontWeight: 700, textDecoration: 'underline' }}>เพิ่มในโปรไฟล์</Link> ก่อนลงขาย
               </div>
             )}
           </section>
@@ -905,12 +938,50 @@ function SellFlowCoverPageInner() {
 
           {!canSubmit && (
             <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 8, textAlign: 'center' }}>
-              {!hasContact
-                ? 'ยังไม่มีช่องทางติดต่อ — เพิ่มในโปรไฟล์ก่อน'
-                : 'กรุณากรอก: ชื่อหนังสือ, ผู้แต่ง, ราคา'}
+              กรุณากรอก: ชื่อหนังสือ, ผู้แต่ง, ราคา
             </div>
           )}
         </>
+      )}
+
+      {/* Phone guard — บังคับเบอร์โทรก่อนลงขาย (match /sell เดิม) */}
+      {showPhoneGuard && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 18, padding: '28px 24px', width: '100%', maxWidth: 380 }}>
+            <div style={{ fontSize: 40, marginBottom: 10, textAlign: 'center' }}>📞</div>
+            <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 19, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
+              เพิ่มเบอร์โทรก่อนลงขาย
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.65, marginBottom: 18, textAlign: 'center' }}>
+              เพื่อให้ลูกค้าติดต่อซื้อหนังสือจากคุณได้
+            </div>
+            <input
+              type="tel" inputMode="numeric"
+              value={guardPhoneInput}
+              onChange={e => { setGuardPhoneInput(e.target.value); if (phoneGuardError) setPhoneGuardError('') }}
+              onKeyDown={e => { if (e.key === 'Enter' && !savingPhone) savePhoneAndContinue() }}
+              placeholder="08X-XXX-XXXX" autoFocus
+              style={{ width: '100%', padding: '12px 14px', border: `1.5px solid ${phoneGuardError ? '#DC2626' : '#E2E8F0'}`, borderRadius: 10, fontFamily: 'Kanit', fontSize: 15, outline: 'none', marginBottom: 6 }}
+            />
+            <div style={{ fontSize: 13, color: phoneGuardError ? '#DC2626' : '#94A3B8', marginBottom: 16, lineHeight: 1.5 }}>
+              {phoneGuardError || 'กรอกเบอร์โทรศัพท์ 10 หลัก'}
+            </div>
+            <button
+              onClick={savePhoneAndContinue}
+              disabled={savingPhone || !guardPhoneInput.trim()}
+              className="btn"
+              style={{ marginBottom: 8, opacity: (savingPhone || !guardPhoneInput.trim()) ? 0.5 : 1 }}
+            >
+              {savingPhone ? 'กำลังบันทึก...' : 'บันทึกและลงขายต่อ'}
+            </button>
+            <button
+              onClick={() => { setShowPhoneGuard(false); setGuardPhoneInput(''); setPhoneGuardError('') }}
+              className="btn btn-ghost" disabled={savingPhone}
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Pioneer popup — ผู้บุกเบิกหนังสือใหม่ */}
