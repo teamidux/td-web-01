@@ -117,63 +117,96 @@ export function Nav() {
   )
 }
 
+// SVG line icons (Lucide-style) ตาม design handoff
+function NavIconHome({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--primary)' : '#94A3B8'} strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    </svg>
+  )
+}
+function NavIconUser({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--primary)' : '#94A3B8'} strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+function NavIconPlus() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 export function BottomNav() {
   const pathname = usePathname()
-
-  // แจ้งเตือนย้ายไป top nav แล้ว
-  const tabs = [
-    { href: '/', icon: '🏠', label: 'หน้าแรก' },
-    { href: '/profile', icon: '👤', label: 'โปรไฟล์' },
-  ]
   const sellActive = pathname === '/sell'
+  const homeActive = pathname === '/'
+  const profileActive = pathname === '/profile'
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+    paddingTop: 10, textDecoration: 'none',
+    color: active ? 'var(--primary)' : '#94A3B8',
+    fontFamily: 'Kanit', fontSize: 10.5, fontWeight: active ? 600 : 500,
+  })
+
   return (
     <>
-      <div style={{ height: 70 }} />
-      <div className="bottom-nav">
-        {tabs.map(t => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className={`bnav-item ${pathname === t.href ? 'active' : ''}`}
-          >
-            <span>{t.icon}</span>
-            <span>{t.label}</span>
-          </Link>
-        ))}
-        {sellActive ? (
-          // อยู่หน้า /sell อยู่แล้ว — disabled + เทา กัน user กดพลาดทับปุ่ม submit
-          <div
-            aria-disabled="true"
-            className="bnav-item"
-            style={{
-              background: '#94A3B8',
-              color: 'white',
-              margin: '4px 6px 4px 2px',
-              borderRadius: 12,
-              opacity: 0.55,
-              cursor: 'not-allowed',
-              pointerEvents: 'none',
-            }}
-          >
-            <span>📖</span>
-            <span>ลงขาย</span>
-          </div>
-        ) : (
-          <Link
-            href="/sell"
-            className="bnav-item"
-            style={{
-              background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
-              color: 'white',
-              margin: '4px 6px 4px 2px',
-              borderRadius: 12,
-              boxShadow: '0 2px 8px rgba(22,163,74,.3)',
-            }}
-          >
-            <span>📖</span>
-            <span>ลงขาย</span>
-          </Link>
-        )}
+      <div style={{ height: 74 }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 480, background: 'white',
+        borderTop: '1px solid #F1F5F9',
+        paddingBottom: 20, height: 74, zIndex: 100,
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
+      }}>
+        <Link href="/" style={tabStyle(homeActive)}>
+          <NavIconHome active={homeActive} />
+          <span>หน้าแรก</span>
+        </Link>
+
+        {/* Elevated center sell button — circle ลอยขึ้นมาจาก nav */}
+        <div style={{ position: 'relative', width: 56, display: 'flex', justifyContent: 'center' }}>
+          {sellActive ? (
+            <div
+              aria-disabled="true"
+              style={{
+                position: 'absolute', top: -18,
+                width: 52, height: 52, borderRadius: 16,
+                background: '#94A3B8',
+                display: 'grid', placeItems: 'center',
+                border: '3px solid white',
+                opacity: 0.55, cursor: 'not-allowed', pointerEvents: 'none',
+              }}
+            >
+              <NavIconPlus />
+            </div>
+          ) : (
+            <Link
+              href="/sell"
+              aria-label="ลงขาย"
+              style={{
+                position: 'absolute', top: -18,
+                width: 52, height: 52, borderRadius: 16,
+                background: 'var(--primary)',
+                boxShadow: '0 8px 20px rgba(37,99,235,0.45), 0 2px 6px rgba(37,99,235,0.3)',
+                display: 'grid', placeItems: 'center',
+                border: '3px solid white', textDecoration: 'none',
+              }}
+            >
+              <NavIconPlus />
+            </Link>
+          )}
+        </div>
+
+        <Link href="/profile" style={tabStyle(profileActive)}>
+          <NavIconUser active={profileActive} />
+          <span>โปรไฟล์</span>
+        </Link>
       </div>
     </>
   )
