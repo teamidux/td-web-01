@@ -322,13 +322,9 @@ function SellPage() {
         }
       }
     } else {
-      // ISBN สแกนได้ แต่ไม่อยู่ใน DB → silent redirect ไป /sell/cover
-      // ไม่ต้องบอก "ไม่เจอ" — เก็บ ISBN แล้วให้ user ถ่ายปกเลย flow ต่อเนื่อง
-      if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1') {
-        router.push(`/sell/cover?isbn=${encodeURIComponent(q)}`)
-        return
-      }
-      // Fallback: ถ้าปิด feature → พฤติกรรมเดิม (has_isbn manual form)
+      // ISBN สแกนได้ แต่ไม่อยู่ใน DB → ใช้ has_isbn mode ใน /sell เดิม
+      // มี AI auto-extract เมื่อ user อัพรูปปก → เติม title/author ให้อัตโนมัติ (silent)
+      // user อยู่หน้าเดียว ไม่ redirect ไปไหน — flow ต่อเนื่อง
       setNotFoundMode('has_isbn')
       setSellSearch('')
     }
