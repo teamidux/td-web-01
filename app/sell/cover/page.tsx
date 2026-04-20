@@ -10,11 +10,18 @@ import { useAuth } from '@/lib/auth'
 import { BookCover } from '@/components/ui'
 
 const CONDITIONS = [
-  { key: 'brand_new', label: '🆕 มือหนึ่ง', desc: 'ยังไม่ผ่านการใช้งาน' },
-  { key: 'new',       label: '✨ ใหม่มาก',  desc: 'ไม่มีรอยใดๆ' },
-  { key: 'good',      label: '👍 ดี',      desc: 'มีรอยเล็กน้อย อ่านได้ปกติ' },
-  { key: 'fair',      label: '📖 พอใช้',   desc: 'มีรอยชัดเจน แต่เนื้อหาครบ' },
+  { key: 'brand_new', label: '🆕 มือหนึ่ง', desc: 'ยังไม่ผ่านการใช้งาน ซื้อมาแล้วไม่ได้อ่าน' },
+  { key: 'new',       label: '✨ ใหม่มาก',  desc: 'ไม่มีรอยใดๆ เหมือนซื้อจากร้าน' },
+  { key: 'good',      label: '👍 ดี',      desc: 'มีรอยการใช้งานเล็กน้อย อ่านได้ปกติ' },
+  { key: 'fair',      label: '📖 พอใช้',   desc: 'มีรอยชัดเจน แต่เนื้อหาครบถ้วน' },
 ]
+// Note templates — auto-fill เมื่อเลือกสภาพ
+const NOTE_TEMPLATES: Record<string, string> = {
+  brand_new: 'หนังสือมือหนึ่งจากร้าน/สำนักพิมพ์ ยังไม่แกะ/ไม่ผ่านการใช้งาน',
+  new:       'หนังสือสภาพใหม่มาก อ่านน้อยหรือไม่ได้อ่าน ไม่มีตำหนิ',
+  good:      'มีรอยตามการใช้งานเล็กน้อย เนื้อหาครบถ้วน อ่านได้ปกติ',
+  fair:      'มีรอยชัดเจนตามการใช้งาน (รายละเอียดตามภาพ) แต่เนื้อหาครบถ้วน',
+}
 
 type Extract = {
   model: string
@@ -195,7 +202,9 @@ function SellFlowCoverPageInner() {
   const [price, setPrice] = useState('')
   const [includesShipping, setIncludesShipping] = useState(false)
   // contact: auto จาก user.phone/line_id (ไม่มีช่อง manual)
-  const [notes, setNotes] = useState('')
+  const [notes, setNotes] = useState(NOTE_TEMPLATES['good'])
+  // track ว่า notes ถูก auto-fill จาก condition หรือเปล่า (ถ้า user แก้แล้วจะไม่ overwrite)
+  const [notesAutoFilled, setNotesAutoFilled] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   // Pioneer: popup ตอนเพิ่มหนังสือใหม่เข้าระบบ
@@ -514,12 +523,7 @@ function SellFlowCoverPageInner() {
 
   return (
     <div style={{ padding: 16, paddingBottom: 80 }}>
-      <header style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 14, marginBottom: 8 }}>
-          <Link href="/sell" style={{ color: 'var(--primary)', fontWeight: 600, minHeight: 44, display: 'inline-block', padding: '6px 0' }}>
-            ← กลับ
-          </Link>
-        </div>
+      <header style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35, letterSpacing: '-0.02em' }}>
           ลงขายหนังสือ
         </h1>
@@ -785,8 +789,9 @@ function SellFlowCoverPageInner() {
             </section>
           )}
 
-          {/* Book info form — แสดงเฉพาะเมื่อ user กด "แก้ไข" หรือยังตอบ question อยู่ */}
-          {!selectedBookId && (showEditForm || (!dismissedCandidates && candidates.length > 0)) && (
+          {/* Book info form — แสดงเฉพาะเมื่อ user กด "แก้ไข" เท่านั้น
+              ถ้ายังตอบ question อยู่ → ไม่ต้องแสดง (กดใช่/ไม่ใช่ก่อน) */}
+          {!selectedBookId && showEditForm && (
           <section style={card}>
             <div style={sectionLabel}>
               📖 ข้อมูลหนังสือ
@@ -835,7 +840,11 @@ function SellFlowCoverPageInner() {
               <div style={{ display: 'flex', gap: 7 }}>
                 {CONDITIONS.map(c => (
                   <button
-                    key={c.key} type="button" onClick={() => setCond(c.key)}
+                    key={c.key} type="button" onClick={() => {
+                      setCond(c.key)
+                      // ถ้า user ยังไม่ได้แก้ notes เอง → auto-fill ตาม template
+                      if (notesAutoFilled) setNotes(NOTE_TEMPLATES[c.key] || '')
+                    }}
                     style={{
                       flex: 1, padding: '10px 6px', borderRadius: 10,
                       border: `1.5px solid ${cond === c.key ? 'var(--primary)' : 'var(--border)'}`,
@@ -856,7 +865,7 @@ function SellFlowCoverPageInner() {
             <div className="form-group">
               <label className="label">หมายเหตุเพิ่มเติม <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(ไม่บังคับ)</span></label>
               <textarea
-                className="input" value={notes} onChange={e => setNotes(e.target.value)}
+                className="input" value={notes} onChange={e => { setNotes(e.target.value); setNotesAutoFilled(false) }}
                 placeholder="เช่น มีรอยขีดดินสอบางหน้า / ปกมีรอยพับ"
                 rows={2} style={{ resize: 'none', lineHeight: 1.6 }}
               />
@@ -949,11 +958,6 @@ function SellFlowCoverPageInner() {
             {submitting ? '⏳ กำลังบันทึก...' : '🚀 ลงขาย'}
           </button>
 
-          {!canSubmit && (
-            <div style={{ fontSize: 13, color: 'var(--red)', marginTop: 8, textAlign: 'center' }}>
-              กรุณากรอก: ชื่อหนังสือ, ผู้แต่ง, ราคา
-            </div>
-          )}
         </>
       )}
 
