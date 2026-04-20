@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { tryUpgradeBmBook } from '@/lib/book-upgrade'
 
 export const runtime = 'nodejs'
 
@@ -59,6 +60,16 @@ export async function POST(req: NextRequest) {
       bookId = existing.id
       bookCoverUrl = existing.cover_url || ''
     } else {
+      // ISBN auto-upgrade: ถ้าเป็น ISBN จริง ลอง upgrade BM-xxx book ที่ title match ก่อน
+      // (กัน duplicate records ระหว่าง cover flow และ barcode flow)
+      if (!isbn.startsWith('BM-')) {
+        const upgradedId = await tryUpgradeBmBook(sb, { isbn, title, author })
+        if (upgradedId) {
+          bookId = upgradedId
+        }
+      }
+    }
+    if (!bookId) {
       const { data: newBook, error: bookErr } = await sb.from('books').insert({
         isbn,
         title,

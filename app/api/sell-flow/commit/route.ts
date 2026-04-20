@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
+import { tryUpgradeBmBook } from '@/lib/book-upgrade'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -115,6 +116,16 @@ export async function POST(req: NextRequest) {
     if (isbn_in) {
       const { data: hit } = await sb.from('books').select('id').eq('isbn', isbn).maybeSingle()
       if (hit?.id) bookId = hit.id
+    }
+    // ISBN auto-upgrade: ถ้า ISBN จริง + ไม่เจอใน DB → ลอง upgrade BM-xxx ที่ title match
+    // (cover flow เคยสร้าง BM-xxx; ตอนนี้คนสแกน barcode → merge เข้า record เดียวกัน)
+    if (!bookId && isbn_in) {
+      const upgradedId = await tryUpgradeBmBook(sb, {
+        isbn: isbn_in,
+        title: subtitle ? `${title} ${subtitle}` : title,
+        author,
+      })
+      if (upgradedId) bookId = upgradedId
     }
     if (!bookId) {
       // รวม subtitle เข้า title ถ้ามี (user ขอแบบนี้ — ค้นง่ายกว่า)
