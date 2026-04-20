@@ -115,6 +115,15 @@ function isCertainMatch(
   return ratio >= 0.7
 }
 
+// Merge title + subtitle → one string
+// Heuristic: subtitle ยาวเกิน 60 chars = น่าจะไม่ใช่ subtitle จริง (description/junk) → ทิ้ง
+function mergeTitleSubtitle(title: string | null | undefined, subtitle: string | null | undefined): string {
+  const t = (title || '').trim()
+  const s = (subtitle || '').trim()
+  if (!s || s.length > 60) return t
+  return t ? `${t} ${s}` : s
+}
+
 // base64 (no prefix) → Blob — ใช้ตอน upload ขึ้น Supabase Storage
 function base64ToBlob(b64: string, mimeType: string): Blob {
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
@@ -242,14 +251,15 @@ function SellFlowCoverPageInner() {
       })
     } else {
       setSelectedBookId(null)
+      // รวม subtitle → title ทันที (กัน AI เอาข้อความยาวมาใส่ subtitle แล้วสับสน)
       setForm({
-        title: parsed.title || '',
-        subtitle: parsed.subtitle || '',
+        title: mergeTitleSubtitle(parsed.title, parsed.subtitle),
+        subtitle: '', // ซ่อน subtitle ฟิลด์ — รวมเข้า title แล้ว
         authors: parsed.authors?.join(', ') || '',
         publisher: parsed.publisher || '',
         language: parsed.language || 'th',
         edition: parsed.edition || '',
-        isbn: incomingIsbn || '',  // carry ISBN จาก barcode scan ถ้ามี
+        isbn: incomingIsbn || '',
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -451,23 +461,22 @@ function SellFlowCoverPageInner() {
         </>
       )}
 
-      {/* ─── Preview + Analyze ─── */}
-      {preview && !resp && (
-        <>
-          <img
-            src={preview} alt="cover"
-            style={{ width: '100%', maxHeight: 400, objectFit: 'contain', background: '#f1f5f9', borderRadius: 8, marginBottom: 12 }}
-          />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button" onClick={() => analyze()} disabled={loading || !base64}
-              style={{ ...btn('primary'), flex: 1, opacity: loading ? 0.6 : 1 }}
-            >
-              {loading ? '⏳ กำลังอ่านปก...' : '🔍 วิเคราะห์'}
-            </button>
-            <button type="button" onClick={retake} style={btn('ghost')}>ถ่ายใหม่</button>
+      {/* ─── Loading overlay — auto-analyze หลังถ่าย ไม่ต้องกดปุ่ม ─── */}
+      {loading && preview && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.92)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 20,
+        }}>
+          <img src={preview} alt="" style={{ width: 120, height: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 20, opacity: 0.9 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'white', fontSize: 16, fontWeight: 600 }}>
+            <span className="spin" style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'white' }} />
+            กำลังอ่านหน้าปก...
           </div>
-        </>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 8 }}>
+            ประมาณ 3–5 วินาที
+          </div>
+        </div>
       )}
 
       {/* ─── Error ─── */}
@@ -649,11 +658,6 @@ function SellFlowCoverPageInner() {
               value={form.title}
               onChange={v => setForm(s => ({ ...s, title: v }))}
               required
-            />
-            <FormField
-              label="ชื่อรอง"
-              value={form.subtitle}
-              onChange={v => setForm(s => ({ ...s, subtitle: v }))}
             />
             <FormField
               label="ผู้แต่ง *"

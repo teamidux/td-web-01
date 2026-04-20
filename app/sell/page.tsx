@@ -264,7 +264,12 @@ function SellPage() {
         }
       }
     } else {
-      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ — ให้ผู้ขายกรอกข้อมูลเพิ่ม
+      // ISBN สแกนได้ แต่ไม่อยู่ในระบบ
+      // ถ้าเปิด cover scan feature → auto redirect ไปถ่ายปก (เนียนกว่า ไม่ต้องบอกไม่เจอ)
+      if (process.env.NEXT_PUBLIC_ENABLE_COVER_SCAN === '1') {
+        router.push(`/test/sell-flow/cover?isbn=${encodeURIComponent(q)}`)
+        return
+      }
       setNotFoundMode('has_isbn')
       setSellSearch('')
     }
