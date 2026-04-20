@@ -24,6 +24,24 @@ export default function AdminMessagesPage() {
   const [reports, setReports] = useState<any[]>([])
   const [feedback, setFeedback] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function deleteFeedback(id: string) {
+    if (!confirm('ลบข้อความนี้? (ทำแล้ว undo ไม่ได้)')) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/tomga/feedback/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        alert('ลบไม่สำเร็จ')
+        return
+      }
+      setFeedback(prev => prev.filter(f => f.id !== id))
+    } catch {
+      alert('ลบไม่สำเร็จ')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!user) return
@@ -110,8 +128,9 @@ export default function AdminMessagesPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {feedback.map((f: any) => {
                 const kindMeta = FEEDBACK_KIND_LABELS[f.kind] || FEEDBACK_KIND_LABELS.general
+                const isDeleting = deletingId === f.id
                 return (
-                  <div key={f.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+                  <div key={f.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', opacity: isDeleting ? 0.5 : 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ background: kindMeta.bg, color: kindMeta.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {kindMeta.label}
@@ -119,10 +138,23 @@ export default function AdminMessagesPage() {
                       <div style={{ fontSize: 11, color: '#94A3B8' }}>{timeSince(f.created_at)}</div>
                     </div>
                     <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: 8 }}>{f.message}</div>
-                    <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {f.user?.display_name && <span>👤 {f.user.display_name}</span>}
-                      {f.contact && <span>📧 {f.contact}</span>}
-                      {!f.user_id && !f.contact && <span style={{ fontStyle: 'italic' }}>ไม่ระบุผู้ส่ง</span>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
+                      <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', gap: 12, flexWrap: 'wrap', flex: 1 }}>
+                        {f.user?.display_name && <span>👤 {f.user.display_name}</span>}
+                        {f.contact && <span>📧 {f.contact}</span>}
+                        {!f.user_id && !f.contact && <span style={{ fontStyle: 'italic' }}>ไม่ระบุผู้ส่ง</span>}
+                      </div>
+                      <button
+                        onClick={() => deleteFeedback(f.id)}
+                        disabled={isDeleting}
+                        style={{
+                          background: 'none', border: '1px solid #FECACA', color: '#DC2626',
+                          borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                          fontFamily: 'Kanit', cursor: isDeleting ? 'wait' : 'pointer', flexShrink: 0,
+                        }}
+                      >
+                        {isDeleting ? '...' : '🗑️ ลบ'}
+                      </button>
                     </div>
                   </div>
                 )

@@ -45,13 +45,13 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Rate limit — 6 ครั้ง/ชม./IP
+    // Rate limit — 3 ครั้ง/ชม./IP (กัน auto-click / spam bot)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { count } = await sb.from('feedback')
       .select('*', { count: 'exact', head: true })
       .eq('ip_hash', ipHash)
       .gte('created_at', oneHourAgo)
-    if ((count || 0) >= 6) {
+    if ((count || 0) >= 3) {
       return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
     }
 
