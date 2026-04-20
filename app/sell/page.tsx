@@ -1041,11 +1041,6 @@ function SellPage() {
                 <>
                   {/* ปุ่ม back แบบเงียบๆ (ไม่ต้องมี banner บอก "ไม่เจอ") */}
                   <button onClick={resetSearch} style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'Kanit', fontWeight: 600, padding: 0, marginBottom: 12 }}>← กลับ</button>
-                  <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                    <div style={{ fontSize: 14, color: '#1E40AF', lineHeight: 1.7 }}>
-                      หนังสือบางเล่มอาจเป็นสำนักพิมพ์อิสระ, หนังสือเก่า, หรือไม่ได้ขึ้นทะเบียน ISBN — กรอกข้อมูลด้านล่างเพื่อเพิ่มเข้าระบบได้เลย 🙏
-                    </div>
-                  </div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
                     <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>กรอกข้อมูลหนังสือ</div>
                     <div className="form-group">
