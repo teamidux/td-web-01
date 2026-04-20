@@ -506,6 +506,9 @@ function SellPage() {
   const handleCoverPick = async (e: React.ChangeEvent<HTMLInputElement>, _src: 'camera' | 'gallery') => {
     const f = e.target.files?.[0]; if (!f) return
     if (!user) { goLogin(); return }
+    // แสดง loading ทันที — compressImage บนมือถือใช้เวลา 1-2s
+    // ถ้าไม่ set state ก่อน user จะรู้สึก "ค้าง"
+    setCompressing(true)
     try {
       const compressed = await compressImage(f)
       const buf = await compressed.arrayBuffer()
@@ -520,8 +523,10 @@ function SellPage() {
       e.target.value = '' // reset กัน pick เดิมไม่ trigger onChange
       router.push('/sell/cover')
     } catch {
+      setCompressing(false)
       show('อ่านรูปไม่ได้ ลองใหม่อีกที')
     }
+    // ไม่ setCompressing(false) ตอน success — ปล่อยให้ navigation เกิดขึ้นก่อน
   }
 
   const submit = async () => {
@@ -671,6 +676,14 @@ function SellPage() {
     <>
       <Nav />
       <Toast msg={msg} />
+
+      {/* Cover scan compress overlay — แสดงทันทีตอน user ถ่ายปก (กันรู้สึกค้าง 1-2s) */}
+      {compressing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <span className="spin" style={{ width: 36, height: 36, borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'white' }} />
+          <div style={{ color: 'white', fontSize: 15, fontWeight: 600, fontFamily: 'Kanit' }}>กำลังเตรียมรูป...</div>
+        </div>
+      )}
 
       {/* Guard: บังคับเบอร์โทรก่อนลงขาย */}
       {showPhoneGuard && (
@@ -1025,11 +1038,6 @@ function SellPage() {
                     style={{ display: 'none' }}
                     onChange={e => handleCoverPick(e, 'camera')}
                   />
-                  <input
-                    ref={coverGalleryRef} type="file" accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => handleCoverPick(e, 'gallery')}
-                  />
                   <div style={{
                     background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
                     padding: 16,
@@ -1040,40 +1048,26 @@ function SellPage() {
                     <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 12 }}>
                       ถ่ายหน้าปก — ระบบจะอ่านชื่อและผู้แต่งให้อัตโนมัติ ไม่ต้องพิมพ์
                     </div>
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!user) { goLogin(); return }
-                          const key = 'bm_seen_capture_guide_cover'
-                          if (typeof window !== 'undefined' && localStorage.getItem(key)) {
-                            coverCaptureRef.current?.click()
-                          } else {
-                            setCaptureGuide('cover')
-                          }
-                        }}
-                        style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
-                          background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
-                          fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        📷 ถ่ายหน้าปก
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { if (!user) { goLogin(); return }; coverGalleryRef.current?.click() }}
-                        style={{
-                          width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
-                          background: 'white', border: '1px solid var(--border)',
-                          fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, color: 'var(--ink2)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        🖼️ เลือกจากคลังรูป
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!user) { goLogin(); return }
+                        const key = 'bm_seen_capture_guide_cover'
+                        if (typeof window !== 'undefined' && localStorage.getItem(key)) {
+                          coverCaptureRef.current?.click()
+                        } else {
+                          setCaptureGuide('cover')
+                        }
+                      }}
+                      style={{
+                        width: '100%', padding: '12px 16px', borderRadius: 10, minHeight: 44,
+                        background: 'var(--primary-light)', border: '1.5px solid var(--primary)',
+                        fontFamily: 'Kanit', fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📷 ถ่ายหน้าปก
+                    </button>
                   </div>
                 </>
               )}

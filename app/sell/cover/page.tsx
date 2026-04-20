@@ -838,9 +838,6 @@ function SellFlowCoverPageInner() {
                   </>
                 )}
               </div>
-              <button type="button" onClick={retake} style={{ marginTop: 10, fontSize: 13, color: 'var(--primary)', background: 'none', border: 0, cursor: 'pointer', padding: '6px 0', fontFamily: 'Kanit', fontWeight: 600 }}>
-                📷 ถ่ายรูปปกใหม่
-              </button>
             </section>
           )}
 
