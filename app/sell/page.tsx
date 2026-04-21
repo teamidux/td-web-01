@@ -1431,9 +1431,18 @@ function SellPage() {
                 </div>
               )}
 
-              <button className="btn" onClick={submit} disabled={submitting} style={{ marginTop: 8 }}>
-                {submitting ? <><span className="spin" />กำลังบันทึก...</> : 'ลงประกาศขาย 🎉'}
-              </button>
+              {(() => {
+                // Block ปุ่มระหว่าง AI ดึงข้อมูลจากปก (has_isbn mode)
+                // กัน user กดเร็วกว่า AI → ไม่โดนเด้งเข้า edit form งงๆ
+                const aiPending = aiStatus === 'running' && notFoundMode === 'has_isbn' && !manualTitle && !fetchedBook
+                return (
+                  <button className="btn" onClick={submit} disabled={submitting || aiPending} style={{ marginTop: 8 }}>
+                    {submitting ? <><span className="spin" />กำลังบันทึก...</>
+                      : aiPending ? <><span className="spin" />กำลังอ่านข้อมูลจากปก...</>
+                      : 'ลงประกาศขาย 🎉'}
+                  </button>
+                )
+              })()}
             </>
           )}
         </div>
