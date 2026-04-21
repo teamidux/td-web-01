@@ -39,6 +39,8 @@ export default function RootLayout({
   return (
     <html lang="th">
       <head>
+        {/* viewport-fit=cover → เปิดใช้ env(safe-area-inset-*) สำหรับ iPhone notch/home indicator */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#2563eb" />
         <meta name="google-site-verification" content="O7-5eaJw-ZEB1eBHpDRHGuEx1uYfN0NVQrRogTiHuJc" />
         <meta name="mobile-web-app-capable" content="yes" />

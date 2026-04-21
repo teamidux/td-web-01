@@ -154,14 +154,21 @@ export function BottomNav() {
     fontFamily: 'Kanit', fontSize: 10.5, fontWeight: active ? 600 : 500,
   })
 
+  // iOS dynamic URL bar ทำ position:fixed เด้ง — fix ด้วย:
+  //   1. env(safe-area-inset-bottom) = iPhone home indicator padding
+  //   2. transform: translateZ(0) = promote to composite layer (กัน reflow)
+  //   3. spacer height รวม safe-area ด้วย (กัน content ทับ nav)
   return (
     <>
-      <div style={{ height: 74 }} />
+      <div style={{ height: 'calc(74px + env(safe-area-inset-bottom, 0px))' }} />
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        position: 'fixed', bottom: 0, left: '50%',
+        transform: 'translate3d(-50%, 0, 0)', // 3D = composite layer
         width: '100%', maxWidth: 480, background: 'white',
         borderTop: '1px solid #F1F5F9',
-        paddingBottom: 20, height: 74, zIndex: 100,
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+        height: 'calc(74px + env(safe-area-inset-bottom, 0px))',
+        zIndex: 100,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
       }}>
         <Link href="/" style={tabStyle(homeActive)}>
