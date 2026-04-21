@@ -1352,7 +1352,7 @@ function SellPage() {
                         <input
                           type="number" inputMode="numeric"
                           value={price} onChange={e => setPrice(e.target.value)}
-                          placeholder="150"
+                          placeholder="ราคาที่อยากขาย"
                           style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'Kanit', fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', minWidth: 0, background: 'transparent' }}
                         />
                         {isGoodPrice && (
