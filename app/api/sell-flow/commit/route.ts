@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
   let bookId = existing_book_id
-  let isNewBook = false
 
   // ถ้า user เลือก existing book — UPDATE เฉพาะ field ที่ DB ยังว่าง
   // (เพื่อให้ user เติม author/publisher ที่หายได้ โดยไม่ทับข้อมูลดี)
@@ -146,9 +145,16 @@ export async function POST(req: NextRequest) {
       }).select('id').single()
       if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
       bookId = newBook.id
-      isNewBook = true
     }
   }
+
+  // Pioneer: user เป็นคนแรกที่ลงขายเล่มนี้
+  // (เดิมเช็คที่ books row ใหม่ แต่ search hybrid fallback pre-import เข้า DB แล้ว → เช็คที่ listings แทน)
+  const { count: existingListings } = await sb
+    .from('listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('book_id', bookId!)
+  const isPioneer = (existingListings || 0) === 0
 
   // Insert listing
   const { error: listErr } = await sb.from('listings').insert({
@@ -164,8 +170,8 @@ export async function POST(req: NextRequest) {
   })
   if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
 
-  // Pioneer: ผู้บุกเบิกหนังสือใหม่เข้าระบบ → +1 pioneer count
-  if (isNewBook) {
+  // Pioneer: ผู้บุกเบิกหนังสือเล่มนี้บน platform → +1 pioneer count
+  if (isPioneer) {
     try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) }
     catch (e) { console.error('[commit] pioneer_count failed:', e) }
   }
@@ -178,7 +184,7 @@ export async function POST(req: NextRequest) {
     isbn: bookRow?.isbn || null,
     title: bookRow?.title || null,
     cover_url: bookRow?.cover_url || null,
-    is_new_book: isNewBook,
+    is_new_book: isPioneer,
     source: SOURCE_TAG,
   })
 }

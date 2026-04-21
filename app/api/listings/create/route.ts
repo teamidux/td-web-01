@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
   // 1. หา/สร้าง book
   let bookId = existing_book_id
   let bookCoverUrl = existing_cover_url || ''
-  let isNewBook = false
 
   if (!bookId) {
     const { data: existing } = await sb.from('books').select('id, cover_url').eq('isbn', isbn).maybeSingle()
@@ -85,9 +84,17 @@ export async function POST(req: NextRequest) {
       }).select('id').single()
       if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
       bookId = newBook.id
-      isNewBook = true
     }
   }
+
+  // Pioneer: user เป็นคนแรกที่ลงขายเล่มนี้บน platform
+  // (เดิมเช็คว่า books row ใหม่ถูกสร้าง แต่ search hybrid fallback
+  //  pre-import Google Books เข้า DB แล้ว → ต้องเช็คที่ listings แทน)
+  const { count: existingListings } = await sb
+    .from('listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('book_id', bookId)
+  const isPioneer = (existingListings || 0) === 0
 
   // 2. Update cover เฉพาะถ้ายังไม่มีรูปเลย
   // ถ้ามีจาก Google Books = ปกจริงจากสำนักพิมพ์ ดีกว่ารูปถ่าย → เก็บไว้
@@ -109,11 +116,11 @@ export async function POST(req: NextRequest) {
   })
   if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
 
-  // 4. ถ้าเป็นหนังสือใหม่ → update pioneer_count ให้ user
-  if (isNewBook) {
+  // 4. ถ้า user เป็น pioneer → update pioneer_count
+  if (isPioneer) {
     try { await sb.rpc('increment_pioneer_count', { p_user_id: user.id }) }
     catch (e) { console.error('[listings/create] pioneer_count failed:', e) }
   }
 
-  return NextResponse.json({ ok: true, book_id: bookId, isbn, is_new_book: isNewBook })
+  return NextResponse.json({ ok: true, book_id: bookId, isbn, is_new_book: isPioneer })
 }
