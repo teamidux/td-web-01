@@ -521,43 +521,21 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ปุ่มแชร์ร้าน */}
+        {/* ปุ่มเข้าหน้าร้านตัวเอง — แชร์ได้จากหน้า seller */}
         <div style={{ padding: '12px 16px 0' }}>
-          <button
-            onClick={async () => {
-              const url = `${window.location.origin}/seller/${user.id}`
-              const shareData = {
-                title: `${user.display_name} — ร้านหนังสือบน BookMatch`,
-                text: `ดูหนังสือมือสองที่ ${user.display_name} กำลังขาย ${active.length} เล่ม`,
-                url,
-              }
-              try {
-                if (navigator.share) { await navigator.share(shareData); return }
-              } catch {}
-              // Fallback: copy link
-              try {
-                await navigator.clipboard.writeText(url)
-                show('คัดลอกลิงก์ร้านแล้ว')
-              } catch {
-                // Clipboard API ไม่ work — ใช้ textarea fallback
-                const ta = document.createElement('textarea')
-                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0'
-                document.body.appendChild(ta); ta.select()
-                document.execCommand('copy'); document.body.removeChild(ta)
-                show('คัดลอกลิงก์ร้านแล้ว')
-              }
-            }}
+          <Link
+            href={`/seller/${user.id}`}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', border: 'none', borderRadius: 12,
+              background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: 12,
               padding: '13px 16px', fontFamily: 'Kanit', fontWeight: 700, fontSize: 15,
-              color: 'white', cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,.25)',
+              color: 'white', textDecoration: 'none', boxShadow: '0 2px 8px rgba(37,99,235,.25)',
             }}
           >
-            แชร์ร้านของฉัน
-          </button>
+            ร้านของฉัน
+          </Link>
           <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', marginTop: 6 }}>
-            แชร์ไปยัง Facebook, LINE, หรือช่องทางอื่น เพื่อให้ลูกค้าดูรายการหนังสือของคุณ
+            ดูหน้าร้านของคุณแบบที่ลูกค้าเห็น
           </div>
         </div>
 
