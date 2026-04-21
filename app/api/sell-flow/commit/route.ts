@@ -74,9 +74,17 @@ export async function POST(req: NextRequest) {
   if (!isFinite(price) || price <= 0 || price > 999999) {
     return NextResponse.json({ error: 'invalid price' }, { status: 400 })
   }
-  if (!contact) return NextResponse.json({ error: 'missing contact' }, { status: 400 })
+  if (!contact || contact.length > 200) return NextResponse.json({ error: 'invalid contact' }, { status: 400 })
   if (photos.length === 0) return NextResponse.json({ error: 'missing photos' }, { status: 400 })
   if (photos.length > 5) return NextResponse.json({ error: 'too many photos' }, { status: 400 })
+  // Length caps กัน DoS จาก payload ใหญ่ + keep DB row compact
+  if (title.length > 500) return NextResponse.json({ error: 'invalid title' }, { status: 400 })
+  if (subtitle.length > 500) return NextResponse.json({ error: 'invalid subtitle' }, { status: 400 })
+  if (author.length > 300) return NextResponse.json({ error: 'invalid author' }, { status: 400 })
+  if (publisher.length > 200) return NextResponse.json({ error: 'invalid publisher' }, { status: 400 })
+  if (edition.length > 100) return NextResponse.json({ error: 'invalid edition' }, { status: 400 })
+  if (isbn_in.length > 20) return NextResponse.json({ error: 'invalid isbn' }, { status: 400 })
+  if (notes.length > 2000) return NextResponse.json({ error: 'invalid notes' }, { status: 400 })
 
   // TODO: listing cap — ปลดชั่วคราว (launch phase)
   // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง

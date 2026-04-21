@@ -27,13 +27,18 @@ export async function POST(req: NextRequest) {
   } = await req.json()
 
   // Validate
-  if (!isbn) return NextResponse.json({ error: 'missing isbn' }, { status: 400 })
-  if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 })
-  if (!price || isNaN(price) || price <= 0 || price > 999999) {
+  if (!isbn || typeof isbn !== 'string' || isbn.length > 20) return NextResponse.json({ error: 'missing isbn' }, { status: 400 })
+  if (!title || typeof title !== 'string' || title.length > 500) return NextResponse.json({ error: 'invalid title' }, { status: 400 })
+  // isFinite() catch Infinity/-Infinity/NaN ในคราวเดียว
+  if (typeof price !== 'number' || !isFinite(price) || price <= 0 || price > 999999) {
     return NextResponse.json({ error: 'invalid price' }, { status: 400 })
   }
-  if (!contact?.trim()) return NextResponse.json({ error: 'missing contact' }, { status: 400 })
+  if (!contact?.trim() || contact.length > 200) return NextResponse.json({ error: 'invalid contact' }, { status: 400 })
   if (!condition) return NextResponse.json({ error: 'missing condition' }, { status: 400 })
+  // Length caps กัน DoS จาก payload ใหญ่
+  if (author && (typeof author !== 'string' || author.length > 300)) return NextResponse.json({ error: 'invalid author' }, { status: 400 })
+  if (translator && (typeof translator !== 'string' || translator.length > 300)) return NextResponse.json({ error: 'invalid translator' }, { status: 400 })
+  if (notes && (typeof notes !== 'string' || notes.length > 2000)) return NextResponse.json({ error: 'invalid notes' }, { status: 400 })
 
   // TODO: listing cap — ปลดชั่วคราว (launch phase ต้องการ growth ก่อน)
   // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง
