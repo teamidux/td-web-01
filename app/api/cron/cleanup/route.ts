@@ -9,11 +9,11 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  // Auth: ใช้ CRON_SECRET เพื่อกันใครเรียกมั่ว
+  // Auth: require CRON_SECRET — ปิด endpoint ถ้า env ไม่ได้ set (fail-closed)
+  // Vercel Cron จะส่ง Authorization: Bearer <CRON_SECRET> ให้อัตโนมัติ
   const authHeader = req.headers.get('authorization')
   const secret = process.env.CRON_SECRET
-  if (secret && authHeader !== `Bearer ${secret}`) {
-    // Vercel Cron จะส่ง Bearer header ถ้าตั้ง CRON_SECRET ไว้
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
