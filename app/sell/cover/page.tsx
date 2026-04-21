@@ -252,6 +252,7 @@ function SellFlowCoverPageInner() {
 
   // เช็ค sessionStorage: ถ้ามีรูปที่ถ่ายมาจาก /sell แล้ว → ใช้เลย ข้ามขั้นตอน capture
   // หรือ: ถ้ามาจาก barcode redirect (มี ?isbn= แต่ไม่มีรูป) → auto-open camera
+  // ถ้าไม่มี context เลย (direct visit / back navigation) → redirect กลับ /sell
   useEffect(() => {
     if (pickedFromStorageRef.current) return
     pickedFromStorageRef.current = true
@@ -271,9 +272,13 @@ function SellFlowCoverPageInner() {
       // ถ้ามาจาก barcode redirect (มี ISBN แต่ไม่มีรูป) → auto-open camera ทันที
       if (incomingIsbn) {
         setTimeout(() => cameraRef.current?.click(), 200)
+        return
       }
+      // ไม่มี context เลย (เข้าตรงๆ หรือ back มา) → กลับ /sell ให้เริ่มใหม่
+      // (เดิมเคยมีหน้า tips + upload จากคลัง → user งงเพราะ flow ใหม่เข้าจาก /sell อย่างเดียว)
+      router.replace('/sell')
     } catch {
-      // ignore — fallback ปุ่ม capture บน page
+      router.replace('/sell')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -559,9 +564,11 @@ function SellFlowCoverPageInner() {
       </header>
 
       {/* ─── Capture section ─── */}
+      {/* No photo → showing loading briefly while auto-redirect to /sell (if no context)
+          or auto-open camera (if silent mode from barcode miss)
+          Inputs ต้อง mount เสมอ — silent mode auto-click ต้องใช้ ref */}
       {!preview && (
         <>
-          {/* Inputs ต้อง mount เสมอ — auto-click camera ใน silentMode ต้องใช้ ref */}
           <input
             ref={cameraRef} type="file" accept="image/*" capture="environment"
             onChange={e => onPick(e.target.files?.[0] ?? null)} style={{ display: 'none' }}
@@ -570,33 +577,19 @@ function SellFlowCoverPageInner() {
             ref={uploadRef} type="file" accept="image/*"
             onChange={e => onPick(e.target.files?.[0] ?? null)} style={{ display: 'none' }}
           />
-          {silentMode ? (
-            // Silent mode: ปุ่มเดียว ไม่มี tips/banner — user tap ครั้งเดียว
-            // (browser block programmatic click ถ้าไม่มี user gesture)
+          {silentMode && (
+            // Silent mode: ปุ่มเดียว fallback ถ้า auto-click ไม่ทำงาน (browser block programmatic click)
             <div style={{ display: 'grid', gap: 8 }}>
               <button type="button" onClick={() => cameraRef.current?.click()} style={btn('primary')}>
                 📷 ถ่ายรูปหนังสือ
               </button>
             </div>
-          ) : (
-            <>
-              <div style={tipsBox}>
-                💡 <strong>เคล็ดลับถ่ายปก</strong>
-                <ul style={{ margin: '8px 0 0 20px', fontSize: 14, lineHeight: 1.7 }}>
-                  <li>ถ่ายหน้าตรง ให้ปกเต็มกรอบ</li>
-                  <li>ถ้าปกสะท้อนแสง ลองหามุมเอียงใหม่</li>
-                  <li>ถ่ายในที่สว่างพอ</li>
-                </ul>
-              </div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                <button type="button" onClick={() => cameraRef.current?.click()} style={btn('primary')}>
-                  📷 ถ่ายรูปปก
-                </button>
-                <button type="button" onClick={() => uploadRef.current?.click()} style={btn('secondary')}>
-                  🖼️ อัปโหลดจากคลัง
-                </button>
-              </div>
-            </>
+          )}
+          {!silentMode && (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)', fontSize: 14 }}>
+              <span className="spin" style={{ width: 20, height: 20, marginBottom: 10 }} />
+              <div>กำลังโหลด...</div>
+            </div>
           )}
         </>
       )}
