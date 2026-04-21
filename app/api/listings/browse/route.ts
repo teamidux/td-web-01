@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   q = q.range(offset, offset + limit - 1)
 
   const { data, count, error } = await q
-  if (error) return NextResponse.json({ error: error.message, listings: [] }, { status: 500 })
+  if (error) { console.error('[listings/browse] query:', error); return NextResponse.json({ error: 'db_error', listings: [] }, { status: 500 }) }
 
   const clean = (data || []).map((l: any) => { const { users, ...rest } = l; return rest })
   return NextResponse.json({

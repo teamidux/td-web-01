@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         language: language || 'th',
         source: 'community',
       }).select('id').single()
-      if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
+      if (bookErr) { console.error('[listings/create] book insert:', bookErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
       bookId = newBook.id
     }
   }
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     photos: photos || [],
     status: 'active',
   })
-  if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
+  if (listErr) { console.error('[listings/create] listing insert:', listErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
 
   // 4. ถ้า user เป็น pioneer → update pioneer_count
   if (isPioneer) {

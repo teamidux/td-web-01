@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await sb.from('listings').update({ price }).eq('id', listingId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) { console.error('[update-price] update:', error); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
 
   return NextResponse.json({ ok: true })
 }

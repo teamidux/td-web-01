@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
         ai_confidence,
         ai_extracted_at: new Date().toISOString(),
       }).select('id').single()
-      if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
+      if (bookErr) { console.error('[sell-flow/commit] book insert:', bookErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
       bookId = newBook.id
     }
   }
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
     photos,
     status: 'active',
   })
-  if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
+  if (listErr) { console.error('[sell-flow/commit] listing insert:', listErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
 
   // Pioneer: ผู้บุกเบิกหนังสือเล่มนี้บน platform → +1 pioneer count
   if (isPioneer) {

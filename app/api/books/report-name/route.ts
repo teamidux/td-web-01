@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (error && error.code === '23505') {
     return NextResponse.json({ ok: true, duplicate: true })
   }
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) { console.error('[report-name] insert:', error); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
 
   return NextResponse.json({ ok: true })
 }
