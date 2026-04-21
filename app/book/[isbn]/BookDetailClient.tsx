@@ -720,37 +720,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 </div>
               </div>
 
-              {/* Primary CTA: ตามหาเล่มนี้ (capture demand) */}
-              {!isWanted && (
-                <button
-                  onClick={toggleWanted}
-                  style={{
-                    width: '100%',
-                    background: 'var(--primary)',
-                    border: 'none',
-                    borderRadius: 12,
-                    padding: '16px',
-                    color: 'white',
-                    fontFamily: 'Kanit',
-                    fontWeight: 700,
-                    fontSize: 16,
-                    cursor: 'pointer',
-                    marginBottom: 12,
-                    boxShadow: '0 4px 14px rgba(22,163,74,.25)',
-                  }}
-                >
-                  🔔 ตามหาเล่มนี้ — แจ้งเตือนเมื่อมีคนมาขาย
-                </button>
-              )}
-
-              {/* Secondary: เชิญชวนลงขาย */}
-              <div style={{ background: 'var(--primary-light)', border: '1.5px solid var(--primary)', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>คุณมีหนังสือเล่มนี้อยู่ไหม?</div>
-                <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 14, lineHeight: 1.7 }}>
-                  มีคนรอซื้ออยู่แล้ว — เป็นคนแรกที่ลงขาย โอกาสขายได้เร็วมาก
-                </div>
-                <button className="btn" onClick={goSell} style={{ width: '100%' }}>📖 ลงขายเล่มนี้เลย</button>
-              </div>
+              {/* CTA ส่วนนี้ซ้ำกับปุ่ม wanted toggle + "ขายเล่มนี้" ด้านบน — ตัดออก */}
             </>
           )}
 
