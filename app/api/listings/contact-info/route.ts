@@ -1,20 +1,16 @@
-// ดึง contact info ของผู้ขาย — ต้อง login (กัน bulk scrape PII)
-// ใครก็ตามที่ login แล้วกดดูได้ (flow ปกติ ลูกค้า → กดปุ่มติดต่อ → auth → ข้อมูล)
-// ถ้าไม่ login จะได้ 401 แล้ว client push ไป LINE OAuth
+// ดึง contact info ของผู้ขาย — ไม่ต้อง login (เพื่อ conversion)
+// Business decision: open access > PII protection
+// กัน scrape ด้วย rate limit ต่อ IP + middleware bot UA block (gptbot/scrapy ฯลฯ)
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
-import { getSessionUser } from '@/lib/session'
 
 export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest) {
-  // Session check ก่อน — กัน anonymous scrape PII (LINE/phone)
-  const user = await getSessionUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-
-  // Rate limit: 20 ครั้ง/นาที/IP กัน burst request (ถึงจะ login ก็กัน)
-  if (!checkRateLimit(`contact:${user.id}`, 20, 60_000)) {
+  // Rate limit: 20 ครั้ง/นาที/IP — กัน bulk scrape
+  // (login ไม่บังคับ → ใช้ IP-based ชั้นเดียว)
+  if (!checkRateLimit(`contact:${getClientIp(req)}`, 20, 60_000)) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
   }
 
