@@ -1335,7 +1335,7 @@ function SellPage() {
 
               {/* ─── Price: big input + quick buttons + "ราคาดี" badge (ถ้าในช่วง market) ─── */}
               <div className="form-group">
-                <label className="label">ราคาขาย (บาท)
+                <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span>
                   {marketPrice && (
                     <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
                       ราคาในระบบ ฿{marketPrice.min}–฿{marketPrice.max} · เฉลี่ย ฿{marketPrice.avg}
