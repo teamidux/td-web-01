@@ -76,25 +76,8 @@ export async function POST(req: NextRequest) {
   if (photos.length === 0) return NextResponse.json({ error: 'missing photos' }, { status: 400 })
   if (photos.length > 5) return NextResponse.json({ error: 'too many photos' }, { status: 400 })
 
-  // Spam cap: จำกัด active listings ต่อ user — กัน 1 user สร้าง spam listings
-  const sbCap = db()
-  const { count: activeCount } = await sbCap
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('seller_id', user.id)
-    .eq('status', 'active')
-  const { data: userRow } = await sbCap
-    .from('users')
-    .select('is_verified, phone_verified_at, listings_limit')
-    .eq('id', user.id)
-    .maybeSingle()
-  const baseLimit = userRow?.listings_limit || (userRow?.is_verified ? 200 : userRow?.phone_verified_at ? 50 : 20)
-  if ((activeCount || 0) >= baseLimit) {
-    return NextResponse.json({
-      error: 'listings_limit_reached',
-      message: `ลงขายได้สูงสุด ${baseLimit} เล่มพร้อมกัน — ยืนยันตัวตนเพิ่ม limit`,
-    }, { status: 429 })
-  }
+  // TODO: listing cap — ปลดชั่วคราว (launch phase)
+  // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง
 
   // Validate photo URLs — must be from our Supabase Storage
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!

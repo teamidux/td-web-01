@@ -33,28 +33,9 @@ export async function POST(req: NextRequest) {
   if (!contact?.trim()) return NextResponse.json({ error: 'missing contact' }, { status: 400 })
   if (!condition) return NextResponse.json({ error: 'missing condition' }, { status: 400 })
 
-  // Spam cap: จำกัด active listings ต่อ user — กัน 1 user สร้าง 1000 listings
-  // Verified sellers (phone + ID) ได้ limit สูงกว่า (trust signal)
-  const sbCheck = db()
-  const { count: activeCount } = await sbCheck
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('seller_id', user.id)
-    .eq('status', 'active')
-  const { data: userRow } = await sbCheck
-    .from('users')
-    .select('is_verified, phone_verified_at, listings_limit')
-    .eq('id', user.id)
-    .maybeSingle()
-  const baseLimit = userRow?.listings_limit || (userRow?.is_verified ? 200 : userRow?.phone_verified_at ? 50 : 20)
-  if ((activeCount || 0) >= baseLimit) {
-    return NextResponse.json({
-      error: 'listings_limit_reached',
-      message: `ลงขายได้สูงสุด ${baseLimit} เล่มพร้อมกัน — ยืนยันตัวตนเพิ่ม limit`,
-      current: activeCount,
-      limit: baseLimit,
-    }, { status: 429 })
-  }
+  // TODO: listing cap — ปลดชั่วคราว (launch phase ต้องการ growth ก่อน)
+  // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง
+  // เดิม: 20/50/200 tier ตาม verification
 
   // Validate photos: array, length ≤ 5, URLs ต้องมาจาก Supabase Storage ของเรา
   // กัน: (1) array ยาวเกินล้น (2) URL ชี้ไปเว็บอื่น (XSS/hotlink)
