@@ -148,6 +148,9 @@ export default function HomePage() {
 
   const processPhoto = async (raw: File) => {
     setScanning(true)
+    // Force paint overlay ก่อนเริ่ม heavy scan (กัน React batch render → overlay ไม่โผล่)
+    // scanBarcode ใช้เวลา 1-2s บนมือถือ (canvas + decode)
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
     try {
       const result = await scanBarcode(raw)
       if (result.isbn) {
@@ -155,6 +158,9 @@ export default function HomePage() {
       } else {
         setScanError(true)
       }
+    } catch (err) {
+      console.error('[home scan] error:', err)
+      setScanError(true)
     } finally {
       setScanning(false)
     }
