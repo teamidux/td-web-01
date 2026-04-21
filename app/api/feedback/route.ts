@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       user_id: user?.id || null,
       user_agent: userAgent,
       ip_hash: ipHash,
+      ip, // raw IP — เก็บไว้ admin ดู/ban ถ้าคนป่วน (created_at auto จาก default)
     })
     if (error) {
       console.error('[feedback] db error:', error.message)

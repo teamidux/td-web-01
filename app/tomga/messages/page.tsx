@@ -135,7 +135,9 @@ export default function AdminMessagesPage() {
                       <span style={{ background: kindMeta.bg, color: kindMeta.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {kindMeta.label}
                       </span>
-                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{timeSince(f.created_at)}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }} title={new Date(f.created_at).toLocaleString('th-TH')}>
+                        {timeSince(f.created_at)}
+                      </div>
                     </div>
                     <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: 8 }}>{f.message}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -143,6 +145,12 @@ export default function AdminMessagesPage() {
                         {f.user?.display_name && <span>👤 {f.user.display_name}</span>}
                         {f.contact && <span>📧 {f.contact}</span>}
                         {!f.user_id && !f.contact && <span style={{ fontStyle: 'italic' }}>ไม่ระบุผู้ส่ง</span>}
+                        {f.ip && <span style={{ fontFamily: 'monospace', color: '#64748B' }}>🌐 {f.ip}</span>}
+                        {f.created_at && (
+                          <span style={{ fontFamily: 'monospace' }}>
+                            🕐 {new Date(f.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => deleteFeedback(f.id)}
