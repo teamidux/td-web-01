@@ -17,6 +17,8 @@ function db() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // ไม่มี rate limit — auth + phone OTP + photo URL whitelist พอสำหรับกัน spam
+  // (endpoint ไม่ใช้ AI → ไม่มี cost burn concern)
 
   const {
     isbn, title, author, translator, cover_url, language,

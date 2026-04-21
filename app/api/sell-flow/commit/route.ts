@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
     }
   }
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // ไม่มี rate limit — auth + phone OTP + photo URL whitelist พอสำหรับกัน spam
+  // (endpoint ไม่ใช้ AI → ไม่มี cost burn concern)
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null
   if (!body) return NextResponse.json({ error: 'invalid_json' }, { status: 400 })

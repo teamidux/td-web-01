@@ -388,7 +388,7 @@ function SellFlowCoverPageInner() {
         }),
       })
       const j: ScanResp = await r.json()
-      if (!r.ok) setErr(j.error || `HTTP ${r.status}`)
+      if (!r.ok) setErr((j as any).message || j.error || `HTTP ${r.status}`)
       setResp(j)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'request_failed')
@@ -519,7 +519,7 @@ function SellFlowCoverPageInner() {
         }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`)
+      if (!r.ok) throw new Error(j.message || j.error || `HTTP ${r.status}`)
       // Pioneer: ถ้าเป็นหนังสือใหม่ → แสดง popup ก่อน redirect
       if (j.is_new_book) {
         setPioneerBook({

@@ -545,7 +545,7 @@ function SellPage() {
         }),
       })
       const createData = await createRes.json()
-      if (!createRes.ok) throw new Error(createData.error || 'สร้าง listing ไม่สำเร็จ')
+      if (!createRes.ok) throw new Error(createData.message || createData.error || 'สร้าง listing ไม่สำเร็จ')
       const bookId = createData.book_id
 
       // แจ้งเตือนคนที่ตามหาเล่มนี้ (fire-and-forget ไม่ block UX)

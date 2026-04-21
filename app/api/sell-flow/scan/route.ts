@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { extractFromCover, ALLOWED_MODELS } from '@/lib/cover-vision'
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { checkRateLimit, checkUserActionLimit, getClientIp } from '@/lib/rate-limit'
 import { getSessionUser } from '@/lib/session'
 
 export const runtime = 'nodejs'
@@ -76,13 +76,17 @@ export async function POST(req: NextRequest) {
   // Auth required — กัน bot spam (AI cost ~฿0.003/call)
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  // Rate limit ต่อ user — 20 scans/hour (เผื่อ user ถ่ายไม่ผ่าน ถ่ายซ้ำ)
-  if (!checkRateLimit(`sellscan:${user.id}`, 20, 60 * 60_000)) {
-    return NextResponse.json({ error: 'rate_limited', message: 'สแกนเกิน 20 ครั้ง/ชม. รอสักครู่' }, { status: 429 })
+  // 2-tier rate limit per user: burst 30/min + sustained 600/hr
+  // Loose setting — shop ถ่ายซ้ำ retry ได้สบาย cap แค่ AI cost abuse
+  const userLimit = checkUserActionLimit(user.id, 'sellscan', { perMin: 30, perHr: 600, actionLabel: 'สแกนปก' })
+  if (userLimit.ok === false) {
+    return NextResponse.json({ error: 'rate_limited', message: userLimit.message }, {
+      status: 429, headers: { 'Retry-After': String(userLimit.retryAfter) },
+    })
   }
-  // IP-level limit ชั้นสอง กัน account farming
-  if (!checkRateLimit(`sellscan-ip:${getClientIp(req)}`, 60, 60 * 60_000)) {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  // IP-level burst limit กัน botnet farm ใต้ IP เดียว
+  if (!checkRateLimit(`sellscan-ip:${getClientIp(req)}`, 50, 60_000)) {
+    return NextResponse.json({ error: 'rate_limited', message: 'ช่วงนี้มีการใช้จาก IP นี้เยอะมาก รอสักครู่แล้วลองใหม่' }, { status: 429 })
   }
 
   let body: { imageBase64?: string; mimeType?: string; model?: string; isbn?: string }
