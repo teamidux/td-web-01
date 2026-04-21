@@ -22,25 +22,28 @@ export default function LineBrowserBanner() {
     const ios = /iPhone|iPad|iPod/.test(ua)
 
     if (ios) {
-      // iOS: แสดงหน้าจอเต็มพร้อมปุ่ม "เปิดใน Safari"
+      // iOS: แสดงหน้าจอเต็มพร้อมปุ่ม "เปิดใน Safari" — บังคับ auto ไม่ได้
       setMode('ios')
       return
     }
 
-    // Android: auto-redirect ทันที
+    // Android: auto-redirect ด้วย intent:// (ตรงกว่า line.me/R/nv/externalBrowser
+    // ซึ่ง LINE deprecate แล้ว → ดักให้เปิด LINE app แทน)
     const url = window.location.href
     let wentAway = false
     const markAway = () => { wentAway = true }
     document.addEventListener('visibilitychange', markAway)
     window.addEventListener('pagehide', markAway)
     window.addEventListener('beforeunload', markAway)
-    window.location.href = `https://line.me/R/nv/externalBrowser?url=${encodeURIComponent(url)}`
+
+    // intent://URL#Intent;scheme=https;end → Android เปิด default browser chooser
+    const intentUrl = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;end`
+    window.location.href = intentUrl
 
     const timer = setTimeout(() => {
       if (!wentAway && !document.hidden) setMode('android-fallback')
     }, 1500)
 
-    // Cleanup: clear timer + remove all listeners (กัน memory leak ตอน unmount)
     return () => {
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', markAway)
@@ -50,7 +53,6 @@ export default function LineBrowserBanner() {
   }, [])
 
   const openExternal = () => {
-    // ถ้ามีคำสั่งก่อนหน้ายังค้างอยู่ → cleanup ก่อน กัน listener ซ้อน
     pendingCleanupRef.current?.()
 
     const url = window.location.href
@@ -60,26 +62,29 @@ export default function LineBrowserBanner() {
     window.addEventListener('pagehide', markAway)
     window.addEventListener('blur', markAway)
 
-    window.location.href = `https://line.me/R/nv/externalBrowser?url=${encodeURIComponent(url)}`
+    if (mode === 'ios') {
+      // iOS: auto copy + ให้ user วางใน Safari (บังคับ open external ไม่ได้)
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          alert('คัดลอกลิงก์แล้ว ✓\nเปิด Safari แล้ววาง URL ได้เลย')
+        }).catch(() => {
+          alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
+        })
+      } else {
+        alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
+      }
+      return
+    }
+
+    // Android: intent:// — เปิด default browser picker
+    window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;end`
 
     const timer = setTimeout(() => {
       cleanup()
       pendingCleanupRef.current = null
       if (wentAway || document.hidden) return
-
-      if (mode === 'ios') {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(url).then(() => {
-            alert('คัดลอกลิงก์แล้ว ✓\nเปิด Safari แล้ววาง URL ได้เลย')
-          }).catch(() => {
-            alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
-          })
-        } else {
-          alert('กดปุ่ม ••• (มุมขวาบน) แล้วเลือก "Open in Safari"')
-        }
-      } else {
-        window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
-      }
+      // Fallback 2: force Chrome specifically
+      window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
     }, 1200)
 
     const cleanup = () => {
