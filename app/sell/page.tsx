@@ -806,9 +806,7 @@ function SellPage() {
       )}
 
       <div className="page">
-        <div style={{ padding: '16px 16px 80px' }}>
-          <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 20, marginBottom: 16 }}>ลงขายหนังสือ</div>
-
+        <div style={{ padding: '12px 16px 80px' }}>
           {authLoading ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#94A3B8' }}>
               <span className="spin" style={{ width: 28, height: 28 }} />
@@ -845,17 +843,13 @@ function SellPage() {
                     />
                   )}
 
-                  {/* Hero — ไม่ต้องพิมพ์เอง / เริ่มลงขายเล่มใหม่ */}
-                  <div style={{ marginBottom: 22 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'rgba(37,99,235,0.08)', marginBottom: 10 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--primary)' }} />
-                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--primary)', letterSpacing: 0.2 }}>ไม่ต้องพิมพ์เอง</div>
-                    </div>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
+                  {/* Hero compact — fit-on-screen */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                       เริ่มลงขายเล่มใหม่
                     </div>
-                    <div style={{ fontSize: 13.5, color: '#64748B', marginTop: 6, lineHeight: 1.55 }}>
-                      เลือกวิธีที่เหมาะกับหนังสือของคุณ<br />ระบบกรอกชื่อ ผู้แต่ง ISBN ให้อัตโนมัติ
+                    <div style={{ fontSize: 13, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>
+                      เลือกวิธีที่เหมาะ · ระบบกรอกให้อัตโนมัติ
                     </div>
                   </div>
 
@@ -874,46 +868,46 @@ function SellPage() {
                     }}
                     disabled={scanning}
                     style={{
-                      width: '100%', padding: 20, border: 'none', cursor: scanning ? 'wait' : 'pointer',
-                      background: 'white', borderRadius: 20, textAlign: 'left', display: 'block',
+                      width: '100%', padding: 14, border: 'none', cursor: scanning ? 'wait' : 'pointer',
+                      background: 'white', borderRadius: 18, textAlign: 'left', display: 'block',
                       boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)',
-                      marginBottom: 12, position: 'relative', overflow: 'hidden',
+                      marginBottom: 10, position: 'relative', overflow: 'hidden',
                       fontFamily: 'Kanit',
                     }}
                   >
-                    <div style={{ position: 'absolute', top: 16, right: 16, padding: '4px 9px', borderRadius: 999, background: '#0F172A', fontSize: 10.5, fontWeight: 600, color: 'white', letterSpacing: 0.3, zIndex: 2 }}>
+                    <div style={{ position: 'absolute', top: 10, right: 10, padding: '3px 8px', borderRadius: 999, background: '#0F172A', fontSize: 10, fontWeight: 600, color: 'white', letterSpacing: 0.3, zIndex: 2 }}>
                       แนะนำ
                     </div>
 
                     {/* Blue illustration area with barcode card */}
-                    <div style={{ height: 128, borderRadius: 14, marginBottom: 16, background: 'linear-gradient(135deg, var(--primary) 0%, #1D4ED8 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                    <div style={{ height: 88, borderRadius: 12, marginBottom: 10, background: 'linear-gradient(135deg, var(--primary) 0%, #1D4ED8 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
                       <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 999, background: 'rgba(255,255,255,0.09)' }} />
                       <div style={{ position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 999, background: 'rgba(255,255,255,0.07)' }} />
-                      <div style={{ width: 150, height: 76, borderRadius: 10, background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 10px 24px rgba(0,0,0,0.22)', position: 'relative', zIndex: 1 }}>
-                        <svg width="110" height="36" viewBox="0 0 110 36">
+                      <div style={{ width: 124, height: 60, borderRadius: 8, background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, boxShadow: '0 10px 24px rgba(0,0,0,0.22)', position: 'relative', zIndex: 1 }}>
+                        <svg width="90" height="28" viewBox="0 0 110 36">
                           {[3,7,11,14,18,22,25,30,34,38,43,47,51,56,60,64,69,73,77,82,86,90,95,99,103].map((x, i) => {
                             const w = [1.2, 2.4, 1, 2, 1.4, 2.6, 1, 1.8, 2.2, 1, 2, 1.4, 2.4, 1.2, 1, 2.6, 1.4, 2, 1, 1.8, 2.4, 1.2, 2, 1, 1.6][i]
                             return <rect key={i} x={x} y="0" width={w} height="36" fill="#0F172A" />
                           })}
                         </svg>
-                        <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 9.5, color: '#0F172A', letterSpacing: 2 }}>
+                        <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 8, color: '#0F172A', letterSpacing: 1.5 }}>
                           9 786165 987654
                         </div>
                         <div style={{ position: 'absolute', left: 8, right: 8, top: '50%', height: 2, background: '#EF4444', boxShadow: '0 0 8px rgba(239,68,68,0.6)', borderRadius: 2 }} />
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                           สแกนบาร์โค้ด
                         </div>
-                        <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>
-                          เร็วที่สุด · ได้ข้อมูลครบ ISBN / ปี / สำนักพิมพ์
+                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 1.4 }}>
+                          เร็วที่สุด · ได้ข้อมูลครบ
                         </div>
                       </div>
-                      <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--primary)', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      <div style={{ width: 30, height: 30, borderRadius: 999, background: 'var(--primary)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
                       </div>
                     </div>
                   </button>
@@ -931,22 +925,22 @@ function SellPage() {
                       }
                     }}
                     style={{
-                      width: '100%', padding: 20, border: 'none', cursor: 'pointer',
-                      background: 'white', borderRadius: 20, textAlign: 'left', display: 'block',
+                      width: '100%', padding: 14, border: 'none', cursor: 'pointer',
+                      background: 'white', borderRadius: 18, textAlign: 'left', display: 'block',
                       boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)',
                       position: 'relative', overflow: 'hidden', fontFamily: 'Kanit',
                     }}
                   >
-                    <div style={{ height: 128, borderRadius: 14, marginBottom: 16, background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                    <div style={{ height: 88, borderRadius: 12, marginBottom: 10, background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)', position: 'relative', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
                       <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 999, background: 'rgba(255,255,255,0.35)' }} />
                       <div style={{ position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 999, background: 'rgba(180,83,9,0.08)' }} />
-                      <div style={{ position: 'relative', width: 100, height: 84 }}>
-                        <div style={{ position: 'absolute', top: 0, left: 8, width: 58, height: 78, borderRadius: 4, background: '#DC2626', transform: 'rotate(-8deg)', boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }}>
-                          <div style={{ height: 12, background: 'rgba(255,255,255,0.35)', margin: '14px 6px 0' }} />
-                          <div style={{ height: 4, background: 'rgba(255,255,255,0.55)', margin: '6px 10px 0' }} />
-                          <div style={{ height: 4, background: 'rgba(255,255,255,0.55)', margin: '4px 14px 0' }} />
+                      <div style={{ position: 'relative', width: 80, height: 68 }}>
+                        <div style={{ position: 'absolute', top: 0, left: 6, width: 46, height: 62, borderRadius: 3, background: '#DC2626', transform: 'rotate(-8deg)', boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }}>
+                          <div style={{ height: 10, background: 'rgba(255,255,255,0.35)', margin: '10px 5px 0' }} />
+                          <div style={{ height: 3, background: 'rgba(255,255,255,0.55)', margin: '5px 8px 0' }} />
+                          <div style={{ height: 3, background: 'rgba(255,255,255,0.55)', margin: '3px 11px 0' }} />
                         </div>
-                        <div style={{ position: 'absolute', top: 3, left: 38, width: 58, height: 78, borderRadius: 4, background: '#0F172A', transform: 'rotate(6deg)', boxShadow: '0 8px 18px rgba(0,0,0,0.25)', padding: '12px 8px' }}>
+                        <div style={{ position: 'absolute', top: 2, left: 30, width: 46, height: 62, borderRadius: 3, background: '#0F172A', transform: 'rotate(6deg)', boxShadow: '0 8px 18px rgba(0,0,0,0.25)', padding: '9px 6px' }}>
                           <div style={{ height: 3, background: '#FBBF24', width: '50%', marginBottom: 8 }} />
                           <div style={{ height: 4, background: 'white', marginBottom: 3 }} />
                           <div style={{ height: 4, background: 'white', width: '80%', marginBottom: 10 }} />
@@ -971,31 +965,24 @@ function SellPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                           ถ่ายหน้าปก
                         </div>
-                        <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>
-                          สำหรับหนังสือที่ไม่มีบาร์โค้ด · ระบบอ่านชื่อ-ผู้แต่งให้
+                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 1.4 }}>
+                          หนังสือที่ไม่มีบาร์โค้ด · อ่านชื่อ-ผู้แต่งให้
                         </div>
                       </div>
-                      <div style={{ width: 36, height: 36, borderRadius: 999, background: '#0F172A', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      <div style={{ width: 30, height: 30, borderRadius: 999, background: '#0F172A', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
                       </div>
                     </div>
                   </button>
 
-                  {/* Tip footer */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, padding: '12px 14px', background: 'rgba(15,23,42,0.04)', borderRadius: 12 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                      <path d="M9 18h6" />
-                      <path d="M10 22h4" />
-                      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
-                    </svg>
-                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                      ถ่ายให้ชัด ไม่เบลอ ไม่สะท้อนแสง — ระบบจะอ่านตัวอักษรแม่นขึ้น
-                    </div>
+                  {/* Tip footer compact */}
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 10, textAlign: 'center', lineHeight: 1.4 }}>
+                    💡 ถ่ายให้ชัด ไม่เบลอ ไม่สะท้อนแสง
                   </div>
                 </>
               )}
