@@ -204,6 +204,7 @@ function SellFlowCoverPageInner() {
   const [cond, setCond] = useState('good')
   const [price, setPrice] = useState('')
   const [includesShipping, setIncludesShipping] = useState(false)
+  const [marketPrice, setMarketPrice] = useState<{ min: number; max: number; avg: number } | null>(null)
   // contact: auto จาก user.phone/line_id (ไม่มีช่อง manual)
   const [notes, setNotes] = useState(NOTE_TEMPLATES['good'])
   // track ว่า notes ถูก auto-fill จาก condition หรือเปล่า (ถ้า user แก้แล้วจะไม่ overwrite)
@@ -241,6 +242,22 @@ function SellFlowCoverPageInner() {
   const extraPreviewsRef = useRef<string[]>([])
   useEffect(() => { previewRef.current = preview }, [preview])
   useEffect(() => { extraPreviewsRef.current = extraPreviews }, [extraPreviews])
+
+  useEffect(() => {
+    if (!selectedBookId) { setMarketPrice(null); return }
+    let cancelled = false
+    ;(async () => {
+      const { data: ls } = await supabase.from('listings').select('price').eq('book_id', selectedBookId).eq('status', 'active')
+      if (cancelled) return
+      if (ls?.length) {
+        const prices = ls.map((l: any) => l.price)
+        setMarketPrice({ min: Math.min(...prices), max: Math.max(...prices), avg: Math.round(prices.reduce((a: number, b: number) => a + b) / prices.length) })
+      } else {
+        setMarketPrice(null)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [selectedBookId])
   useEffect(() => {
     return () => {
       if (previewRef.current) URL.revokeObjectURL(previewRef.current)
@@ -967,7 +984,13 @@ function SellFlowCoverPageInner() {
 
             {/* ─── Price: big bordered input (sync กับ /sell) ─── */}
             <div className="form-group">
-              <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span></label>
+              <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span>
+                {marketPrice && (
+                  <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
+                    ผู้ขายคนอื่นตั้งไว้ ฿{marketPrice.min}–฿{marketPrice.max} · เฉลี่ย ฿{marketPrice.avg}
+                  </span>
+                )}
+              </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', borderRadius: 12, padding: '12px 16px', border: `1.5px solid ${price ? 'var(--primary)' : '#E5E7EB'}`, boxShadow: price ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#64748B' }}>฿</div>
                 <input

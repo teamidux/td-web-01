@@ -1325,7 +1325,7 @@ function SellPage() {
                 <label className="label">ราคาขาย (บาท) <span style={{ color: 'var(--red)' }}>*</span>
                   {marketPrice && (
                     <span style={{ fontWeight: 400, color: 'var(--ink3)', marginLeft: 6, fontSize: 12 }}>
-                      ราคาในระบบ ฿{marketPrice.min}–฿{marketPrice.max} · เฉลี่ย ฿{marketPrice.avg}
+                      ผู้ขายคนอื่นตั้งไว้ ฿{marketPrice.min}–฿{marketPrice.max} · เฉลี่ย ฿{marketPrice.avg}
                     </span>
                   )}
                 </label>
