@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth'
 import PwaInit from '@/components/PwaInit'
 import LineBrowserBanner from '@/components/LineBrowserBanner'
@@ -58,6 +59,7 @@ export default function RootLayout({
           {children}
         </AuthProvider>
         <PwaInit />
+        <Analytics />
       </body>
     </html>
   )
