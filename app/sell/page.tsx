@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, fetchBookByISBN, Book } from '@/lib/supabase'
+import { supabase, fetchBookByISBN, searchBooksByTitle, Book } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { Nav, BottomNav, BookCover, useToast, Toast, ScanErrorSheet, MultiLoginButton, useCapture, CameraCaptureModal } from '@/components/ui'
 import { scanBarcode } from '@/lib/scan'
@@ -182,12 +182,19 @@ function SellPage() {
       }
       setSellSearching(true)
       const escaped = q.replace(/[%_]/g, '\\$&')
-      const { data } = await supabase
-        .from('books')
-        .select('id, isbn, title, author, cover_url')
-        .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
-        .limit(8)
-      setSellResults(data || [])
+      const [dbRes, extBooks] = await Promise.all([
+        supabase
+          .from('books')
+          .select('id, isbn, title, author, cover_url')
+          .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`)
+          .limit(8)
+          .then(r => r.data || []),
+        searchBooksByTitle(q).catch(() => [] as Partial<Book>[]),
+      ])
+      // DB results first; append external books not already in DB
+      const dbIsbns = new Set(dbRes.map((b: any) => b.isbn).filter(Boolean))
+      const ext = extBooks.filter(b => !b.isbn || !dbIsbns.has(b.isbn))
+      setSellResults([...dbRes, ...ext])
       setSellSearching(false)
     }, 400)
     return () => clearTimeout(t)

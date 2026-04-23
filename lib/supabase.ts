@@ -17,6 +17,7 @@ export type Book = {
   language: string
   active_listings_count: number
   wanted_count: number
+  view_count: number
   min_price?: number
   source: string
   alt_titles?: string | null
@@ -124,4 +125,55 @@ export async function fetchBookByISBN(isbn: string): Promise<Partial<Book> | nul
   } catch {
     return null
   }
+}
+
+// ค้นหาหนังสือจาก Google Books โดยชื่อเรื่อง
+// ใช้ intitle: ก่อน ถ้าได้น้อยกว่า 3 เล่ม fallback ค้นแบบทั่วไป
+// กรอง: ต้องมีทั้ง title และ authors จึงนำมาแสดง
+export async function searchBooksByTitle(keyword: string): Promise<Partial<Book>[]> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY
+  const keyParam = apiKey ? `&key=${apiKey}` : ''
+  const base = `https://www.googleapis.com/books/v1/volumes`
+  const common = `&orderBy=relevance&printType=books&maxResults=10${keyParam}`
+
+  const fetchItems = async (q: string) => {
+    try {
+      const r = await fetch(`${base}?q=${encodeURIComponent(q)}${common}`)
+      if (!r.ok) return []
+      const d = await r.json()
+      return (d.items || []) as any[]
+    } catch { return [] }
+  }
+
+  const parse = (items: any[]): Partial<Book>[] =>
+    items
+      .filter(item => item.volumeInfo?.title && item.volumeInfo?.authors?.length)
+      .map(item => {
+        const v = item.volumeInfo
+        const isbn13 = v.industryIdentifiers?.find((i: any) => i.type === 'ISBN_13')?.identifier || ''
+        const raw = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || ''
+        return {
+          isbn: isbn13,
+          title: v.title as string,
+          author: (v.authors as string[]).join(', '),
+          publisher: v.publisher || '',
+          cover_url: raw ? raw.replace(/^http:\/\//, 'https://').replace(/&edge=\w+/g, '').replace(/&zoom=\d+/g, '') : '',
+          language: v.language || 'th',
+        }
+      })
+
+  let results = parse(await fetchItems(`intitle:${keyword}`))
+
+  if (results.length < 3) {
+    const fallback = parse(await fetchItems(keyword))
+    const seen = new Set(results.map(b => b.title?.toLowerCase()))
+    for (const b of fallback) {
+      if (!seen.has(b.title?.toLowerCase())) {
+        results.push(b)
+        seen.add(b.title?.toLowerCase())
+      }
+    }
+  }
+
+  return results
 }
