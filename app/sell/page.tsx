@@ -364,11 +364,21 @@ function SellPage() {
               bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000) as unknown as number[])
             }
             const b64 = btoa(bin)
-            const r = await fetch('/api/test/cover-scan', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ imageBase64: b64, mimeType: 'image/jpeg' }),
-            })
+            // Timeout 25s — กัน button "ลงประกาศขาย" ค้าง disabled
+            // ถ้า AI hang/network drop → throw → catch → aiStatus = 'failed' → ปุ่มกดได้
+            const ctrl = new AbortController()
+            const timer = setTimeout(() => ctrl.abort(), 25_000)
+            let r: Response
+            try {
+              r = await fetch('/api/test/cover-scan', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ imageBase64: b64, mimeType: 'image/jpeg' }),
+                signal: ctrl.signal,
+              })
+            } finally {
+              clearTimeout(timer)
+            }
             const j = await r.json()
             const parsed = j?.parsed
             if (!parsed || !parsed.title) {

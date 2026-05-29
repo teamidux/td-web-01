@@ -394,6 +394,9 @@ function SellFlowCoverPageInner() {
     const target = inputBase64 || base64
     if (!target) return
     setLoading(true); setErr(null); setResp(null); setSelectedBookId(null)
+    // Timeout 25s — กัน user ค้างหน้า loading ถ้า AI/network hang
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 25_000)
     try {
       const r = await fetch('/api/sell-flow/scan', {
         method: 'POST',
@@ -403,13 +406,16 @@ function SellFlowCoverPageInner() {
           mimeType: target.mimeType,
           isbn: incomingIsbn || undefined,
         }),
+        signal: ctrl.signal,
       })
       const j: ScanResp = await r.json()
       if (!r.ok) setErr((j as any).message || j.error || `HTTP ${r.status}`)
       setResp(j)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'request_failed')
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setErr('อ่านปกใช้เวลานานเกินไป — ลองถ่ายใหม่อีกครั้ง')
+      else setErr(e instanceof Error ? e.message : 'request_failed')
     } finally {
+      clearTimeout(timer)
       setLoading(false)
     }
   }
@@ -490,7 +496,8 @@ function SellFlowCoverPageInner() {
 
     const priceNum = parseFloat(price)
     if (!isFinite(priceNum) || priceNum <= 0) { setErr('กรุณาใส่ราคาที่ถูกต้อง'); return }
-    const autoContact = phone || (user?.line_id ? 'LINE' : '')
+    // ใช้ line_id จริงเป็น fallback (เดิมเก็บ literal 'LINE' → bad UX ตอน fallback display)
+    const autoContact = phone || user?.line_id || ''
 
     setSubmitting(true); setErr(null); setSaveMsg(null)
     try {

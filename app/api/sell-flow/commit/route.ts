@@ -45,12 +45,14 @@ export async function POST(req: NextRequest) {
       if (adminId) user = { id: adminId }
     }
   }
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'unauthorized', message: 'หมดเวลาเข้าสู่ระบบ กรุณา login ใหม่' }, { status: 401 })
   // ไม่มี rate limit — auth + phone OTP + photo URL whitelist พอสำหรับกัน spam
   // (endpoint ไม่ใช้ AI → ไม่มี cost burn concern)
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null
-  if (!body) return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+  if (!body) return NextResponse.json({ error: 'invalid_json', message: 'ข้อมูลที่ส่งมาผิดรูปแบบ' }, { status: 400 })
+  // Validate helper — return code + ภาษาไทย toast-ready
+  const bad = (code: string, message: string) => NextResponse.json({ error: code, message }, { status: 400 })
 
   const existing_book_id = typeof body.existing_book_id === 'string' ? body.existing_book_id : null
   const title = typeof body.title === 'string' ? body.title.trim() : ''
@@ -70,21 +72,21 @@ export async function POST(req: NextRequest) {
   const photos = Array.isArray(body.photos) ? body.photos : []
 
   // Validate listing fields
-  if (!ALLOWED_CONDITION.has(condition)) return NextResponse.json({ error: 'invalid condition' }, { status: 400 })
+  if (!ALLOWED_CONDITION.has(condition)) return bad('invalid_condition', 'กรุณาเลือกสภาพหนังสือ')
   if (!isFinite(price) || price <= 0 || price > 999999) {
-    return NextResponse.json({ error: 'invalid price' }, { status: 400 })
+    return bad('invalid_price', 'ราคาไม่ถูกต้อง (กรอก 1–999,999 บาท)')
   }
-  if (!contact || contact.length > 200) return NextResponse.json({ error: 'invalid contact' }, { status: 400 })
-  if (photos.length === 0) return NextResponse.json({ error: 'missing photos' }, { status: 400 })
-  if (photos.length > 5) return NextResponse.json({ error: 'too many photos' }, { status: 400 })
+  if (!contact || contact.length > 200) return bad('invalid_contact', 'ช่องทางติดต่อไม่ถูกต้อง — เพิ่มเบอร์โทรหรือ LINE ID ในโปรไฟล์')
+  if (photos.length === 0) return bad('missing_photos', 'กรุณาใส่รูปหน้าปก')
+  if (photos.length > 5) return bad('too_many_photos', 'อัปโหลดได้สูงสุด 5 รูป')
   // Length caps กัน DoS จาก payload ใหญ่ + keep DB row compact
-  if (title.length > 500) return NextResponse.json({ error: 'invalid title' }, { status: 400 })
-  if (subtitle.length > 500) return NextResponse.json({ error: 'invalid subtitle' }, { status: 400 })
-  if (author.length > 300) return NextResponse.json({ error: 'invalid author' }, { status: 400 })
-  if (publisher.length > 200) return NextResponse.json({ error: 'invalid publisher' }, { status: 400 })
-  if (edition.length > 100) return NextResponse.json({ error: 'invalid edition' }, { status: 400 })
-  if (isbn_in.length > 20) return NextResponse.json({ error: 'invalid isbn' }, { status: 400 })
-  if (notes.length > 2000) return NextResponse.json({ error: 'invalid notes' }, { status: 400 })
+  if (title.length > 500) return bad('invalid_title', 'ชื่อหนังสือยาวเกินไป (เกิน 500 ตัว)')
+  if (subtitle.length > 500) return bad('invalid_subtitle', 'ชื่อรองยาวเกินไป (เกิน 500 ตัว)')
+  if (author.length > 300) return bad('invalid_author', 'ชื่อผู้เขียนยาวเกินไป (เกิน 300 ตัว)')
+  if (publisher.length > 200) return bad('invalid_publisher', 'ชื่อสำนักพิมพ์ยาวเกินไป (เกิน 200 ตัว)')
+  if (edition.length > 100) return bad('invalid_edition', 'ข้อมูลพิมพ์ครั้งที่ยาวเกินไป (เกิน 100 ตัว)')
+  if (isbn_in.length > 20) return bad('invalid_isbn', 'ISBN ไม่ถูกต้อง')
+  if (notes.length > 2000) return bad('invalid_notes', 'หมายเหตุยาวเกินไป (เกิน 2,000 ตัว)')
 
   // TODO: listing cap — ปลดชั่วคราว (launch phase)
   // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง
@@ -94,13 +96,13 @@ export async function POST(req: NextRequest) {
   const EXPECTED_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/listing-photos/`
   for (const url of photos) {
     if (typeof url !== 'string' || !url.startsWith(EXPECTED_PREFIX)) {
-      return NextResponse.json({ error: 'invalid photo url' }, { status: 400 })
+      return bad('invalid_photo_url', 'รูปที่อัปโหลดผิดพลาด ลองใหม่อีกครั้ง')
     }
   }
 
   // Validate book fields (only if creating new) — author/publisher ไม่บังคับ (บางเล่มเก่าไม่รู้จริงๆ)
   if (!existing_book_id) {
-    if (!title) return NextResponse.json({ error: 'missing title' }, { status: 400 })
+    if (!title) return bad('missing_title', 'กรุณาใส่ชื่อหนังสือ')
   }
 
   const sb = db()
@@ -153,7 +155,7 @@ export async function POST(req: NextRequest) {
         ai_confidence,
         ai_extracted_at: new Date().toISOString(),
       }).select('id').single()
-      if (bookErr) { console.error('[sell-flow/commit] book insert:', bookErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
+      if (bookErr) { console.error('[sell-flow/commit] book insert:', bookErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
       bookId = newBook.id
     }
   }
@@ -178,7 +180,7 @@ export async function POST(req: NextRequest) {
     photos,
     status: 'active',
   })
-  if (listErr) { console.error('[sell-flow/commit] listing insert:', listErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
+  if (listErr) { console.error('[sell-flow/commit] listing insert:', listErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
 
   // Pioneer: ผู้บุกเบิกหนังสือเล่มนี้บน platform → +1 pioneer count
   if (isPioneer) {

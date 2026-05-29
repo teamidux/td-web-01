@@ -16,7 +16,7 @@ function db() {
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'unauthorized', message: 'หมดเวลาเข้าสู่ระบบ กรุณา login ใหม่' }, { status: 401 })
   // ไม่มี rate limit — auth + phone OTP + photo URL whitelist พอสำหรับกัน spam
   // (endpoint ไม่ใช้ AI → ไม่มี cost burn concern)
 
@@ -26,19 +26,20 @@ export async function POST(req: NextRequest) {
     existing_book_id, existing_cover_url,
   } = await req.json()
 
-  // Validate
-  if (!isbn || typeof isbn !== 'string' || isbn.length > 20) return NextResponse.json({ error: 'missing isbn' }, { status: 400 })
-  if (!title || typeof title !== 'string' || title.length > 500) return NextResponse.json({ error: 'invalid title' }, { status: 400 })
+  // Validate — error + message (user-facing). message ภาษาไทยตรง toast เลย
+  const bad = (code: string, message: string) => NextResponse.json({ error: code, message }, { status: 400 })
+  if (!isbn || typeof isbn !== 'string' || isbn.length > 20) return bad('missing_isbn', 'ไม่พบ ISBN กรุณาสแกนหรือกรอกใหม่')
+  if (!title || typeof title !== 'string' || title.length > 500) return bad('invalid_title', 'ชื่อหนังสือไม่ถูกต้อง (กรอก 1–500 ตัว)')
   // isFinite() catch Infinity/-Infinity/NaN ในคราวเดียว
   if (typeof price !== 'number' || !isFinite(price) || price <= 0 || price > 999999) {
-    return NextResponse.json({ error: 'invalid price' }, { status: 400 })
+    return bad('invalid_price', 'ราคาไม่ถูกต้อง (กรอก 1–999,999 บาท)')
   }
-  if (!contact?.trim() || contact.length > 200) return NextResponse.json({ error: 'invalid contact' }, { status: 400 })
-  if (!condition) return NextResponse.json({ error: 'missing condition' }, { status: 400 })
+  if (!contact?.trim() || contact.length > 200) return bad('invalid_contact', 'ช่องทางติดต่อไม่ถูกต้อง — เพิ่มเบอร์โทรหรือ LINE ID ในโปรไฟล์')
+  if (!condition) return bad('missing_condition', 'กรุณาเลือกสภาพหนังสือ')
   // Length caps กัน DoS จาก payload ใหญ่
-  if (author && (typeof author !== 'string' || author.length > 300)) return NextResponse.json({ error: 'invalid author' }, { status: 400 })
-  if (translator && (typeof translator !== 'string' || translator.length > 300)) return NextResponse.json({ error: 'invalid translator' }, { status: 400 })
-  if (notes && (typeof notes !== 'string' || notes.length > 2000)) return NextResponse.json({ error: 'invalid notes' }, { status: 400 })
+  if (author && (typeof author !== 'string' || author.length > 300)) return bad('invalid_author', 'ชื่อผู้เขียนยาวเกินไป (เกิน 300 ตัว)')
+  if (translator && (typeof translator !== 'string' || translator.length > 300)) return bad('invalid_translator', 'ชื่อผู้แปลยาวเกินไป (เกิน 300 ตัว)')
+  if (notes && (typeof notes !== 'string' || notes.length > 2000)) return bad('invalid_notes', 'หมายเหตุยาวเกินไป (เกิน 2,000 ตัว)')
 
   // TODO: listing cap — ปลดชั่วคราว (launch phase ต้องการ growth ก่อน)
   // เปิดใช้เมื่อ user ใหญ่ขึ้น + เจอ spam จริง
@@ -49,11 +50,11 @@ export async function POST(req: NextRequest) {
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const EXPECTED_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/listing-photos/`
   if (photos !== undefined && photos !== null) {
-    if (!Array.isArray(photos)) return NextResponse.json({ error: 'invalid photos' }, { status: 400 })
-    if (photos.length > 5) return NextResponse.json({ error: 'too many photos' }, { status: 400 })
+    if (!Array.isArray(photos)) return bad('invalid_photos', 'รูปภาพไม่ถูกต้อง')
+    if (photos.length > 5) return bad('too_many_photos', 'อัปโหลดได้สูงสุด 5 รูป')
     for (const url of photos) {
       if (typeof url !== 'string' || !url.startsWith(EXPECTED_PREFIX)) {
-        return NextResponse.json({ error: 'invalid photo url' }, { status: 400 })
+        return bad('invalid_photo_url', 'รูปที่อัปโหลดผิดพลาด ลองใหม่อีกครั้ง')
       }
     }
   }
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
         language: language || 'th',
         source: 'community',
       }).select('id').single()
-      if (bookErr) { console.error('[listings/create] book insert:', bookErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
+      if (bookErr) { console.error('[listings/create] book insert:', bookErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
       bookId = newBook.id
     }
   }
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
     photos: photos || [],
     status: 'active',
   })
-  if (listErr) { console.error('[listings/create] listing insert:', listErr); return NextResponse.json({ error: 'db_error' }, { status: 500 }) }
+  if (listErr) { console.error('[listings/create] listing insert:', listErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
 
   // 4. ถ้า user เป็น pioneer → update pioneer_count
   if (isPioneer) {
