@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
-import { tryUpgradeBmBook } from '@/lib/book-upgrade'
+import { tryUpgradeBmBook, findExistingBookByTitle } from '@/lib/book-upgrade'
 
 export const runtime = 'nodejs'
 
@@ -77,6 +77,14 @@ export async function POST(req: NextRequest) {
         const upgradedId = await tryUpgradeBmBook(sb, { isbn, title, author })
         if (upgradedId) {
           bookId = upgradedId
+        }
+      } else {
+        // ไม่มี ISBN → กันสร้าง BM-xxx ซ้ำกับเล่มที่มีอยู่แล้ว (ชื่อตรง + author เข้ากันได้)
+        const existingId = await findExistingBookByTitle(sb, { title, author })
+        if (existingId) {
+          bookId = existingId
+          const { data: found } = await sb.from('books').select('cover_url').eq('id', existingId).maybeSingle()
+          bookCoverUrl = found?.cover_url || ''
         }
       }
     }

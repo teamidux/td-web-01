@@ -17,6 +17,53 @@ function normalizeAuthor(a: string | null | undefined): string {
 }
 
 /**
+ * ตรงข้ามกับ tryUpgradeBmBook: user ลงขายแบบ *ไม่มี* ISBN (จะสร้าง BM-xxx)
+ * → หาก่อนว่ามีเล่มชื่อเดียวกันในระบบอยู่แล้วไหม (ไม่ว่าจะ ISBN จริงหรือ BM เดิม)
+ * กันสร้าง record ซ้ำ (เคสจริง: The Secret / แก่ช้าลงแน่ มีทั้ง BM-xxx และ ISBN)
+ * @returns bookId ของเล่มเดิม หรือ null ถ้าไม่เจอ / ไม่ชัวร์
+ */
+export async function findExistingBookByTitle(
+  sb: SupabaseClient,
+  opts: { title: string; author?: string | null }
+): Promise<string | null> {
+  const { title, author } = opts
+  if (!title?.trim()) return null
+  const titleNorm = normalizeTitle(title)
+  if (titleNorm.length < 3) return null
+
+  const { data: candidates, error } = await sb
+    .from('books')
+    .select('id, title, author, isbn')
+    .eq('title_norm', titleNorm)
+    .limit(5)
+  if (error) {
+    console.error('[book-upgrade] findExistingBookByTitle failed:', error.message)
+    return null
+  }
+  if (!candidates || candidates.length === 0) return null
+
+  const authorNew = normalizeAuthor(author)
+  const compatible = candidates.filter(c => {
+    if (!authorNew || !c.author) return true
+    const authorOld = normalizeAuthor(c.author)
+    if (!authorOld) return true
+    return authorOld.includes(authorNew) || authorNew.includes(authorOld)
+  })
+  if (compatible.length === 0) return null
+
+  // เลือกเล่มที่มี ISBN จริงก่อน BM-xxx; ถ้ามี ISBN จริงหลายเล่ม (คนละฉบับ) → ไม่เดา
+  const real = compatible.filter(c => c.isbn && !c.isbn.startsWith('BM-'))
+  if (real.length > 1) {
+    console.warn(`[book-upgrade] ambiguous — ${real.length} ISBN books match "${title}", skip`)
+    return null
+  }
+  const pick = real[0] || (compatible.length === 1 ? compatible[0] : null)
+  if (!pick) return null
+  console.log(`[book-upgrade] ✓ reuse ${pick.isbn} for no-ISBN listing (title="${title}")`)
+  return pick.id
+}
+
+/**
  * พยายาม upgrade BM-xxx book ที่ title match → ใช้ real ISBN แทน
  * @returns bookId ของ book ที่ upgrade แล้ว หรือ null ถ้าไม่เจอ match
  */

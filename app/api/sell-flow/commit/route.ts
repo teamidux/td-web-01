@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
-import { tryUpgradeBmBook } from '@/lib/book-upgrade'
+import { tryUpgradeBmBook, findExistingBookByTitle } from '@/lib/book-upgrade'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -140,6 +140,14 @@ export async function POST(req: NextRequest) {
         author,
       })
       if (upgradedId) bookId = upgradedId
+    }
+    // ไม่มี ISBN (จะได้ BM-xxx) → ถ้ามีเล่มชื่อเดียวกันอยู่แล้ว ใช้เล่มนั้นแทนการสร้างซ้ำ
+    if (!bookId && !isbn_in) {
+      const existingId = await findExistingBookByTitle(sb, {
+        title: subtitle ? `${title} ${subtitle}` : title,
+        author,
+      })
+      if (existingId) bookId = existingId
     }
     if (!bookId) {
       // รวม subtitle เข้า title ถ้ามี (user ขอแบบนี้ — ค้นง่ายกว่า)

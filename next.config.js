@@ -3,6 +3,13 @@ const nextConfig = {
   images: {
     domains: ['covers.openlibrary.org', 'books.google.com'],
   },
+  async redirects() {
+    return [
+      // เล่มซ้ำที่รวมเข้าเล่ม ISBN แล้ว (supabase/merge_duplicate_books.sql) — กัน 404 + ส่งสัญญาณ canonical ให้ Google
+      { source: '/book/BM-MA69Y', destination: '/book/9789749898420', permanent: true },
+      { source: '/book/BM-KB4NW', destination: '/book/9786162871290', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {
