@@ -1,4 +1,4 @@
-// Admin: ดูข้อความจากสมาชิก + reports
+// Admin: ดูข้อความจากสมาชิก + reports + feedback
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
@@ -21,8 +21,25 @@ export async function GET() {
     sb.from('feedback').select('*, user:user_id(display_name)').order('created_at', { ascending: false }).limit(50),
   ])
 
+  // คำตอบที่ admin เคยส่งให้ข้อความติดต่อ — เก็บอยู่ใน notifications (metadata.contact_message_id)
+  // เพราะ contact_messages ไม่มี column เก็บคำตอบ
+  const msgIds = (messages || []).map((m: any) => m.id)
+  let replies: Record<string, { body: string; created_at: string }> = {}
+  if (msgIds.length) {
+    const { data: notifs } = await sb
+      .from('notifications')
+      .select('body, created_at, metadata')
+      .eq('type', 'system')
+      .in('metadata->>contact_message_id', msgIds)
+      .order('created_at', { ascending: false })
+    for (const n of notifs || []) {
+      const mid = (n as any).metadata?.contact_message_id
+      if (mid && !replies[mid]) replies[mid] = { body: (n as any).body || '', created_at: (n as any).created_at }
+    }
+  }
+
   return NextResponse.json({
-    messages: messages || [],
+    messages: (messages || []).map((m: any) => ({ ...m, reply: replies[m.id] || null })),
     reports: reports || [],
     feedback: feedback || [],
   })
