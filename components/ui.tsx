@@ -821,11 +821,13 @@ export function BookCover({
   isbn,
   title,
   size = 68,
+  priority = false,
 }: {
   coverUrl?: string
   isbn?: string
   title?: string
   size?: number
+  priority?: boolean   // true = รูปหลักของหน้า (LCP) → โหลดทันที ไม่ lazy
 }) {
   // Priority: coverUrl จาก DB (user อัปโหลด) → ISBN proxy (Google/OpenLibrary)
   const src = coverUrl
@@ -846,8 +848,12 @@ export function BookCover({
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         <img
           src={src || '/nocover.webp'}
-          alt={title || 'ไม่มีภาพปก'}
-          loading="lazy"
+          alt={title ? `ปกหนังสือ ${title}` : 'ไม่มีภาพปก'}
+          width={size}
+          height={Math.round(size * 1.5)}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          {...(priority ? ({ fetchpriority: 'high' } as Record<string, string>) : {})}  // React 18 types ยังไม่มี prop นี้
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           onError={(e) => {
             // ถ้าโหลด cover ไม่สำเร็จ → fallback ไป nocover.webp

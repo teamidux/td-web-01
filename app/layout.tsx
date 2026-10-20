@@ -31,6 +31,32 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
+const siteJsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name: 'BookMatch',
+    url: siteUrl,
+    logo: `${siteUrl}/api/icon?size=512`,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    name: 'BookMatch',
+    alternateName: 'บุ๊คแมทช์ ตลาดหนังสือมือสอง',
+    url: siteUrl,
+    inLanguage: 'th',
+    publisher: { '@id': `${siteUrl}/#organization` },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${siteUrl}/search?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  },
+]
+
 export default function RootLayout({
   children,
 }: {
@@ -46,12 +72,16 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/api/icon?size=180" />
         <link rel="icon" type="image/png" sizes="192x192" href="/api/icon?size=192" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap"
-          rel="stylesheet"
-        />
+        {/* ฟอนต์ Kanit self-hosted (ดู globals.css) — preload น้ำหนักที่ใช้ above-the-fold */}
+        <link rel="preload" href="/fonts/kanit-thai-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/kanit-thai-700.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body>
+        {/* Schema.org site-wide: Organization + WebSite (sitelinks search box → /search?q=) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd).replace(/</g, '\\u003c') }}
+        />
         <AuthProvider>
           <LineBrowserBanner />
           <FacebookBrowserBanner />

@@ -29,10 +29,12 @@ const EXEMPT_PATTERNS = [
 
 // Well-known search engine crawlers — allow ผ่านโดยไม่ rate limit
 // (เราอยาก Google/Bing crawl เยอะๆ เพื่อ SEO)
-const SEARCH_BOT_UA_REGEX = /googlebot|bingbot|duckduckbot|yandexbot|baiduspider|applebot|facebookexternalhit|twitterbot|linkedinbot/i
+const SEARCH_BOT_UA_REGEX = /googlebot|google-inspectiontool|googleother|storebot-google|adsbot-google|bingbot|bingpreview|duckduckbot|yandexbot|baiduspider|applebot|facebookexternalhit|twitterbot|linkedinbot|line-poker|oai-searchbot|chatgpt-user|perplexitybot|perplexity-user|claude-user|claude-searchbot/i
 
 // Known aggressive scrapers / AI crawlers — block เลย (ตรงกับ robots.txt)
-const BLOCKED_UA_REGEX = /gptbot|claude-web|claudebot|ccbot|anthropic-ai|chatgpt-user|perplexitybot|scrapy|python-requests|httpx|curl\//i
+// (บอทฝั่ง "ค้นหา/ตอบคำถาม" ของ AI เช่น OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-User
+//  ปล่อยผ่านเพื่อ AEO — บล็อกเฉพาะบอทที่เก็บข้อมูลไปเทรนโมเดล)
+const BLOCKED_UA_REGEX = /gptbot|claudebot|ccbot|anthropic-ai|bytespider|scrapy|python-requests|httpx|curl\//i
 
 function apiGuard(req: NextRequest, pathname: string): NextResponse | null {
   if (EXEMPT_PATTERNS.some(p => pathname.startsWith(p))) return null

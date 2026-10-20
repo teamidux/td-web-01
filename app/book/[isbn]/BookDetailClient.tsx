@@ -243,23 +243,66 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const maxP = prices.length ? Math.max(...prices) : null
   const avgP = prices.length ? Math.round(prices.reduce((a, b) => a + b) / prices.length) : null
 
+  // ชื่อ/ผู้แต่ง/สำนักพิมพ์ — render ตั้งแต่ SSR (จาก initialBook) ให้ crawler อ่านได้
+  // ใช้ร่วมกันทั้งตอน loading และตอนโหลดเสร็จ → หน้าตาเหมือนเดิม ไม่กระโดด
+  const renderHeaderInfo = (b: Book) => (
+    <>
+      <h1 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>
+        {b.title}
+      </h1>
+      {b.author && (
+        <div style={{ fontSize: 13, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
+          {b.author}
+        </div>
+      )}
+      {b.translator && (
+        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+          แปลโดย {b.translator}
+        </div>
+      )}
+      {(b.publisher || b.language) && (
+        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+          {b.publisher}{b.publisher && b.language ? ' · ' : ''}{b.language === 'th' ? 'ไทย' : b.language === 'en' ? 'อังกฤษ' : b.language}
+        </div>
+      )}
+    </>
+  )
+
   if (loading) return (
     <>
       <Nav />
-      <div className="page">
-        <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
-            <div className="skeleton" style={{ width: 90, height: 120, borderRadius: 10, flexShrink: 0 }} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
-              <div className="skeleton" style={{ height: 18, width: '80%' }} />
-              <div className="skeleton" style={{ height: 13, width: '55%' }} />
-              <div className="skeleton" style={{ height: 13, width: '40%' }} />
-              <div className="skeleton" style={{ height: 30, width: '60%', borderRadius: 8, marginTop: 4 }} />
+      {book ? (
+        // มีข้อมูลจาก SSR แล้ว → แสดง header จริง (ปก/ชื่อ/ผู้แต่ง) + skeleton เฉพาะส่วนที่รอ fetch
+        <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
+          <div style={{ padding: '18px 18px 16px', background: 'white' }}>
+            <div style={{ display: 'flex', gap: 14 }}>
+              <div style={{ width: 108, aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(15,23,42,0.12)', flexShrink: 0 }}>
+                <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={108} priority />
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                {renderHeaderInfo(book)}
+                <div className="skeleton" style={{ height: 30, width: '60%', borderRadius: 8, marginTop: 10 }} />
+              </div>
             </div>
           </div>
+          <div style={{ padding: '16px' }}><SkeletonList count={3} /></div>
         </div>
-        <div style={{ padding: '0 16px' }}><SkeletonList count={3} /></div>
-      </div>
+      ) : (
+        <div className="page">
+          <div style={{ padding: '16px 16px 0' }}>
+            <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
+              <div className="skeleton" style={{ width: 90, height: 120, borderRadius: 10, flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
+                <div className="skeleton" style={{ height: 18, width: '80%' }} />
+                <div className="skeleton" style={{ height: 13, width: '55%' }} />
+                <div className="skeleton" style={{ height: 13, width: '40%' }} />
+                <div className="skeleton" style={{ height: 30, width: '60%', borderRadius: 8, marginTop: 4 }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '0 16px' }}><SkeletonList count={3} /></div>
+        </div>
+      )}
     </>
   )
 
@@ -558,27 +601,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
         <div style={{ padding: '18px 18px 16px', background: 'white' }}>
           <div style={{ display: 'flex', gap: 14 }}>
             <div style={{ width: 108, aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(15,23,42,0.12)', flexShrink: 0 }}>
-              <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={108} />
+              <BookCover coverUrl={book.cover_url} isbn={isbn} title={book.title} size={108} priority />
             </div>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-                {book.title}
-              </div>
-              {book.author && (
-                <div style={{ fontSize: 13, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>
-                  {book.author}
-                </div>
-              )}
-              {book.translator && (
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
-                  แปลโดย {book.translator}
-                </div>
-              )}
-              {(book.publisher || book.language) && (
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
-                  {book.publisher}{book.publisher && book.language ? ' · ' : ''}{book.language === 'th' ? 'ไทย' : book.language === 'en' ? 'อังกฤษ' : book.language}
-                </div>
-              )}
+              {renderHeaderInfo(book)}
 
               {/* Price summary card */}
               {prices.length > 0 && (

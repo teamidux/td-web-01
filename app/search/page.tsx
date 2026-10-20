@@ -18,7 +18,9 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: url },
+    // หน้าผลค้นหาไม่ควรติด index (ซ้ำกับหน้า /book และมีได้ไม่จำกัด) แต่ให้ตาม link ไปหน้าหนังสือได้
+    robots: { index: false, follow: true },
+    alternates: { canonical: `${SITE_URL}/search` },
     openGraph: { title, description, url, type: 'website' },
     twitter: { card: 'summary', title, description },
   }
