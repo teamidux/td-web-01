@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   let q = sb
     .from('books')
     .select('id, isbn, title, author, translator, publisher, category, publish_year, language')
-    .is('description', null)
+    .or('description.is.null,description.eq.')
     .order('active_listings_count', { ascending: false })
     .order('wanted_count', { ascending: false })
     .order('view_count', { ascending: false })
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker))
 
-  let remainingQ = sb.from('books').select('id', { count: 'exact', head: true }).is('description', null)
+  let remainingQ = sb.from('books').select('id', { count: 'exact', head: true }).or('description.is.null,description.eq.')
   if (scope === 'active') remainingQ = remainingQ.or('active_listings_count.gt.0,wanted_count.gt.0')
   const { count: remaining } = await remainingQ
 

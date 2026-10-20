@@ -14,7 +14,7 @@ const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
   : null
 
 // "เกี่ยวกับหนังสือ" — สร้างครั้งแรกที่มีคนเปิดหน้า (รวม crawler) แล้วเก็บลง DB ครั้งต่อไปอ่านจาก DB
-// description = null → ยังไม่เคยลอง, '' → ลองแล้วโมเดลไม่มีอะไรจะเขียน (ไม่ลองซ้ำ)
+// ข้อมูลเดิมเก็บ '' (ไม่ใช่ null) → ถือว่า "ยังไม่มี" ทั้งคู่; ถ้าโมเดลตอบว่าง จะลองใหม่ครั้งหน้า (เกิดน้อย ต้นทุนต่ำ)
 async function ensureDescription(book: {
   id: string; title: string; author?: string | null; translator?: string | null; publisher?: string | null
   category?: string | null; publish_year?: number | null; language?: string | null
@@ -47,7 +47,7 @@ const getBook = cache(async (isbn: string) => {
     .eq('isbn', isbn)
     .maybeSingle()
   if (data) {
-    if (data.description == null && data.id) data.description = await ensureDescription(data)
+    if (!data.description && data.id) data.description = await ensureDescription(data)
     return data
   }
 
