@@ -11,6 +11,7 @@ import { scanBarcode } from '@/lib/scan'
 export default function HomePage() {
   const router = useRouter()
   const [recentListings, setRecentListings] = useState<any[]>([])
+  const [visibleCount, setVisibleCount] = useState(12) // แสดง 12 ก่อน กด "ดูเพิ่มเติม" ทีละ 12
   const [wantedBooks, setWantedBooks] = useState<Book[]>([])
   const [query, setQuery] = useState('')
   const [liveResults, setLiveResults] = useState<any[]>([])
@@ -129,7 +130,7 @@ export default function HomePage() {
       supabase.from('books').select('*').gt('wanted_count', 0).order('wanted_count', { ascending: false }).order('created_at', { ascending: false }).limit(3),
     ])
     const { listings } = await recentRes.json()
-    setRecentListings(diversifyBySeller(listings || [], 3, 12))
+    setRecentListings(diversifyBySeller(listings || [], 3, 50))
     setWantedBooks(wanted || [])
     setLoading(false)
   }
@@ -399,7 +400,7 @@ export default function HomePage() {
           )}
           {!loading && recentListings.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {recentListings.map((l: any) => (
+              {recentListings.slice(0, visibleCount).map((l: any) => (
                 <Link key={l.id} href={`/book/${l.books?.isbn}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', border: '1px solid #EEF2F7', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
                     <div style={{ aspectRatio: '3/4', background: '#F8FAFC', position: 'relative' }}>
@@ -422,6 +423,23 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
+          )}
+          {/* ดูเพิ่มเติม — โหลดจาก pool 50 ที่ดึงมาแล้ว (ไม่ยิง API เพิ่ม) / หมดแล้วพาไป browse */}
+          {!loading && recentListings.length > visibleCount && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount(c => c + 12)}
+              style={{ width: '100%', marginTop: 12, padding: '12px 16px', minHeight: 46, borderRadius: 12, background: 'white', border: '1px solid #E2E8F0', color: '#0F172A', fontFamily: 'Kanit', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              ดูเพิ่มเติม
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>(อีก {recentListings.length - visibleCount} เล่ม)</span>
+            </button>
+          )}
+          {!loading && recentListings.length > 0 && recentListings.length <= visibleCount && (
+            <Link href="/browse" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, padding: '12px 16px', minHeight: 46, borderRadius: 12, background: 'white', border: '1px solid #E2E8F0', color: '#0F172A', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+              ดูหนังสือทั้งหมด
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+            </Link>
           )}
         </div>
 

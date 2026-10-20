@@ -24,6 +24,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
   const [pioneerUserId, setPioneerUserId] = useState<string | null>(null)
   const [isWanted, setIsWanted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [descExpanded, setDescExpanded] = useState(false)
   // showLogin removed — login goes directly to LINE OAuth
   const [showWantedForm, setShowWantedForm] = useState(false)
   const [wantedPrice, setWantedPrice] = useState('')
@@ -268,6 +269,27 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     </>
   )
 
+  // "เกี่ยวกับหนังสือ" — สรุปโดยระบบ (lib/book-description) render ตั้งแต่ SSR ให้ crawler อ่านได้
+  const renderDescription = (b: Book) => {
+    const d = (b.description || '').trim()
+    if (!d) return null
+    const long = d.length > 180
+    return (
+      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1F5F9' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', letterSpacing: '0.02em', marginBottom: 4 }}>เกี่ยวกับหนังสือ</div>
+        <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.65, ...(long && !descExpanded ? { display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : {}) }}>{d}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+          <div style={{ fontSize: 10.5, color: '#94A3B8' }}>สรุปโดยระบบจากข้อมูลหนังสือ</div>
+          {long && (
+            <button type="button" onClick={() => setDescExpanded(v => !v)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'Kanit' }}>
+              {descExpanded ? 'ย่อลง' : 'อ่านเพิ่มเติม'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (loading) return (
     <>
       <Nav />
@@ -284,6 +306,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 <div className="skeleton" style={{ height: 30, width: '60%', borderRadius: 8, marginTop: 10 }} />
               </div>
             </div>
+            {renderDescription(book)}
           </div>
           <div style={{ padding: '16px' }}><SkeletonList count={3} /></div>
         </div>
@@ -670,6 +693,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginTop: 1, lineHeight: 1 }}>{((book as any).view_count || 0).toLocaleString()}</div>
             </div>
           </div>
+          {renderDescription(book)}
         </div>
 
         {/* ─── Wanted toggle card (yellow when active) ─── */}

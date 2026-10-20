@@ -61,7 +61,7 @@ function stripFence(s: string): string {
 // cache VertexAI client ต่อ location — กัน cold-start แต่ละ region
 const clientCache = new Map<string, VertexAI>()
 
-function getClient(location: string): VertexAI {
+export function getVertexClient(location: string): VertexAI {
   const cached = clientCache.get(location)
   if (cached) return cached
   const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_B64
@@ -96,7 +96,7 @@ export async function extractFromCover(args: {
   const location = MODEL_REGION[model_id]
   const t0 = Date.now()
 
-  const vertex = getClient(location)
+  const vertex = getVertexClient(location)
   const model = vertex.getGenerativeModel({
     model: model_id,
     generationConfig: { responseMimeType: 'application/json', temperature: 0 },

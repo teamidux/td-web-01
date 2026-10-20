@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+import { cache } from 'react'
+import { generateBookDescription, isDescriptionEnabled } from '@/lib/book-description'
 import BookDetailClient from './BookDetailClient'
 import { createClient } from '@supabase/supabase-js'
 
@@ -6,6 +8,28 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+// service role — ใช้เฉพาะเขียน books.description (RLS กัน anon เขียน)
+const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null
+
+// "เกี่ยวกับหนังสือ" — สร้างครั้งแรกที่มีคนเปิดหน้า (รวม crawler) แล้วเก็บลง DB ครั้งต่อไปอ่านจาก DB
+// description = null → ยังไม่เคยลอง, '' → ลองแล้วโมเดลไม่มีอะไรจะเขียน (ไม่ลองซ้ำ)
+async function ensureDescription(book: {
+  id: string; title: string; author?: string | null; translator?: string | null; publisher?: string | null
+  category?: string | null; publish_year?: number | null; language?: string | null
+}): Promise<string | null> {
+  if (!admin || !isDescriptionEnabled()) return null
+  try {
+    const { data: ls } = await admin.from('listings').select('notes').eq('book_id', book.id).eq('status', 'active').limit(3)
+    const desc = await generateBookDescription({ ...book, notes: (ls || []).map((l: { notes: string | null }) => l.notes || '') })
+    await admin.from('books').update({ description: desc }).eq('id', book.id)
+    return desc || null
+  } catch (e) {
+    console.warn('[book] describe failed:', e instanceof Error ? e.message : e)
+    return null
+  }
+}
 
 interface PageProps {
   params: { isbn: string }
@@ -15,13 +39,17 @@ interface PageProps {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-async function getBook(isbn: string) {
+// cache() = เรียกครั้งเดียวต่อ request แม้ generateMetadata และ page เรียกทั้งคู่
+const getBook = cache(async (isbn: string) => {
   const { data } = await supabase
     .from('books')
     .select('*, min_price, active_listings_count')
     .eq('isbn', isbn)
     .maybeSingle()
-  if (data) return data
+  if (data) {
+    if (data.description == null && data.id) data.description = await ensureDescription(data)
+    return data
+  }
 
   // ดึงจาก Google Books — cache ที่ Next.js edge 1 ชั่วโมง (ไม่ write DB)
   // หนังสือจะลง DB เฉพาะตอน user list/wantlist (ผ่าน flow ของหน้านั้นๆ)
@@ -53,7 +81,7 @@ async function getBook(isbn: string) {
   } catch {
     return null
   }
-}
+})
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const isbn = decodeURIComponent(params.isbn)
@@ -147,6 +175,7 @@ export default async function BookPage({ params }: PageProps) {
     ...(book.language && { inLanguage: book.language }),
     ...(/^\d{10}(\d{3})?$/.test(isbn) && { isbn }),
     ...(imageUrl && { image: imageUrl }),
+    ...(book.description && { description: book.description }),
   } : null
 
   const productLd = book && priceRange ? {
@@ -154,7 +183,7 @@ export default async function BookPage({ params }: PageProps) {
     '@type': 'Product',
     '@id': `${pageUrl}#product`,
     name: book.title,
-    description: `${book.title}${book.author ? ` โดย ${book.author}` : ''} — หนังสือมือสอง`,
+    description: book.description || `${book.title}${book.author ? ` โดย ${book.author}` : ''} — หนังสือมือสอง`,
     ...(imageUrl && { image: imageUrl }),
     ...(/^\d{10}(\d{3})?$/.test(isbn) && { isbn, gtin13: isbn.length === 13 ? isbn : undefined }),
     category: 'หนังสือ',
