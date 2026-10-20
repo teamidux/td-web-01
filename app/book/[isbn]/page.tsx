@@ -1,5 +1,4 @@
 import { Metadata } from 'next'
-import Script from 'next/script'
 import BookDetailClient from './BookDetailClient'
 import { createClient } from '@supabase/supabase-js'
 
@@ -62,9 +61,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
   if (!book) {
+    // ไม่พบหนังสือ → ไม่ให้ index (กัน soft-404 / หน้าว่างเข้า Google)
     return {
-      title: `ISBN ${isbn} — BookMatch`,
+      title: `ISBN ${isbn}`,
       description: 'ค้นหาหนังสือมือสองราคาดีบน BookMatch',
+      robots: { index: false, follow: false },
     }
   }
 
@@ -75,7 +76,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `${book.active_listings_count} คนกำลังขาย`
     : ''
 
-  const title = `${book.title} มือสอง${authorText} — ซื้อขายราคาถูก | BookMatch`
+  // layout มี template '%s — BookMatch' อยู่แล้ว → ห้ามเติมชื่อเว็บซ้ำตรงนี้
+  const title = `${book.title} มือสอง${authorText} — ซื้อขายราคาถูก`
   const description = `ซื้อ "${book.title}"${authorText}${translatorText} หนังสือมือสอง ${priceText ? priceText + ' ' : ''}${listingText ? listingText + ' ' : ''}ราคาถูก ส่งทั่วไทย | BookMatch ตลาดหนังสือมือสองออนไลน์`
 
   return {
@@ -109,48 +111,74 @@ export default async function BookPage({ params }: PageProps) {
   const book = await getBook(isbn)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bookmatch.app'
 
-  // Schema.org: ใส่ทั้ง Product (Google Shopping) + Book (Google Books)
-  const jsonLd = book ? [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: book.title,
-      description: `${book.title}${book.author ? ` โดย ${book.author}` : ''} — หนังสือมือสอง`,
-      image: book.cover_url ? (book.cover_url.includes('supabase.co') ? book.cover_url : `${siteUrl}/api/cover/${isbn}`) : `${siteUrl}/api/cover/${isbn}`,
-      brand: { '@type': 'Brand', name: book.author || 'BookMatch' },
-      isbn,
-      category: 'หนังสือ',
-      offers: book.active_listings_count > 0 ? {
-        '@type': 'AggregateOffer',
-        lowPrice: book.min_price || undefined,
-        highPrice: undefined,
-        priceCurrency: 'THB',
-        offerCount: book.active_listings_count,
-        availability: 'https://schema.org/InStock',
-        url: `${siteUrl}/book/${isbn}`,
-      } : {
-        '@type': 'Offer',
-        availability: 'https://schema.org/OutOfStock',
-        priceCurrency: 'THB',
-        url: `${siteUrl}/book/${isbn}`,
-      },
+  // ราคาจริงจาก listings ที่ active — ใช้ทำ AggregateOffer (lowPrice/highPrice)
+  // Google บังคับว่า offers ต้องมี price → ถ้าไม่มีคนขาย = ไม่ใส่ offers/Product เลย
+  let priceRange: { low: number; high: number; count: number } | null = null
+  if (book?.id && (book.active_listings_count || 0) > 0) {
+    const { data: ls } = await supabase
+      .from('listings')
+      .select('price')
+      .eq('book_id', book.id)
+      .eq('status', 'active')
+      .gt('price', 0)
+    const prices = (ls || []).map((l: any) => Number(l.price)).filter((n: number) => Number.isFinite(n) && n > 0)
+    if (prices.length) {
+      priceRange = { low: Math.min(...prices), high: Math.max(...prices), count: prices.length }
+    }
+  }
+
+  const pageUrl = `${siteUrl}/book/${isbn}`
+  const imageUrl = book?.cover_url
+    ? (book.cover_url.includes('supabase.co') ? book.cover_url : `${siteUrl}/api/cover/${isbn}`)
+    : undefined
+
+  // Schema.org — Book เสมอ (ข้อมูลบรรณานุกรม) + Product/AggregateOffer เฉพาะตอนมีคนขายจริง
+  // ห้ามใส่ offers ที่ไม่มี price (Search Console: "Either price or priceSpecification.price should be specified")
+  const bookLd = book ? {
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    '@id': `${pageUrl}#book`,
+    name: book.title,
+    url: pageUrl,
+    ...(book.author && { author: { '@type': 'Person', name: book.author } }),
+    ...(book.translator && { translator: { '@type': 'Person', name: book.translator } }),
+    ...(book.publisher && { publisher: { '@type': 'Organization', name: book.publisher } }),
+    ...(book.publish_year && { datePublished: String(book.publish_year) }),
+    ...(book.language && { inLanguage: book.language }),
+    ...(/^\d{10}(\d{3})?$/.test(isbn) && { isbn }),
+    ...(imageUrl && { image: imageUrl }),
+  } : null
+
+  const productLd = book && priceRange ? {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': `${pageUrl}#product`,
+    name: book.title,
+    description: `${book.title}${book.author ? ` โดย ${book.author}` : ''} — หนังสือมือสอง`,
+    ...(imageUrl && { image: imageUrl }),
+    ...(/^\d{10}(\d{3})?$/.test(isbn) && { isbn, gtin13: isbn.length === 13 ? isbn : undefined }),
+    category: 'หนังสือ',
+    isRelatedTo: { '@id': `${pageUrl}#book` },
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'THB',
+      lowPrice: priceRange.low,
+      highPrice: priceRange.high,
+      offerCount: priceRange.count,
+      availability: 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/UsedCondition',
+      url: pageUrl,
     },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Book',
-      name: book.title,
-      author: book.author ? { '@type': 'Person', name: book.author } : undefined,
-      isbn,
-      image: book.cover_url || undefined,
-    },
-  ] : null
+  } : null
+
+  const jsonLd = [bookLd, productLd].filter(Boolean)
 
   return (
     <>
-      {jsonLd && jsonLd.map((ld, i) => (
-        <Script
+      {/* inline <script> ธรรมดา (ไม่ใช่ next/script) → อยู่ใน SSR HTML ให้ crawler อ่านได้ทันที */}
+      {jsonLd.map((ld, i) => (
+        <script
           key={i}
-          id={`book-jsonld-${i}`}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }}
         />
