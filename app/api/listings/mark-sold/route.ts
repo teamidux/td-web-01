@@ -60,6 +60,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, sold_count: newCount })
   }
 
+  // ผู้ขายยืนยันจากแจ้งเตือนว่า "ยังมีอยู่" — บันทึกเวลายืนยันล่าสุด (ไม่เปลี่ยนสถานะ)
+  if (action === 'confirm') {
+    if (listing.status !== 'active') return NextResponse.json({ error: 'listing_not_active' }, { status: 400 })
+    await sb.from('listings').update({ confirmed_at: new Date().toISOString() }).eq('id', listingId)
+    return NextResponse.json({ ok: true })
+  }
+
   if (action === 'remove') {
     await sb.from('listings').update({ status: 'removed' }).eq('id', listingId)
     return NextResponse.json({ ok: true })

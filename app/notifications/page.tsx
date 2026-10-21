@@ -14,6 +14,7 @@ type Notification = {
   url: string | null
   read_at: string | null
   created_at: string
+  metadata?: { listing_id?: string; book_id?: string; availability?: 'available' | 'sold' } | null
 }
 
 function timeAgo(dateStr: string) {
@@ -82,6 +83,26 @@ export default function NotificationsPage() {
     } finally {
       setMarkingAll(false)
     }
+  }
+
+  // ผู้ขายตอบจากแจ้งเตือน "มีคนสนใจ": ยังมี → บันทึกเวลายืนยัน / ขายแล้ว → ปิดประกาศ
+  const respondAvailability = async (n: Notification, answer: 'available' | 'sold') => {
+    if (!user || !n.metadata?.listing_id) return
+    const r = await fetch('/api/listings/mark-sold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId: n.metadata.listing_id, sellerId: user.id, action: answer === 'sold' ? 'sold' : 'confirm' }),
+    })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok && j?.error !== 'listing_not_active') { show('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง'); return }
+    await fetch('/api/notifications/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: n.id, answer }),
+    }).catch(() => {})
+    setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read_at: x.read_at || new Date().toISOString(), metadata: { ...(x.metadata || {}), availability: answer } } : x))
+    window.dispatchEvent(new Event('notifications:read'))
+    show(answer === 'sold' ? 'ปิดประกาศแล้ว' : 'ยืนยันแล้วว่ายังมีอยู่')
   }
 
   const markRead = async (id: string) => {
@@ -215,6 +236,20 @@ export default function NotificationsPage() {
                           {n.body && (
                             <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, marginTop: 2 }}>
                               {n.body}
+                            </div>
+                          )}
+                          {n.type === 'contact' && n.metadata?.listing_id && (
+                            <div style={{ marginTop: 8 }} onClick={e => { e.preventDefault(); e.stopPropagation() }}>
+                              {n.metadata.availability ? (
+                                <span style={{ fontSize: 12, fontWeight: 600, color: n.metadata.availability === 'sold' ? '#64748B' : '#15803D' }}>
+                                  {n.metadata.availability === 'sold' ? '✓ ปิดประกาศแล้ว' : '✓ ยืนยันแล้วว่ายังมีอยู่'}
+                                </span>
+                              ) : (
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button onClick={() => respondAvailability(n, 'available')} style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #86EFAC', background: '#F0FDF4', color: '#15803D', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>ยังมีอยู่</button>
+                                  <button onClick={() => respondAvailability(n, 'sold')} style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontFamily: 'Kanit', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>ขายแล้ว / ปิดประกาศ</button>
+                                </div>
+                              )}
                             </div>
                           )}
                           <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>

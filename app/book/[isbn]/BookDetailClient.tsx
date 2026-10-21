@@ -238,6 +238,15 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     const cleaned = contactPII.phone.trim().replace(/\D/g, '')
     if (cleaned && !allPhones.includes(cleaned)) allPhones.push(cleaned)
   }
+  // ข้อความทักผู้ขายที่มีบริบทครบ (ชื่อเล่ม ราคา ลิงก์) — ผู้ขายไม่ต้องถามกลับว่าเล่มไหน/กี่บาท
+  // LINE ส่วนตัวใส่ข้อความล่วงหน้าไม่ได้ → คัดลอกให้ตอนกดปุ่ม แล้วผู้ซื้อวางในแชท; LINE OA ใส่ให้อัตโนมัติผ่าน oaMessage
+  const contactMessage = contactListing
+    ? `สนใจหนังสือ "${book.title}" ราคา ${contactListing.price} บาท${contactListing.price_includes_shipping ? ' (ส่งฟรี)' : ''} จากประกาศ ${typeof window !== 'undefined' ? window.location.origin : 'https://bookmatch.app'}/book/${isbn} ยังมีอยู่ไหม`
+    : ''
+  const copyContactMessage = () => {
+    if (!contactMessage) return
+    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชท LINE ได้เลย') }).catch(() => {})
+  }
 
   const prices = listings.map(l => l.price)
   const minP = prices.length ? Math.min(...prices) : null
@@ -444,7 +453,9 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                   <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4, fontWeight: 600 }}>LINE ({i + 1})</div>
                 )}
                 <a
-                  href={line.addUrl} target="_blank" rel="noopener noreferrer"
+                  href={line.isOfficial ? `https://line.me/R/oaMessage/@${line.raw}/?${encodeURIComponent(contactMessage)}` : line.addUrl}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={copyContactMessage}
                   style={{
                     width: '100%', padding: '14px 16px', background: '#06C755', color: 'white',
                     border: 'none', borderRadius: 12, fontFamily: 'Kanit', fontSize: 15, fontWeight: 700,
@@ -506,7 +517,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
 
             {/* Copy link — help seller know which book */}
             <button
-              onClick={() => navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))}
+              onClick={copyContactMessage}
               style={{
                 width: '100%', padding: '12px 16px', marginTop: 14,
                 background: copied ? '#DCFCE7' : '#F1F5F9',
@@ -516,7 +527,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 transition: 'all .2s',
               }}
             >
-              {copied ? '✓ คัดลอกลิงก์แล้ว — ส่งให้ผู้ขาย' : '🔗 คัดลอกลิงก์หนังสือเล่มนี้'}
+              {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชทได้เลย' : '📋 คัดลอกข้อความทักผู้ขาย (ชื่อเล่ม ราคา ลิงก์)'}
             </button>
 
             <button

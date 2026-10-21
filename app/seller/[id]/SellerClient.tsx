@@ -42,6 +42,14 @@ export default function SellerClient({ params }: PageProps) {
   const sellerLineId = sellerPII?.line_id?.trim() || ''
   const sellerPhone = sellerPII?.phone?.trim() || ''
   const contactValue = contactListing?.contact?.trim() || ''
+  // ข้อความทักผู้ขายที่มีบริบทครบ (ชื่อเล่ม ราคา ลิงก์) — คัดลอกให้ตอนกดปุ่ม LINE / ปุ่มคัดลอก
+  const contactMessage = contactListing
+    ? `สนใจหนังสือ "${contactListing.books?.title || ''}" ราคา ${contactListing.price} บาท${contactListing.price_includes_shipping ? ' (ส่งฟรี)' : ''} จากประกาศ ${typeof window !== 'undefined' ? window.location.origin : 'https://bookmatch.app'}/book/${contactListing.books?.isbn || ''} ยังมีอยู่ไหม`
+    : ''
+  const copyContactMessage = () => {
+    if (!contactMessage) return
+    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชท LINE ได้เลย') }).catch(() => {})
+  }
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
   const showSellerPhone = sellerPhone && !(isValidPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
 
@@ -263,7 +271,7 @@ export default function SellerClient({ params }: PageProps) {
                   <button onClick={() => navigator.clipboard.writeText(sellerLineId).then(() => show('คัดลอก LINE ID แล้ว'))} style={{ flex: 1, background: 'white', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: '#15803D', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
                     คัดลอก
                   </button>
-                  <a href={`https://line.me/R/ti/p/~${sellerLineId}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#06C755', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+                  <a href={`https://line.me/R/ti/p/~${sellerLineId}`} target="_blank" rel="noopener noreferrer" onClick={copyContactMessage} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#06C755', border: 'none', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: 'white', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
                     💚 เพิ่มเพื่อน
                   </a>
                 </div>
@@ -271,15 +279,12 @@ export default function SellerClient({ params }: PageProps) {
             )}
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 10 }}>ส่งลิงก์หนังสือนี้ให้ผู้ขาย เพื่อให้รู้ว่าคุณสนใจเล่มไหน</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 10 }}>ข้อความพร้อมส่ง มีชื่อเล่ม ราคา และลิงก์ ผู้ขายจะรู้ทันทีว่าเล่มไหน</div>
               <button
-                onClick={() => {
-                  const url = `${window.location.origin}/book/${contactListing.books?.isbn}`
-                  navigator.clipboard.writeText(url).then(() => setCopied(true))
-                }}
+                onClick={copyContactMessage}
                 style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 12, padding: '14px 16px', minHeight: 48, fontFamily: 'Kanit', fontWeight: 600, fontSize: 15, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
               >
-                {copied ? '✓ คัดลอกลิงก์แล้ว' : '🔗 คัดลอกลิงก์หนังสือนี้'}
+                {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชทได้เลย' : '📋 คัดลอกข้อความทักผู้ขาย'}
               </button>
             </div>
           </div>

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     )
 
     // Security: seller_id / book_id เอาจากประกาศจริงใน DB ไม่รับจาก client (กันยิงแจ้งเตือนหา user ใดก็ได้)
-    const { data: lst } = await supabase.from('listings').select('seller_id, book_id').eq('id', listing_id).maybeSingle()
+    const { data: lst } = await supabase.from('listings').select('seller_id, book_id, price').eq('id', listing_id).maybeSingle()
     if (!lst) return NextResponse.json({ ok: true })
     const seller_id = lst.seller_id as string
     const book_id = lst.book_id as string | null
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
       // Web Push แจ้งผู้ขาย — fire-and-forget ไม่ block response
       if (seller_id) {
-        notifySeller(supabase, seller_id, book_id).catch(() => {})
+        notifySeller(supabase, seller_id, book_id, listing_id, typeof lst.price === 'number' ? lst.price : null).catch(() => {})
       }
     }
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function notifySeller(supabase: any, sellerId: string, bookId: string | null) {
+async function notifySeller(supabase: any, sellerId: string, bookId: string | null, listingId: string | null = null, price: number | null = null) {
   // === ดึงข้อมูลหนังสือ + นับจำนวนคนที่เคยกดติดต่อ ===
   let bookTitle = 'หนังสือของคุณ'
   let bookIsbn = ''
@@ -74,9 +74,10 @@ async function notifySeller(supabase: any, sellerId: string, bookId: string | nu
   const title = contactCount === 1
     ? `มีคนสนใจ ${bookTitle}!`
     : `${bookTitle} มีคนสนใจแล้ว ${contactCount} คน!`
+  const priceText = price ? ` (ราคา ฿${price})` : ''
   const body = contactCount === 1
-    ? 'มีคนกดดูช่องทางติดต่อคุณ รอข้อความจากผู้ซื้อได้เลย'
-    : `มี ${contactCount} คนกดดูช่องทางติดต่อคุณแล้ว หนังสือเล่มนี้ขายได้ไวแน่นอน`
+    ? `มีคนกดดูช่องทางติดต่อคุณ${priceText} รอข้อความจากผู้ซื้อได้เลย — เล่มนี้ยังมีอยู่ไหม? ตอบได้ที่หน้าแจ้งเตือน`
+    : `มี ${contactCount} คนกดดูช่องทางติดต่อคุณแล้ว${priceText} — เล่มนี้ยังมีอยู่ไหม? ตอบได้ที่หน้าแจ้งเตือน`
   const url = bookIsbn ? `/book/${bookIsbn}` : '/profile'
 
   // === In-app notification ===
@@ -87,7 +88,7 @@ async function notifySeller(supabase: any, sellerId: string, bookId: string | nu
       title,
       body,
       url,
-      metadata: { book_id: bookId, contact_count: contactCount },
+      metadata: { book_id: bookId, listing_id: listingId, contact_count: contactCount },
     })
   }
 
