@@ -143,6 +143,8 @@ function SellPage() {
   const [aiExtractedIsbn, setAiExtractedIsbn] = useState<string | null>(null)
   // AI status — แสดง card state ต่างกันตามสถานะ
   const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle')
+  // ผล AI ดิบรอบล่าสุด (ไม่มี raw text) — ส่งไปกับ listing เพื่อ log คุณภาพ AI เท่านั้น
+  const aiRawRef = useRef<{ model?: string; duration_ms?: number; parsed?: unknown; parseError?: string | null } | null>(null)
   // Retake count — หลังถ่ายซ้ำ 3 ครั้งไม่สำเร็จ → โผล่ escape hatch ให้พิมพ์เอง
   const [retakeCount, setRetakeCount] = useState(0)
   // Ref เก็บ latest previews สำหรับ cleanup ตอน unmount (กัน memory leak จาก Object URL)
@@ -240,14 +242,22 @@ function SellPage() {
     if (!isValidISBN(q)) { show('กล้องอ่านบาร์โค้ดไม่ชัด ลองสแกนใหม่อีกครั้ง หรือพิมพ์ ISBN เอง'); return }
     setFetching(true)
     setNotFoundMode(null)
-    // ค้น DB ก่อน → ถ้าไม่มี ลอง /api/search ที่ค้น Google Books ฝั่ง server (ไม่โดน client quota)
-    let book = await fetchBookByISBN(q)
-    if (!book?.title) {
-      try {
-        const r = await fetch(`/api/search?q=${q}&mode=all`)
-        const { results } = await r.json()
-        if (results?.length) book = results[0]
-      } catch {}
+    // ISBN ไทย (978-616 / 978-974): Google Books ไม่มีข้อมูล (ตรวจ 2026-10: ตอบว่างทุกเล่ม แต่รอ 3–8 วิ)
+    // → ค้นเฉพาะ DB แล้วเข้าขั้นถ่ายปกให้ AI อ่านทันที | ISBN อื่น: พฤติกรรมเดิม DB → Google → /api/search
+    const isThaiIsbn = /^978(616|974)\d{7}$/.test(q)
+    let book: Partial<Book> | null = null
+    if (isThaiIsbn) {
+      const { data } = await supabase.from('books').select('*').eq('isbn', q).maybeSingle()
+      if (data) book = { ...data, fromDB: true } as any
+    } else {
+      book = await fetchBookByISBN(q)
+      if (!book?.title) {
+        try {
+          const r = await fetch(`/api/search?q=${q}&mode=all`)
+          const { results } = await r.json()
+          if (results?.length) book = results[0]
+        } catch {}
+      }
     }
     if (book?.title) {
       setFetchedBook(book)
@@ -311,6 +321,7 @@ function SellPage() {
     }
     setAiStatus('idle')
     setAiExtractedIsbn(null)
+    aiRawRef.current = null
     setRetakeCount(c => c + 1)
     cameraInputRef.current?.click()
   }
@@ -380,6 +391,7 @@ function SellPage() {
               clearTimeout(timer)
             }
             const j = await r.json()
+            aiRawRef.current = { model: j?.model, duration_ms: j?.duration_ms, parsed: j?.parsed ?? null, parseError: j?.parseError ?? null }
             const parsed = j?.parsed
             if (!parsed || !parsed.title) {
               setAiStatus('failed')
@@ -437,6 +449,7 @@ function SellPage() {
     setIsbn('')
     setMarketPrice(null)
     setAiExtractedIsbn(null)
+    aiRawRef.current = null
     setEditingBookInfo(false)
     setAiStatus('idle')
     setRetakeCount(0)
@@ -552,6 +565,9 @@ function SellPage() {
           photos: photoUrls,
           existing_book_id: (fetchedBook as any)?.id || null,
           existing_cover_url: fetchedBook?.cover_url || '',
+          // log คุณภาพ AI อ่านปก (เฉพาะรอบที่ AI ทำงาน) — server แค่บันทึก ไม่กระทบการสร้างประกาศ
+          ai_extract: notFoundMode && aiRawRef.current ? aiRawRef.current : null,
+          ai_status: notFoundMode ? aiStatus : null,
         }),
       })
       const createData = await createRes.json()

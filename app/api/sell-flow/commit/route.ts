@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
 import { tryUpgradeBmBook, findExistingBookByTitle } from '@/lib/book-upgrade'
+import { logAiScan } from '@/lib/ai-scan-log'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -70,6 +71,9 @@ export async function POST(req: NextRequest) {
   const contact = typeof body.contact === 'string' ? body.contact.trim() : ''
   const notes = typeof body.notes === 'string' ? body.notes.trim() : ''
   const photos = Array.isArray(body.photos) ? body.photos : []
+  // log คุณภาพ AI (optional) — ใช้แค่บันทึก ไม่มีผลต่อการสร้างประกาศ
+  const ai_extract = body.ai_extract && typeof body.ai_extract === 'object' ? body.ai_extract : null
+  const dedup_info = body.dedup && typeof body.dedup === 'object' ? body.dedup : null
 
   // Validate listing fields
   if (!ALLOWED_CONDITION.has(condition)) return bad('invalid_condition', 'กรุณาเลือกสภาพหนังสือ')
@@ -177,7 +181,7 @@ export async function POST(req: NextRequest) {
   const isPioneer = (existingListings || 0) === 0
 
   // Insert listing
-  const { error: listErr } = await sb.from('listings').insert({
+  const { data: newListing, error: listErr } = await sb.from('listings').insert({
     book_id: bookId,
     seller_id: user.id,
     condition,
@@ -187,8 +191,17 @@ export async function POST(req: NextRequest) {
     notes: notes || null,
     photos,
     status: 'active',
-  })
+  }).select('id').single()
   if (listErr) { console.error('[sell-flow/commit] listing insert:', listErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
+
+  // Log AI vs สิ่งที่ผู้ขายลงจริง (ไม่ throw — ถ้า log พังประกาศก็สำเร็จไปแล้ว)
+  if (ai_extract) {
+    await logAiScan(sb, {
+      flow: 'cover', user_id: user.id, book_id: bookId!, listing_id: newListing?.id || null,
+      isbn: isbn_in || null, existing_book_id, ai: ai_extract, dedup: dedup_info,
+      final: { title: subtitle ? `${title} ${subtitle}` : title, author, publisher, language },
+    })
+  }
 
   // Pioneer: ผู้บุกเบิกหนังสือเล่มนี้บน platform → +1 pioneer count
   if (isPioneer) {

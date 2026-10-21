@@ -540,6 +540,13 @@ function SellFlowCoverPageInner() {
           contact: autoContact,
           notes: notes.trim(),
           photos: photoUrls,
+          // log คุณภาพ AI (สิ่งที่อ่านได้ vs สิ่งที่ลงจริง) — server แค่บันทึก ไม่กระทบการสร้างประกาศ
+          ai_extract: resp?.extract
+            ? { model: resp.extract.model, duration_ms: resp.extract.duration_ms, parsed: resp.extract.parsed, parseError: resp.extract.parseError }
+            : null,
+          dedup: resp?.dedup
+            ? { topMatch: resp.dedup.topMatch, searched_by: resp.dedup.searched_by, top_score: resp.dedup.candidates[0]?.score ?? null, candidates: resp.dedup.candidates.length }
+            : null,
         }),
       })
       const j = await r.json()

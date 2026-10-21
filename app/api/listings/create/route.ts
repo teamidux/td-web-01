@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
 import { tryUpgradeBmBook, findExistingBookByTitle } from '@/lib/book-upgrade'
+import { logAiScan } from '@/lib/ai-scan-log'
 
 export const runtime = 'nodejs'
 
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
     isbn, title, author, translator, cover_url, language,
     condition, price, price_includes_shipping, contact, notes, photos,
     existing_book_id, existing_cover_url,
+    ai_extract, ai_status,
   } = await req.json()
 
   // Validate — error + message (user-facing). message ภาษาไทยตรง toast เลย
@@ -119,7 +121,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Insert listing
-  const { error: listErr } = await sb.from('listings').insert({
+  const { data: newListing, error: listErr } = await sb.from('listings').insert({
     book_id: bookId,
     seller_id: user.id,
     condition,
@@ -129,8 +131,18 @@ export async function POST(req: NextRequest) {
     notes: notes?.trim() || null,
     photos: photos || [],
     status: 'active',
-  })
+  }).select('id').single()
   if (listErr) { console.error('[listings/create] listing insert:', listErr); return NextResponse.json({ error: 'db_error', message: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง — ถ้ายังเกิดให้แจ้งผู้ดูแล' }, { status: 500 }) }
+
+  // Log คุณภาพ AI อ่านปก (เฉพาะรอบที่ AI ทำงาน) — ไม่ throw ไม่กระทบประกาศ
+  if (ai_extract && typeof ai_extract === 'object') {
+    await logAiScan(sb, {
+      flow: 'barcode', user_id: user.id, book_id: bookId, listing_id: newListing?.id || null,
+      isbn, existing_book_id: existing_book_id || null, ai: ai_extract,
+      ai_status: typeof ai_status === 'string' ? ai_status : null,
+      final: { title, author: author || '', translator: translator || '', language: language || 'th' },
+    })
+  }
 
   // 4. ถ้า user เป็น pioneer → update pioneer_count
   if (isPioneer) {
