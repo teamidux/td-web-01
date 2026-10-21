@@ -53,10 +53,13 @@ export async function POST(req: NextRequest) {
             new_phone: cleaned,
           })
         } catch (e) { console.error('[user/update] audit log (phone) failed:', e) }
+        // เปลี่ยนเบอร์ = ต้องยืนยัน OTP ใหม่ (ตัดสินใจ 2026-10-21) — กันสวมเบอร์คนอื่นแล้วยังได้ป้าย "ยืนยันแล้ว"
+        allowed.phone_verified_at = null
       }
       allowed.phone = cleaned
     } else if (data.phone.trim() === '') {
       allowed.phone = null
+      allowed.phone_verified_at = null
     } else {
       return NextResponse.json({ error: 'invalid_phone', message: 'เบอร์โทรต้อง 10 หลัก ขึ้นต้น 0' }, { status: 400 })
     }
