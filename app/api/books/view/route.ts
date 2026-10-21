@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { isValidIsbn13 } from '@/lib/isbn'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { isbn, title, author, cover_url, publisher, language, category, list_price } = await req.json()
-    if (!isbn || !/^(978|979)\d{10}$/.test(isbn)) {
+    if (!isbn || typeof isbn !== 'string' || !isValidIsbn13(isbn)) {
       return NextResponse.json({ error: 'invalid isbn' }, { status: 400 })
     }
 
