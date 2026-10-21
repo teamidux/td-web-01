@@ -5,10 +5,16 @@ type Q = { query: string; clicks: number; impressions: number; ctr: number; posi
 type P = { page: string; clicks: number; impressions: number; ctr: number; position: number; queries: { query: string; clicks: number; impressions: number }[] }
 type Seller = { seller_id: string; name: string; channel: string; user_since: string | null; first_listing_at: string; listings: number; active: number; titles: string[]; store?: string | null; is_new: boolean }
 type GscOk = { ok: true; site: string; range: { startDate: string; endDate: string }; summary: { clicks: number; impressions: number; ctr: number; position: number }; daily: { date: string; clicks: number; impressions: number }[]; queries: Q[]; pages: P[] }
-type GscErr = { ok: false; error: string; hint: string; service_email: string | null; range: { startDate: string; endDate: string } }
+type GscErr = { ok: false; error: string; hint: string; service_email: string | null; enable_url?: string | null; range: { startDate: string; endDate: string } }
+type Internal = {
+  total_contacts: number
+  top_viewed: { isbn: string; title: string; author: string | null; views: number; active_listings_count: number; min_price: number | null; wanted_count: number }[]
+  top_contacted: { isbn: string; title: string; author: string | null; contacts: number; active_listings_count: number; min_price: number | null }[]
+}
 type Data = {
   days: number
   gsc: GscOk | GscErr
+  internal: Internal
   sellers: Seller[]
   sellers_new: number
 }
@@ -54,6 +60,9 @@ export default function SeoPage() {
             <div style={{ ...card, border: '1px solid #FDE68A', background: '#FFFBEB' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>ยังอ่าน Search Console ไม่ได้</div>
               <div style={{ fontSize: 14, color: '#78350F', marginBottom: 10 }}>{gErr.hint}</div>
+              {gErr.enable_url && (
+                <a href={gErr.enable_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', fontSize: 14, fontWeight: 700, color: 'white', background: '#D97706', borderRadius: 8, padding: '8px 14px', textDecoration: 'none', marginBottom: 10 }}>เปิด Search Console API ใน Google Cloud →</a>
+              )}
               {gErr.service_email && (
                 <div style={{ fontSize: 13, background: 'white', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 12px', fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 8 }}>{gErr.service_email}</div>
               )}
@@ -138,6 +147,40 @@ export default function SeoPage() {
               </div>
             </>
           )}
+
+          {/* ── ตัวนับในระบบ: เล่มที่ถูกเปิดดู / ถูกกดติดต่อ ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
+            <div style={{ ...card, marginBottom: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>เล่มที่ถูกเปิดดูมากสุด</div>
+              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>ตัวนับ view ของเว็บเรา (สะสมทั้งหมด ไม่แยกช่วงเวลา)</div>
+              {data.internal.top_viewed.length === 0 && <div style={{ fontSize: 14, color: '#CBD5E1' }}>ยังไม่มีข้อมูล</div>}
+              {data.internal.top_viewed.map((b, i) => (
+                <div key={b.isbn} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F8FAFC' }}>
+                  <span style={{ fontSize: 12, color: '#94A3B8', width: 20, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <a href={`/book/${b.isbn}`} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</a>
+                    <div style={{ fontSize: 11, color: '#94A3B8' }}>{b.author || ''}{b.active_listings_count ? ` · ขายอยู่ ${b.active_listings_count}${b.min_price ? ` (฿${b.min_price})` : ''}` : ' · ไม่มีคนขาย'}{b.wanted_count ? ` · ตามหา ${b.wanted_count}` : ''}</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#2563EB', flexShrink: 0 }}>{b.views.toLocaleString()} ครั้ง</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...card, marginBottom: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>เล่มที่มีคนกดติดต่อผู้ขาย</div>
+              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>ช่วง {data.days} วัน · กดติดต่อรวม {data.internal.total_contacts} ครั้ง</div>
+              {data.internal.top_contacted.length === 0 && <div style={{ fontSize: 14, color: '#CBD5E1' }}>ยังไม่มีในช่วงนี้</div>}
+              {data.internal.top_contacted.map((b, i) => (
+                <div key={b.isbn} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F8FAFC' }}>
+                  <span style={{ fontSize: 12, color: '#94A3B8', width: 20, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <a href={`/book/${b.isbn}`} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</a>
+                    <div style={{ fontSize: 11, color: '#94A3B8' }}>{b.author || ''}{b.active_listings_count ? ` · ขายอยู่ ${b.active_listings_count}${b.min_price ? ` (฿${b.min_price})` : ''}` : ''}</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#059669', flexShrink: 0 }}>{b.contacts} ครั้ง</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* ── ผู้ขายในช่วงนี้ ── */}
           <div style={card}>

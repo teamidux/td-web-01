@@ -59,10 +59,38 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'failed'
-    gsc = { ok: false, error: msg, service_email: gscServiceEmail(), range,
-      hint: /gsc_no_access|gsc_403|gsc_401/.test(msg)
-        ? 'เพิ่มอีเมล service account ด้านล่างเป็น user ใน Search Console (Settings → Users and permissions → Add user, สิทธิ์ Restricted) แล้วรีเฟรช'
-        : 'เรียก Search Console ไม่สำเร็จ ดู error ด้านล่าง' }
+    const apiDisabled = /has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(msg)
+    const projectNum = msg.match(/project\s+(\d{6,})/)?.[1]
+    gsc = { ok: false, error: msg.slice(0, 300), service_email: gscServiceEmail(), range,
+      enable_url: apiDisabled ? `https://console.developers.google.com/apis/api/searchconsole.googleapis.com/overview${projectNum ? `?project=${projectNum}` : ''}` : null,
+      hint: apiDisabled
+        ? 'ยังไม่ได้เปิด Google Search Console API ในโปรเจค Google Cloud ของ service account — กดลิงก์ด้านล่าง → Enable → รอ 1 นาที → รีเฟรชหน้านี้'
+        : /gsc_no_access|gsc_403|gsc_401/.test(msg)
+          ? 'เพิ่มอีเมล service account ด้านล่างเป็น user ใน Search Console (Settings → Users and permissions → Add user, สิทธิ์ Restricted) แล้วรีเฟรช'
+          : 'เรียก Search Console ไม่สำเร็จ ดู error ด้านล่าง' }
+  }
+
+  // ── ตัวนับในระบบเราเอง (ไม่ต้องพึ่ง Google): เล่มที่ถูกเปิดดู / เล่มที่มีคนกดติดต่อ ──
+  const sb0 = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const since0 = new Date(Date.now() - days * 86_400_000).toISOString()
+  const [{ data: viewed }, { data: contacts }] = await Promise.all([
+    sb0.from('books').select('isbn, title, author, view_count, active_listings_count, min_price, wanted_count')
+      .gt('view_count', 0).order('view_count', { ascending: false }).limit(40),
+    sb0.from('contact_events').select('book_id, listing_id, created_at').gte('created_at', since0).limit(5000),
+  ])
+  const contactByBook = new Map<string, number>()
+  for (const c of contacts || []) if (c.book_id) contactByBook.set(c.book_id, (contactByBook.get(c.book_id) || 0) + 1)
+  const topContactIds = Array.from(contactByBook.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30)
+  let contacted: { isbn: string; title: string; author: string | null; contacts: number; active_listings_count: number; min_price: number | null }[] = []
+  if (topContactIds.length) {
+    const { data: cb } = await sb0.from('books').select('id, isbn, title, author, active_listings_count, min_price').in('id', topContactIds.map(x => x[0]))
+    const byId = new Map((cb || []).map((b: any) => [b.id, b]))
+    contacted = topContactIds.map(([id, n]) => { const b: any = byId.get(id); return b ? { isbn: b.isbn, title: b.title, author: b.author, contacts: n, active_listings_count: b.active_listings_count || 0, min_price: b.min_price } : null }).filter(Boolean) as typeof contacted
+  }
+  const internal = {
+    total_contacts: (contacts || []).length,
+    top_viewed: (viewed || []).map((b: any) => ({ isbn: b.isbn, title: b.title, author: b.author, views: b.view_count, active_listings_count: b.active_listings_count || 0, min_price: b.min_price, wanted_count: b.wanted_count || 0 })),
+    top_contacted: contacted,
   }
 
   // ── ผู้ขายที่ลงประกาศในช่วงนี้ (แยก "ใหม่" = ไม่เคยลงก่อนช่วงนี้) ──
@@ -105,5 +133,5 @@ export async function GET(req: NextRequest) {
     .map(s => ({ ...s, is_new: !returning.has(s.seller_id) }))
     .sort((a, b) => (a.first_listing_at < b.first_listing_at ? 1 : -1))
 
-  return NextResponse.json({ days, gsc, sellers, sellers_new: sellers.filter(s => s.is_new).length })
+  return NextResponse.json({ days, gsc, internal, sellers, sellers_new: sellers.filter(s => s.is_new).length })
 }

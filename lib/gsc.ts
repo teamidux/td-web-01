@@ -32,7 +32,7 @@ async function gscFetch(path: string, init?: RequestInit): Promise<any> {
   })
   if (!r.ok) {
     const text = await r.text().catch(() => '')
-    throw new Error(`gsc_${r.status}: ${text.slice(0, 200)}`)
+    throw new Error(`gsc_${r.status}: ${text.slice(0, 600)}`)
   }
   return r.json()
 }
