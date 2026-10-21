@@ -517,7 +517,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               </div>
             )}
 
-            {/* ปุ่มคัดลอกข้อความ — เฉพาะผู้ขายที่มี LINE (ผู้ขายที่มีแต่เบอร์ใช้ปุ่ม SMS ที่ใส่ข้อความให้แล้ว) */}
+            {/* ปุ่มคัดลอกข้อความ — เฉพาะผู้ขายที่มี LINE (ผู้ขายที่มีแต่เบอร์ → โทรอย่างเดียว ตัดสินใจไม่ใช้ SMS 2026-10-21) */}
             {allLines.length > 0 && <button
               onClick={copyContactMessage}
               style={{
