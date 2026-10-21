@@ -50,7 +50,7 @@ export default function SellerClient({ params }: PageProps) {
     if (!contactMessage) return
     navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชท LINE ได้เลย') }).catch(() => {})
   }
-  const smsMessage = contactListing ? `สนใจ "${contactListing.books?.title || ''}" ${contactListing.price} บาท bookmatch.app/book/${contactListing.books?.isbn || ''} ยังมีอยู่ไหม` : ''
+
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
   const showSellerPhone = sellerPhone && !(isValidPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
 
@@ -260,13 +260,7 @@ export default function SellerClient({ params }: PageProps) {
                     โทรเลย
                   </a>
                 </div>
-                {/* ผู้ขายที่มีแต่เบอร์ (ไม่มี LINE) → ส่ง SMS พร้อมข้อความที่มีชื่อเล่ม/ราคา/ลิงก์ */}
-                <a
-                  href={`sms:${(isValidPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}?&body=${encodeURIComponent(smsMessage)}`}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, background: 'white', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: '#1D4ED8', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
-                >
-                  💬 ส่ง SMS พร้อมข้อความ
-                </a>
+
               </div>
             )}
 
