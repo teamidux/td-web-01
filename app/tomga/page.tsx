@@ -67,6 +67,7 @@ export default function AdminPage() {
       title: 'วิเคราะห์',
       items: [
         { href: '/tomga/search-logs', icon: '🔍', title: 'Search Logs', desc: 'Keyword ยอดนิยม + demand ที่ไม่มี supply', badge: 0 },
+        { href: '/tomga/seo', icon: '📈', title: 'SEO & ผู้ขายใหม่', desc: 'คำค้น Google ที่พาคนมา (Search Console) + ใครเข้ามาลงขาย', badge: 0 },
       ],
     },
     {
