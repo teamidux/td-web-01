@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import Link from 'next/link'
@@ -42,7 +42,15 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function AdminPage() {
+export default function AdminInvestigateWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}><span className="spin" style={{ width: 28, height: 28 }} /></div>}>
+      <AdminPage />
+    </Suspense>
+  )
+}
+
+function AdminPage() {
   const { user, loading } = useAuth()
   const [searchType, setSearchType] = useState<'phone' | 'name' | 'id'>('phone')
   const [query, setQuery] = useState('')

@@ -1,11 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { Nav, useToast, Toast } from '@/components/ui'
 import { parseLineId } from '@/lib/line-id'
 
-export default function OnboardingPage() {
+export default function OnboardingPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ padding: 60, textAlign: 'center', fontFamily: 'Kanit', color: '#94A3B8' }}>กำลังโหลด...</div>}>
+      <OnboardingPage />
+    </Suspense>
+  )
+}
+
+function OnboardingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading, updateUser } = useAuth()
