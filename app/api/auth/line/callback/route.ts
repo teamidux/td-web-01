@@ -1,6 +1,7 @@
 // Handles return from LINE OAuth — exchanges code for token, creates user + session.
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { safeNext } from '@/lib/safe-next'
 import { createClient } from '@supabase/supabase-js'
 import { createSession, getSessionUser } from '@/lib/session'
 
@@ -142,5 +143,5 @@ export async function GET(req: NextRequest) {
   }
 
   // ไม่ต้อง onboarding แล้ว — LINE ID เป็น optional ใน edit profile
-  return NextResponse.redirect(`${siteUrl}${savedState.next || '/'}`)
+  return NextResponse.redirect(`${siteUrl}${safeNext(savedState.next)}`)
 }

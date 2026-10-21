@@ -66,8 +66,14 @@ function pageGuard(req: NextRequest, pathname: string): NextResponse | null {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  // Allow search engine bots (need to index)
-  if (SEARCH_BOT_UA_REGEX.test(ua)) return null
+  // Search engine bots: ให้โควตาสูง (600/นาที/IP) แทนปล่อยไม่จำกัด — กันคนปลอม UA เป็น Googlebot
+  // มาดึง catalog/จุด AI สรุปเนื้อหา; Googlebot จริงมาจากหลาย IP แต่ละ IP ไม่ถึงนี้
+  if (SEARCH_BOT_UA_REGEX.test(ua)) {
+    if (!checkRateLimit(`pgbot:${getClientIp(req)}`, 600, 60_000)) {
+      return new NextResponse('Too Many Requests', { status: 429, headers: { 'Retry-After': '60' } })
+    }
+    return null
+  }
 
   // Rate limit ต่อ IP — 60 requests/min (สูงพอสำหรับคนดูหนังสือปกติ
   // คน browse เยอะๆก็ไม่เกิน; scraper ที่ดึง 50K เล่มจะเจอ)

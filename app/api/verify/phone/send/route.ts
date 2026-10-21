@@ -45,6 +45,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'phone_in_use' }, { status: 409 })
   }
 
+  // Daily cap ต่อ user และต่อเบอร์ปลายทาง (10/วัน) — กัน SMS bombing + ค่า ThaiBulkSMS (user จริงใช้ 1–2 ครั้ง)
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const [{ count: byUser }, { count: byPhone }] = await Promise.all([
+    sb.from('phone_otps').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', dayAgo),
+    sb.from('phone_otps').select('id', { count: 'exact', head: true }).eq('phone', cleaned).gte('created_at', dayAgo),
+  ])
+  if ((byUser ?? 0) >= 10 || (byPhone ?? 0) >= 10) {
+    return NextResponse.json({ error: 'rate_limited', retry_after: 24 * 60 * 60 }, { status: 429 })
+  }
+
   // Rate limit
   const cutoff = new Date(Date.now() - RATE_LIMIT_MIN * 60 * 1000).toISOString()
   const { data: recent } = await sb

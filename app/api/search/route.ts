@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
   // pages: จำนวน page Google ที่จะดึง (1=light/live, 5=deep/button) max 10
   const pagesParam = parseInt(req.nextUrl.searchParams.get('pages') || '1', 10)
-  const pages = Math.max(1, Math.min(isNaN(pagesParam) ? 1 : pagesParam, 10))
+  const pages = Math.max(1, Math.min(isNaN(pagesParam) ? 1 : pagesParam, 5)) // UI ใช้สูงสุด 5 — cap กันยิง Google 10 หน้า/ครั้ง
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

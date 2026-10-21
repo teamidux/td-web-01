@@ -46,18 +46,34 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     // 2. ถ้ายังไม่มี + มี title → insert (ไม่มี view_count เพื่อกัน column ขาด)
+    // Security: endpoint นี้ไม่ต้อง login (นับ view ของ guest) → ข้อมูลเล่มใหม่ต้องผ่านกรองก่อนลง catalog กลาง
+    //   - จำกัดความยาวทุกช่อง, รูปปกรับเฉพาะโฮสต์ที่รู้จัก, และจำกัดการสร้างเล่มใหม่ต่อ IP (10/นาที)
     if (!existing) {
-      if (!title) return NextResponse.json({ ok: true, skipped: 'no title' })
+      if (!title || typeof title !== 'string') return NextResponse.json({ ok: true, skipped: 'no title' })
+      if (!checkRateLimit(`book-insert:${ip}`, 10, 60_000)) return NextResponse.json({ ok: true, throttled: true })
+      const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && v.length <= max ? v.trim() : null)
+      const supaHost = (() => { try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host } catch { return '' } })()
+      const coverOk = (u: unknown) => {
+        if (typeof u !== 'string' || u.length > 1000) return false
+        try {
+          const h = new URL(u)
+          return h.protocol === 'https:' && (
+            h.host === 'books.google.com' || h.host.endsWith('.googleusercontent.com') ||
+            h.host === 'covers.openlibrary.org' || (!!supaHost && h.host === supaHost))
+        } catch { return false }
+      }
+      const safeTitle = str(title, 500)
+      if (!safeTitle) return NextResponse.json({ ok: true, skipped: 'bad title' })
       const { error: insertErr } = await sb.from('books').insert({
         isbn,
-        title,
-        author: author || '',
-        publisher: publisher || null,
-        cover_url: cover_url || null,
-        language: language || 'th',
+        title: safeTitle,
+        author: str(author, 300) || '',
+        publisher: str(publisher, 200),
+        cover_url: coverOk(cover_url) ? cover_url : null,
+        language: ['th', 'en'].includes(language) ? language : 'th',
         source: 'google_books',
-        category: category || null,
-        list_price: list_price || null,
+        category: str(category, 100),
+        list_price: typeof list_price === 'number' && list_price > 0 && list_price < 100000 ? Math.round(list_price) : null,
       })
       if (insertErr) {
         console.error('[/api/books/view] insert error:', insertErr.message)

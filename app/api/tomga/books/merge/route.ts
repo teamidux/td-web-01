@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser()
   if (!user || !isAdmin(user.id)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
+  // CSRF: GET ที่มีผลข้างเคียง → รับเฉพาะพิมพ์ URL เอง/ลิงก์ในเว็บเรา (ลิงก์จากเว็บอื่นส่ง sec-fetch-site: cross-site)
+  const sfs = req.headers.get('sec-fetch-site')
+  if (sfs && sfs !== 'none' && sfs !== 'same-origin') return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+
   const from = (req.nextUrl.searchParams.get('from') || '').trim()
   const to = (req.nextUrl.searchParams.get('to') || '').trim()
   const confirm = req.nextUrl.searchParams.get('confirm') === '1'

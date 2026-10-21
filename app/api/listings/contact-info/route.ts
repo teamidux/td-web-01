@@ -28,10 +28,11 @@ export async function GET(req: NextRequest) {
   // Query พร้อมกัน — เร็วขึ้น 2x
   const [{ data: listing }, { data: userData }] = await Promise.all([
     supabase.from('listings').select('id').eq('id', listingId).eq('seller_id', sellerId).eq('status', 'active').maybeSingle(),
-    supabase.from('users').select('line_id, phone').eq('id', sellerId).maybeSingle(),
+    supabase.from('users').select('line_id, phone, banned_at, deleted_at').eq('id', sellerId).maybeSingle(),
   ])
 
-  if (!listing) {
+  // ผู้ขายที่ถูกแบน/ลบบัญชี → ไม่ให้ข้อมูลติดต่อ (ประกาศอาจยังค้างอยู่ใน DB)
+  if (!listing || !userData || userData.banned_at || userData.deleted_at) {
     return NextResponse.json({ error: 'listing not found' }, { status: 404 })
   }
 

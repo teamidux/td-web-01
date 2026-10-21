@@ -41,8 +41,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 })
   }
 
+  // นับครั้งก่อนเทียบรหัส แบบ atomic (update สำเร็จเฉพาะเมื่อ attempts ยังเท่าที่อ่านมา)
+  // กันยิงขนานหลาย request ที่เห็น attempts=0 พร้อมกันแล้วเดารหัสได้เกิน 5 ครั้ง
+  const { data: claimed } = await sb
+    .from('phone_otps')
+    .update({ attempts: otp.attempts + 1 })
+    .eq('id', otp.id)
+    .eq('attempts', otp.attempts)
+    .select('id')
+    .maybeSingle()
+  if (!claimed) {
+    return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 })
+  }
+
   if (otp.code !== code) {
-    await sb.from('phone_otps').update({ attempts: otp.attempts + 1 }).eq('id', otp.id)
     return NextResponse.json({ error: 'wrong_code', attempts_left: MAX_ATTEMPTS - otp.attempts - 1 }, { status: 400 })
   }
 

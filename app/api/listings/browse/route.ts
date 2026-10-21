@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from('listings')
-    .select('id, seller_id, price, condition, price_includes_shipping, photos, created_at, books!inner(id, isbn, title, author, cover_url, language, wanted_count), users!seller_id(banned_at, deleted_at)', { count: 'exact' })
+    .select('id, seller_id, price, condition, price_includes_shipping, photos, created_at, books!inner(id, isbn, title, author, cover_url, language, wanted_count), users!seller_id!inner(banned_at, deleted_at)', { count: 'exact' })
     .eq('status', 'active')
     .is('users.banned_at', null)
     .is('users.deleted_at', null)

@@ -7,6 +7,7 @@
 // - appsecret_proof sent with Graph API calls (prevents token hijacking)
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeNext } from '@/lib/safe-next'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { createSession, getSessionUser } from '@/lib/session'
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
     // Link Facebook to current user
     await sb.from('users').update({ facebook_id: fbUserId }).eq('id', currentUser.id)
     const cleanNext = savedState.next.replace(/[?&]link=1/, '').replace(/\?$/, '') || '/profile'
-    return NextResponse.redirect(`${siteUrl}${cleanNext}`)
+    return NextResponse.redirect(`${siteUrl}${safeNext(cleanNext, '/profile')}`)
   }
 
   // Normal login flow — find or create user
@@ -169,5 +170,5 @@ export async function GET(req: NextRequest) {
     return redirectError(`session_failed:${sessionResult.error}`)
   }
 
-  return NextResponse.redirect(`${siteUrl}${savedState.next || '/'}`)
+  return NextResponse.redirect(`${siteUrl}${safeNext(savedState.next)}`)
 }

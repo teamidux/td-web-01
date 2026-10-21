@@ -6,13 +6,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/session'
 import webpush from 'web-push'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
-    const { listing_id, book_id, seller_id } = await req.json()
-    if (!listing_id) return NextResponse.json({ error: 'missing listing_id' }, { status: 400 })
+    // กัน spam แจ้งเตือน/ปั่นสถิติ: จำกัดต่อ IP (คนซื้อจริงกดไม่ถึง) — ตอบ ok เงียบๆ ไม่ให้ block UX
+    if (!checkRateLimit(`contact-event:${getClientIp(req)}`, 30, 60_000)) return NextResponse.json({ ok: true })
+
+    const { listing_id } = await req.json()
+    if (!listing_id || typeof listing_id !== 'string') return NextResponse.json({ error: 'missing listing_id' }, { status: 400 })
 
     const user = await getSessionUser().catch(() => null)
 
@@ -20,6 +24,12 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+
+    // Security: seller_id / book_id เอาจากประกาศจริงใน DB ไม่รับจาก client (กันยิงแจ้งเตือนหา user ใดก็ได้)
+    const { data: lst } = await supabase.from('listings').select('seller_id, book_id').eq('id', listing_id).maybeSingle()
+    if (!lst) return NextResponse.json({ ok: true })
+    const seller_id = lst.seller_id as string
+    const book_id = lst.book_id as string | null
 
     // ไม่บันทึก + ไม่แจ้ง ถ้าตัวเองกดดูของตัวเอง
     const isSelf = user?.id && user.id === seller_id

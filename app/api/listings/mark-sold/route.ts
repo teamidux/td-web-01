@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
 
   if (action === 'sold') {
     if (listing.status === 'sold') return NextResponse.json({ ok: true })
+    // ปิดการขายได้เฉพาะประกาศที่ยัง active — กันวน sold → remove → sold เพื่อปั๊ม sold_count
+    if (listing.status !== 'active') return NextResponse.json({ error: 'listing_not_active' }, { status: 400 })
 
     const now = new Date()
     const createdAt = new Date(listing.created_at)

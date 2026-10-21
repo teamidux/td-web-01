@@ -20,14 +20,21 @@ export async function GET(req: NextRequest) {
   if (!user || !isAdmin(user.id)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   if (!isDescriptionEnabled()) return NextResponse.json({ error: 'ai_not_configured' }, { status: 503 })
 
+  // CSRF: route นี้เป็น GET ที่มีผลข้างเคียง (เรียก AI/เขียน DB) → รับเฉพาะพิมพ์ URL เอง/ลิงก์ในเว็บเรา
+  const sfs = req.headers.get('sec-fetch-site')
+  if (sfs && sfs !== 'none' && sfs !== 'same-origin') return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+
   const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get('limit') || 20), 1), 40)
+  // เล่มที่เคยลองแล้วโมเดลตอบว่าง ('' + updated_at ใหม่) เว้น 7 วันค่อยลองซ้ำ
+  const retryBefore = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const needsDesc = `description.is.null,and(description.eq.,updated_at.lt.${retryBefore})`
   const scope = req.nextUrl.searchParams.get('scope') === 'all' ? 'all' : 'active'
   const sb = db()
 
   let q = sb
     .from('books')
     .select('id, isbn, title, author, translator, publisher, category, publish_year, language')
-    .or('description.is.null,description.eq.')
+    .or(needsDesc)
     .order('active_listings_count', { ascending: false })
     .order('wanted_count', { ascending: false })
     .order('view_count', { ascending: false })
@@ -49,7 +56,7 @@ export async function GET(req: NextRequest) {
           category: b.category, publish_year: b.publish_year, language: b.language,
           notes: (ls || []).map((l: { notes: string | null }) => l.notes || ''),
         })
-        const { error: upErr } = await sb.from('books').update({ description: desc }).eq('id', b.id)
+        const { error: upErr } = await sb.from('books').update({ description: desc, updated_at: new Date().toISOString() }).eq('id', b.id)
         if (upErr) throw new Error(upErr.message)
         results.push({ isbn: b.isbn, ok: true, len: desc.length })
       } catch (e) {
@@ -59,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker))
 
-  let remainingQ = sb.from('books').select('id', { count: 'exact', head: true }).or('description.is.null,description.eq.')
+  let remainingQ = sb.from('books').select('id', { count: 'exact', head: true }).or(needsDesc)
   if (scope === 'active') remainingQ = remainingQ.or('active_listings_count.gt.0,wanted_count.gt.0')
   const { count: remaining } = await remainingQ
 

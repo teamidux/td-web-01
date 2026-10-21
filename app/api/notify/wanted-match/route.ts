@@ -23,20 +23,25 @@ export async function POST(req: NextRequest) {
     const sessionUser = await getSessionUser()
     if (!sessionUser) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-    const { book_id, seller_id, price, isbn } = await req.json()
-    if (!book_id || !seller_id) return NextResponse.json({ ok: true, sent: 0 })
+    // Security: ไม่เชื่อ seller_id / price / isbn จาก client — ผู้ส่งต้องเป็นคนที่มีประกาศ active ของเล่มนี้จริง
+    // และข้อความที่ส่งออก (LINE/push) ใช้ค่าจาก DB เท่านั้น (กันยัดลิงก์หลอกลวงผ่าน OA ของเรา)
+    const body = await req.json().catch(() => ({})) as { book_id?: unknown }
+    const book_id = typeof body.book_id === 'string' ? body.book_id : null
+    const seller_id = sessionUser.id
+    if (!book_id) return NextResponse.json({ ok: true, sent: 0 })
 
     const sb = db()
 
-    // ดึงชื่อหนังสือ
-    const { data: book } = await sb
-      .from('books')
-      .select('title, isbn')
-      .eq('id', book_id)
-      .maybeSingle()
-    if (!book) return NextResponse.json({ ok: true, sent: 0 })
+    // ดึงชื่อหนังสือ + ประกาศล่าสุดของผู้ส่งสำหรับเล่มนี้
+    const [{ data: book }, { data: listing }] = await Promise.all([
+      sb.from('books').select('title, isbn').eq('id', book_id).maybeSingle(),
+      sb.from('listings').select('price').eq('book_id', book_id).eq('seller_id', seller_id).eq('status', 'active')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    ])
+    if (!book || !listing) return NextResponse.json({ ok: true, sent: 0 })
+    const price = typeof listing.price === 'number' ? listing.price : null
 
-    const bookIsbn = isbn || book.isbn
+    const bookIsbn = book.isbn
 
     // หาคนที่ตามหาเล่มนี้ (ไม่รวม seller เองถ้า seller เคยตามหา)
     const { data: wanted } = await sb

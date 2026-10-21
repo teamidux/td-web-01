@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractFromCover, ALLOWED_MODELS } from '@/lib/cover-vision'
 import { checkRateLimit, checkUserActionLimit, getClientIp } from '@/lib/rate-limit'
 import { getSessionUser } from '@/lib/session'
+import { isAdmin } from '@/lib/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,7 +45,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'image_too_large' }, { status: 413 })
   }
 
-  const modelId = body.model && ALLOWED_MODELS.has(body.model) ? body.model : undefined
+  // เลือกโมเดลเองได้เฉพาะ admin (หน้า /test) — user ทั่วไปใช้ default เสมอ กันยิง gemini-2.5-pro เผาเครดิต
+  const modelId = body.model && ALLOWED_MODELS.has(body.model) && isAdmin(user.id) ? body.model : undefined
   try {
     const result = await extractFromCover({ imageBase64, mimeType, modelId })
     return NextResponse.json(result)

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('listings')
-    .select('id, seller_id, price, condition, price_includes_shipping, photos, created_at, books(id, isbn, title, author, cover_url), users!seller_id(banned_at, deleted_at)')
+    .select('id, seller_id, price, condition, price_includes_shipping, photos, created_at, books(id, isbn, title, author, cover_url), users!seller_id!inner(banned_at, deleted_at)')
     .eq('status', 'active')
     .is('users.banned_at', null)
     .is('users.deleted_at', null)

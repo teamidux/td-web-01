@@ -14,7 +14,15 @@ const admin = process.env.SUPABASE_SERVICE_ROLE_KEY
   : null
 
 // "เกี่ยวกับหนังสือ" — สร้างครั้งแรกที่มีคนเปิดหน้า (รวม crawler) แล้วเก็บลง DB ครั้งต่อไปอ่านจาก DB
-// ข้อมูลเดิมเก็บ '' (ไม่ใช่ null) → ถือว่า "ยังไม่มี" ทั้งคู่; ถ้าโมเดลตอบว่าง จะลองใหม่ครั้งหน้า (เกิดน้อย ต้นทุนต่ำ)
+// ข้อมูลเดิมเก็บ '' (ไม่ใช่ null) → ถือว่า "ยังไม่มี" ทั้งคู่
+// ถ้าโมเดลตอบว่าง: เก็บ '' พร้อม updated_at = ตอนนี้ แล้วเว้น 7 วันค่อยลองใหม่ (กันเรียก AI ซ้ำทุก view)
+const DESC_RETRY_MS = 7 * 24 * 60 * 60 * 1000
+function shouldTryDescription(b: { description?: string | null; updated_at?: string | null }): boolean {
+  if (b.description) return false
+  if (b.description === null || b.description === undefined) return true
+  if (!b.updated_at) return true
+  return Date.now() - new Date(b.updated_at).getTime() > DESC_RETRY_MS
+}
 async function ensureDescription(book: {
   id: string; title: string; author?: string | null; translator?: string | null; publisher?: string | null
   category?: string | null; publish_year?: number | null; language?: string | null
@@ -23,7 +31,7 @@ async function ensureDescription(book: {
   try {
     const { data: ls } = await admin.from('listings').select('notes').eq('book_id', book.id).eq('status', 'active').limit(3)
     const desc = await generateBookDescription({ ...book, notes: (ls || []).map((l: { notes: string | null }) => l.notes || '') })
-    await admin.from('books').update({ description: desc }).eq('id', book.id)
+    await admin.from('books').update({ description: desc, updated_at: new Date().toISOString() }).eq('id', book.id)
     return desc || null
   } catch (e) {
     console.warn('[book] describe failed:', e instanceof Error ? e.message : e)
@@ -47,7 +55,7 @@ const getBook = cache(async (isbn: string) => {
     .eq('isbn', isbn)
     .maybeSingle()
   if (data) {
-    if (!data.description && data.id) data.description = await ensureDescription(data)
+    if (data.id && shouldTryDescription(data)) data.description = await ensureDescription(data)
     return data
   }
 

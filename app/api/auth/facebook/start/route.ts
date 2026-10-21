@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { cookies } from 'next/headers'
+import { safeNext } from '@/lib/safe-next'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`
   const redirectUri = `${siteUrl}/api/auth/facebook/callback`
   const state = randomBytes(16).toString('hex')
-  const next = req.nextUrl.searchParams.get('next') || '/'
+  const next = safeNext(req.nextUrl.searchParams.get('next'))
 
   // Store state + next in a short-lived cookie so callback can validate
   cookies().set('bm_fb_oauth_state', JSON.stringify({ state, next }), {
