@@ -117,7 +117,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // เล่มที่ชื่อ+ผู้แต่งซ้ำกับเล่มอื่น (คนละ ISBN/ฉบับพิมพ์) เติม ISBN กัน <title> ซ้ำ
   const shortTitle = book.title.length > 50 ? book.title.slice(0, 48).replace(/\s+\S*$/, '') + '…' : book.title
   let title = `${shortTitle} มือสอง`
-  if (book.author && (title + authorText).length <= 60) title += authorText
+  // ผู้แต่งใช้ชื่อหลักก่อนวงเล็บ (DB เก็บ "Rhonda Byrne (รอนดา เบิร์น)") — ใส่เมื่อรวมแล้ว ≤58 ตัว (+ " — BookMatch" = 70)
+  const shortAuthor = (book.author || '').split(' (')[0].trim()
+  if (shortAuthor && `${title} โดย ${shortAuthor}`.length <= 58) title += ` โดย ${shortAuthor}`
   if (admin && book.title) {
     const { count } = await admin.from('books').select('id', { count: 'exact', head: true })
       .eq('title', book.title).eq('author', book.author || '').neq('isbn', isbn)
