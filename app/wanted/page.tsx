@@ -79,7 +79,7 @@ export default function WantedPage() {
       <Toast msg={msg} />
       <div className="page" style={{ padding: 0, background: '#F8FAFC' }}>
         <div style={{ padding: '16px 16px 0', maxWidth: 500, margin: '0 auto' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 4 }}>เล่มที่ตามหา</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.02em', margin: 0, marginBottom: 4 }}>เล่มที่ตามหา</h1>
           <div style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>เราจะแจ้งเตือนเมื่อมีคนลงขายหนังสือที่คุณต้องการ</div>
 
           {/* LINE OA Add CTA — แสดงถ้า user ยังไม่ add @Bookmatch เป็นเพื่อน */}

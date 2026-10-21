@@ -113,7 +113,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : ''
 
   // layout มี template '%s — BookMatch' อยู่แล้ว → ห้ามเติมชื่อเว็บซ้ำตรงนี้
-  const title = `${book.title} มือสอง${authorText} — ซื้อขายราคาถูก`
+  // <title> ตั้งเป้าไม่เกิน ~60 ตัวอักษร (audit 2026-10: 857 หน้ายาวเกิน) → ตัดชื่อยาว, ใส่ผู้แต่งเมื่อยังมีที่
+  // เล่มที่ชื่อ+ผู้แต่งซ้ำกับเล่มอื่น (คนละ ISBN/ฉบับพิมพ์) เติม ISBN กัน <title> ซ้ำ
+  const shortTitle = book.title.length > 50 ? book.title.slice(0, 48).replace(/\s+\S*$/, '') + '…' : book.title
+  let title = `${shortTitle} มือสอง`
+  if (book.author && (title + authorText).length <= 60) title += authorText
+  if (admin && book.title) {
+    const { count } = await admin.from('books').select('id', { count: 'exact', head: true })
+      .eq('title', book.title).eq('author', book.author || '').neq('isbn', isbn)
+    if ((count || 0) > 0) title += ` (ISBN ${isbn})`
+  }
   const description = `ซื้อ "${book.title}"${authorText}${translatorText} หนังสือมือสอง ${priceText ? priceText + ' ' : ''}${listingText ? listingText + ' ' : ''}ราคาถูก ส่งทั่วไทย | BookMatch ตลาดหนังสือมือสองออนไลน์`
 
   return {

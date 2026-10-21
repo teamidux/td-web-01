@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { isValidIsbn13 } from '@/lib/isbn'
+import { isThaiBook } from '@/lib/thai-book'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,8 @@ export async function POST(req: NextRequest) {
       }
       const safeTitle = str(title, 500)
       if (!safeTitle) return NextResponse.json({ ok: true, skipped: 'bad title' })
+      // เก็บเข้า catalog ถาวรเฉพาะหนังสือไทย — เล่มต่างประเทศยังเปิดดูได้ (ดึงสดจาก Google) แค่ไม่สร้างหน้าถาวร
+      if (!isThaiBook({ isbn, title: safeTitle })) return NextResponse.json({ ok: true, skipped: 'not_thai' })
       const { error: insertErr } = await sb.from('books').insert({
         isbn,
         title: safeTitle,

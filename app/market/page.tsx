@@ -39,9 +39,9 @@ export default function MarketPage() {
       <Nav />
       <div className="page">
         <div style={{ background: 'var(--primary)', padding: '28px 20px 32px', color: 'white' }}>
-          <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.02em', marginBottom: 8 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.02em', margin: 0, marginBottom: 8 }}>
             📊 หนังสือที่ตลาดต้องการ
-          </div>
+          </h1>
           <div style={{ fontSize: 15, lineHeight: 1.6, color: '#E0E7FF' }}>
             หนังสือที่หลายคนกำลังรอซื้อ — ลงขายได้ขายไว
           </div>

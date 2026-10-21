@@ -8,7 +8,7 @@ export default function ContactPage() {
       <Nav />
       <div className="page">
         <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px 80px' }}>
-          <div style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>ติดต่อเรา</div>
+          <h1 style={{ fontFamily: "'Kanit', sans-serif", fontSize: 22, fontWeight: 700, margin: 0, marginBottom: 6 }}>ติดต่อเรา</h1>
           <div style={{ fontSize: 14, color: 'var(--ink3)', marginBottom: 28 }}>มีคำถาม ข้อเสนอแนะ หรืออยากร่วมงานกัน ทักมาได้เลยครับ</div>
 
           {/* Email */}

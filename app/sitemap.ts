@@ -4,12 +4,14 @@
 // ใส่ทั้งหมดจะเปลือง crawl budget และดึงคุณภาพรวมลง → จัดลำดับเป็น tier:
 //   A: มีคนขายอยู่ (active_listings_count > 0)      priority 0.8  weekly
 //   B: มีคนตามหา   (wanted_count > 0)               priority 0.6  weekly
-//   C: มีภาพปก (cover_url)                          priority 0.5  monthly
+//   C: หนังสือไทยที่มีคำอธิบายแล้ว                     priority 0.5  monthly
+//      (2026-10-21: เดิม "มีภาพปก" → ได้หนังสือต่างประเทศ ~1/3 ที่ Google ไม่ index และไม่มีคนไทยค้น)
 // เล่มอื่นๆ ให้ Google เจอเองผ่าน internal link / search
 //
 // PostgREST cap 1000 แถวต่อคำขอ → ต้อง paginate ด้วย .range()
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { isThaiBook } from '@/lib/thai-book'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -20,6 +22,7 @@ const MAX_PER_TIER = 20000
 
 type BookRow = {
   isbn: string | null
+  title: string | null
   created_at: string
   updated_at: string | null
   active_listings_count: number | null
@@ -28,6 +31,7 @@ type BookRow = {
 
 type Tier = {
   filter: (q: any) => any
+  keep?: (b: BookRow) => boolean   // กรองเพิ่มฝั่งโค้ด (เงื่อนไขที่ PostgREST เขียนยาก)
   priority: number
   changeFrequency: 'daily' | 'weekly' | 'monthly'
 }
@@ -35,7 +39,7 @@ type Tier = {
 const TIERS: Tier[] = [
   { filter: q => q.gt('active_listings_count', 0), priority: 0.8, changeFrequency: 'weekly' },
   { filter: q => q.gt('wanted_count', 0), priority: 0.6, changeFrequency: 'weekly' },
-  { filter: q => q.not('cover_url', 'is', null).neq('cover_url', ''), priority: 0.5, changeFrequency: 'monthly' },
+  { filter: q => q.not('description', 'is', null).neq('description', ''), keep: isThaiBook, priority: 0.5, changeFrequency: 'monthly' },
 ]
 
 async function fetchTier(sb: any, tier: Tier): Promise<BookRow[]> {
@@ -43,7 +47,7 @@ async function fetchTier(sb: any, tier: Tier): Promise<BookRow[]> {
   for (let from = 0; from < MAX_PER_TIER; from += PAGE) {
     const base = sb
       .from('books')
-      .select('isbn, created_at, updated_at, active_listings_count, wanted_count')
+      .select('isbn, title, created_at, updated_at, active_listings_count, wanted_count')
       .order('active_listings_count', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .range(from, from + PAGE - 1)
@@ -82,6 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const rows = await fetchTier(sb, tier)
       for (const b of rows) {
         if (!b.isbn || seen.has(b.isbn)) continue   // tier สูงกว่าชนะ (ไม่ซ้ำ)
+        if (tier.keep && !tier.keep(b)) continue
         seen.add(b.isbn)
         bookPages.push({
           url: `${SITE_URL}/book/${encodeURIComponent(b.isbn)}`,

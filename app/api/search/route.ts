@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchGoogleBooksRawDebug, fetchGoogleBooksMultiPage, normalizeForMatch } from '@/lib/search'
+import { isThaiBook } from '@/lib/thai-book'
 
 // Edge runtime: รันที่ edge ใกล้ user (Singapore สำหรับผู้ใช้ไทย) ไม่ใช่ที่
 // iad1 ตาม Hobby plan default — สำคัญเพราะ Google Books API geo-localize
@@ -180,11 +181,12 @@ export async function GET(req: NextRequest) {
     results.length === 0 ? 'none' : isExact ? 'exact' : 'partial'
 
   // ─────────────────────────────────────────────────────────────────
-  // 7. AUTO-CACHE — เก็บทุกเล่มจาก Google raw เข้า DB (ไม่ filter strict)
+  // 7. AUTO-CACHE — เก็บเล่มจาก Google raw เข้า DB (เฉพาะหนังสือไทย — ดู lib/thai-book.ts)
+  //    ผลค้นหาที่ส่งกลับ user ยังมีทุกเล่มเหมือนเดิม แค่เล่มต่างประเทศไม่ถูกเก็บเป็นหน้าถาวร
   // ─────────────────────────────────────────────────────────────────
   const dbIsbnSet = new Set((dbBooks || []).map((b: any) => b.isbn).filter(Boolean))
   const toCache = (googleRaw || [])
-    .filter((b: any) => b.isbn && b.title && !dbIsbnSet.has(b.isbn))
+    .filter((b: any) => b.isbn && b.title && !dbIsbnSet.has(b.isbn) && isThaiBook(b))
     .map((b: any) => ({
       isbn: b.isbn,
       // NFC normalize — กัน Thai unicode bug (composed/decomposed sara am)
