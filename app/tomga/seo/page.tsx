@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 type Q = { query: string; clicks: number; impressions: number; ctr: number; position: number }
 type P = { page: string; clicks: number; impressions: number; ctr: number; position: number; queries: { query: string; clicks: number; impressions: number }[] }
 type Seller = { seller_id: string; name: string; channel: string; user_since: string | null; first_listing_at: string; listings: number; active: number; titles: string[]; store?: string | null; is_new: boolean }
+type GscOk = { ok: true; site: string; range: { startDate: string; endDate: string }; summary: { clicks: number; impressions: number; ctr: number; position: number }; daily: { date: string; clicks: number; impressions: number }[]; queries: Q[]; pages: P[] }
+type GscErr = { ok: false; error: string; hint: string; service_email: string | null; range: { startDate: string; endDate: string } }
 type Data = {
   days: number
-  gsc: { ok: true; site: string; range: { startDate: string; endDate: string }; summary: { clicks: number; impressions: number; ctr: number; position: number }; daily: { date: string; clicks: number; impressions: number }[]; queries: Q[]; pages: P[] }
-     | { ok: false; error: string; hint: string; service_email: string | null; range: { startDate: string; endDate: string } }
+  gsc: GscOk | GscErr
   sellers: Seller[]
   sellers_new: number
 }
@@ -30,8 +31,8 @@ export default function SeoPage() {
   }, [days])
 
   // แยก union ให้ TS narrow ง่าย
-  const gErr = data && !gOk!.ok ? data.gsc : null
-  const gOk = data && gOk!.ok ? data.gsc : null
+  const gErr: GscErr | null = data && data.gsc.ok === false ? (data.gsc as GscErr) : null
+  const gOk: GscOk | null = data && data.gsc.ok === true ? (data.gsc as GscOk) : null
 
   return (
     <div style={{ padding: '24px 16px 80px', maxWidth: 900, margin: '0 auto' }}>
