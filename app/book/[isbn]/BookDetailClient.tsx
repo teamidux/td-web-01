@@ -245,8 +245,10 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
     : ''
   const copyContactMessage = () => {
     if (!contactMessage) return
-    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชทได้เลย') }).catch(() => {})
+    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชท LINE ได้เลย') }).catch(() => {})
   }
+  // SMS: สั้นกว่า (ภาษาไทย 70 ตัวอักษรต่อ 1 ข้อความ) ผู้ซื้อเป็นคนส่งจากเครื่องตัวเอง ไม่ผ่านระบบเรา
+  const smsMessage = contactListing ? `สนใจ "${book.title}" ${contactListing.price} บาท bookmatch.app/book/${isbn} ยังมีอยู่ไหม` : ''
 
   const prices = listings.map(l => l.price)
   const minP = prices.length ? Math.min(...prices) : null
@@ -498,8 +500,7 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 </a>
                 {/* ผู้ขายที่มีแต่เบอร์ (สมัครด้วยเบอร์โทร ไม่มี LINE) → ส่ง SMS พร้อมข้อความที่มีชื่อเล่ม/ราคา/ลิงก์ */}
                 <a
-                  href={`sms:${ph}?&body=${encodeURIComponent(contactMessage)}`}
-                  onClick={copyContactMessage}
+                  href={`sms:${ph}?&body=${encodeURIComponent(smsMessage)}`}
                   style={{
                     width: '100%', padding: '12px 16px', marginTop: 8, background: '#EFF6FF', color: '#1D4ED8',
                     border: '1px solid #BFDBFE', borderRadius: 12, fontFamily: 'Kanit', fontSize: 14, fontWeight: 600,
@@ -527,8 +528,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
               </div>
             )}
 
-            {/* Copy link — help seller know which book */}
-            <button
+            {/* ปุ่มคัดลอกข้อความ — เฉพาะผู้ขายที่มี LINE (ผู้ขายที่มีแต่เบอร์ใช้ปุ่ม SMS ที่ใส่ข้อความให้แล้ว) */}
+            {allLines.length > 0 && <button
               onClick={copyContactMessage}
               style={{
                 width: '100%', padding: '12px 16px', marginTop: 14,
@@ -539,8 +540,8 @@ export default function BookDetailClient({ isbn, initialBook }: { isbn: string; 
                 transition: 'all .2s',
               }}
             >
-              {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชทได้เลย' : '📋 คัดลอกข้อความทักผู้ขาย (ชื่อเล่ม ราคา ลิงก์)'}
-            </button>
+              {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชท LINE ได้เลย' : '📋 คัดลอกข้อความทักผู้ขายทาง LINE (ชื่อเล่ม ราคา ลิงก์)'}
+            </button>}
 
             <button
               onClick={() => { setContactListing(null); setContactPII(null) }}

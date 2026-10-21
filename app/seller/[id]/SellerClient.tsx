@@ -48,8 +48,9 @@ export default function SellerClient({ params }: PageProps) {
     : ''
   const copyContactMessage = () => {
     if (!contactMessage) return
-    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชทได้เลย') }).catch(() => {})
+    navigator.clipboard.writeText(contactMessage).then(() => { setCopied(true); show('คัดลอกข้อความแล้ว วางในแชท LINE ได้เลย') }).catch(() => {})
   }
+  const smsMessage = contactListing ? `สนใจ "${contactListing.books?.title || ''}" ${contactListing.price} บาท bookmatch.app/book/${contactListing.books?.isbn || ''} ยังมีอยู่ไหม` : ''
   const showSellerLine = sellerLineId && sellerLineId !== contactValue
   const showSellerPhone = sellerPhone && !(isValidPhone(contactValue) && contactValue.replace(/\D/g, '') === sellerPhone.replace(/\D/g, ''))
 
@@ -261,8 +262,7 @@ export default function SellerClient({ params }: PageProps) {
                 </div>
                 {/* ผู้ขายที่มีแต่เบอร์ (ไม่มี LINE) → ส่ง SMS พร้อมข้อความที่มีชื่อเล่ม/ราคา/ลิงก์ */}
                 <a
-                  href={`sms:${(isValidPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}?&body=${encodeURIComponent(contactMessage)}`}
-                  onClick={copyContactMessage}
+                  href={`sms:${(isValidPhone(contactValue) ? contactValue : sellerPhone).replace(/\D/g, '')}?&body=${encodeURIComponent(smsMessage)}`}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, background: 'white', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 14px', minHeight: 44, color: '#1D4ED8', fontFamily: 'Kanit', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
                 >
                   💬 ส่ง SMS พร้อมข้อความ
@@ -286,15 +286,17 @@ export default function SellerClient({ params }: PageProps) {
               </div>
             )}
 
+            {sellerLineId && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 10 }}>ข้อความพร้อมส่ง มีชื่อเล่ม ราคา และลิงก์ ผู้ขายจะรู้ทันทีว่าเล่มไหน</div>
+              <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 10 }}>ข้อความพร้อมส่งทาง LINE มีชื่อเล่ม ราคา และลิงก์ ผู้ขายจะรู้ทันทีว่าเล่มไหน</div>
               <button
                 onClick={copyContactMessage}
                 style={{ width: '100%', background: copied ? 'var(--green-bg)' : 'var(--primary-light)', border: `1px solid ${copied ? 'var(--green)' : 'var(--primary)'}`, borderRadius: 12, padding: '14px 16px', minHeight: 48, fontFamily: 'Kanit', fontWeight: 600, fontSize: 15, color: copied ? 'var(--green)' : 'var(--primary)', cursor: 'pointer', transition: 'all .2s' }}
               >
-                {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชทได้เลย' : '📋 คัดลอกข้อความทักผู้ขาย'}
+                {copied ? '✓ คัดลอกข้อความแล้ว — วางในแชท LINE ได้เลย' : '📋 คัดลอกข้อความทักผู้ขายทาง LINE'}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}
